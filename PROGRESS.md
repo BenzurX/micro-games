@@ -81,6 +81,7 @@ resume. A newer plan replaces this whole section. See global CLAUDE.md → Sessi
 - Game 1: **river pulled into v1** (2026-07-03, from v1.1 backlog). Rules: horizontal meander through the middle band (rows 3-5), one water tile per column, enters/exits at different rows (asymmetric); exactly 2 bridges (claimable + passable), one per half; water is impassable/unclaimable; no nodes on river or bridges.
 - Game 1 node placement: same economy each side of the river (2 wood / 2 gold / 2 stone per half = balanced), positions rolled independently per half (asymmetric); 2 specials just off the water (contested, 1 per side); no two nodes orthogonally adjacent (balance wins over this in a rare thin half); each home guaranteed a node within 2 tiles for an opening move.
 - Game 1 art: using Kenney "Board Game Icons" (CC0), tinted per resource — d2=gold, lumber=wood, brick/log=stone (grey), award=special, house=home, watchtower=fortify. No exact gold/stone icon in the pack (stand-ins).
+- Repo structure: **single monorepo** at the pipeline root (GitHub: BenzurX/micro-games, branch `main`). Shared template + every game live as sibling folders. Repo-per-game rejected 2026-07-04 — the shared-template rule makes separate repos require submodules/copy (friction for a solo beginner), and the solo/private/premium model doesn't need per-game isolation. A breakout game can be split out later via git subtree/filter-repo with history intact.
 
 ## Store/Admin Checklist
 - [ ] macOS updated to latest supported version (2018 MBP → Sonoma)
@@ -89,7 +90,7 @@ resume. A newer plan replaces this whole section. See global CLAUDE.md → Sessi
 - [ ] Google Play account ($25) — registered / approved
 - [ ] Note: Google requires a 14-day closed test with 12 testers before public release — recruit testers early
 - [ ] itch.io account created
-- [ ] GitHub repos created (template + game 1)
+- [x] GitHub repo created — single monorepo BenzurX/micro-games (template + all games as folders)
 
 ## Weekly Review (paste this file into Claude chat once a week)
 Ask for: honest assessment of pace vs. targets, one thing to cut, next week's targets. Keep it to one conversation.
