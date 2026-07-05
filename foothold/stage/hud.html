@@ -1,0 +1,276 @@
+<meta charset="utf-8" />
+<style>
+  /* Faithful copy of Foothold's in-game tokens so these previews read true. */
+  :root {
+    --bg: #1b1e2b;
+    --panel: #22263a;
+    --tile-neutral: #2b2f45;
+    --tile-you: #274a9d;
+    --tile-ai: #9d2f3a;
+    --wood: #b5793a;
+    --gold: #f2c14e;
+    --stone: #b9c2d0;
+    --special: #5ad1c8;
+    --you-text: #8fb0ff;
+    --ai-text: #ff9aa5;
+    --ink: #e7e9f0;
+    --ink-dim: #aeb4c6;
+    --ink-faint: #7c8398;
+    --accent: #3d6cff;
+    --hl-claim: #ffe066;   /* wood  */
+    --hl-capture: #ff7043; /* gold  */
+    --hl-siege: #c060ff;   /* gold  */
+    --hl-fortify: #5ad1c8; /* stone */
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 24px 64px;
+    background: #12141f;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-dim); font-size: 14px; margin: 0 0 28px; max-width: 760px; line-height: 1.5; }
+
+  .frames { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+
+  .card { width: 340px; }
+  .card .tag {
+    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px;
+  }
+  .card .note { color: var(--ink-dim); font-size: 13px; line-height: 1.45; margin: 10px 2px 0; }
+
+  /* Portrait game frame — 720x1280 scaled to 340 wide. */
+  .frame {
+    width: 340px; aspect-ratio: 720 / 1280; background: var(--bg);
+    border-radius: 18px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column; padding: 16px 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+
+  /* ---------- shared board ---------- */
+  .board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin: 8px 2px; }
+  .cell {
+    aspect-ratio: 1; background: var(--tile-neutral); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; position: relative;
+  }
+  .cell.you { background: var(--tile-you); }
+  .cell.ai  { background: var(--tile-ai); }
+  .cell.w { color: var(--wood); }
+  .cell.g { color: var(--gold); }
+  .cell.s { color: var(--stone); }
+  .cell.star { color: var(--special); }
+  .cell.home { color: #fff; }
+  .cell.hl-claim   { outline: 2px solid var(--hl-claim);   outline-offset: -2px; }
+  .cell.hl-capture { outline: 2px solid var(--hl-capture); outline-offset: -2px; }
+  .cell.hl-siege   { outline: 2px solid var(--hl-siege);   outline-offset: -2px; }
+  .cell.hl-fortify { outline: 2px solid var(--hl-fortify); outline-offset: -2px; }
+  .cell .shield { position: absolute; top: -2px; right: 1px; font-size: 10px; }
+
+  .turnbar { text-align: center; font-size: 17px; font-weight: 700; margin: 2px 0 6px; }
+  .turnbar .rd { color: var(--ink-dim); font-weight: 600; }
+
+  .endturn {
+    margin: auto 8px 6px; background: var(--accent); color: #fff; text-align: center;
+    font-weight: 700; font-size: 20px; padding: 15px; border-radius: 12px;
+  }
+
+  /* ================= CURRENT (reference) ================= */
+  .cur-hud { display: flex; justify-content: space-between; font-size: 15px; padding: 2px 4px; }
+  .cur-hud .you { color: var(--you-text); }
+  .cur-hud .ai  { color: var(--ai-text); text-align: right; }
+  .cur-hud b { display: block; font-size: 12px; letter-spacing: .05em; }
+  .cur-tiles { text-align: center; color: var(--ink-dim); font-size: 13px; margin: 6px 0; }
+  .cur-legend {
+    color: var(--ink-faint); font-size: 11px; text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: clip; margin-top: 4px;
+  }
+
+  /* ================= A — resource→action cards ================= */
+  .a-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; padding: 0 4px 6px; }
+  .a-top .you { color: var(--you-text); font-weight: 700; }
+  .a-top .ai  { color: var(--ai-text); font-weight: 700; }
+  .a-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
+  .a-cards .rc {
+    background: var(--panel); border-radius: 10px; padding: 9px 7px; text-align: center;
+    border-bottom: 3px solid var(--dot);
+  }
+  .rc .amt { font-size: 22px; font-weight: 800; color: var(--dot); line-height: 1; }
+  .rc .res { font-size: 10px; letter-spacing: .08em; color: var(--ink-dim); margin: 3px 0 6px; text-transform: uppercase; }
+  .rc .act { font-size: 11px; color: var(--ink); font-weight: 600; }
+  .rc .cost { font-size: 10px; color: var(--ink-faint); }
+
+  /* ================= B — color-key legend ================= */
+  .b-chips { display: flex; gap: 8px; justify-content: center; padding: 2px 0 4px; }
+  .chip {
+    display: flex; align-items: center; gap: 5px; background: var(--panel);
+    border-radius: 999px; padding: 5px 11px 5px 8px; font-size: 14px; font-weight: 700;
+  }
+  .chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dot); }
+  .b-key { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .b-key .row { display: flex; align-items: center; gap: 8px; background: var(--panel); border-radius: 8px; padding: 7px 9px; }
+  .b-key .sw { width: 14px; height: 14px; border-radius: 3px; border: 2px solid var(--dot); flex: 0 0 auto; }
+  .b-key .lbl { font-size: 12px; font-weight: 700; }
+  .b-key .cst { font-size: 11px; color: var(--ink-faint); margin-left: auto; }
+
+  /* ================= C — action rail ================= */
+  .c-top { display: flex; justify-content: center; gap: 10px; padding: 2px 0 6px; }
+  .c-res { display: flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 700; }
+  .c-res .dot { width: 11px; height: 11px; border-radius: 3px; background: var(--dot); }
+  .c-rail { margin-top: auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+  .c-rail .btn {
+    background: var(--panel); border-radius: 10px; padding: 8px 4px; text-align: center;
+    border-top: 3px solid var(--dot);
+  }
+  .c-rail .btn.off { opacity: .38; }
+  .c-rail .btn .n { font-size: 12px; font-weight: 700; }
+  .c-rail .btn .c { font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
+  .c-rail .btn .c b { color: var(--dot); }
+</style>
+
+<h1>Foothold — HUD & clarity mockups</h1>
+<p class="sub">
+  The problem: a first-time player sees "W 12 G 12 S 7" with no hint of what each resource does, and
+  the action legend is clipped. Each direction below ties <b>resource → action → cost → the tile-glow
+  color</b> so the core loop reads at a glance. Board colors are live: yellow glow = claim, orange = capture,
+  purple = siege, teal = fortify.
+</p>
+
+<div class="frames">
+  <!-- CURRENT -->
+  <div class="card">
+    <span class="tag">Current (reference)</span>
+    <div class="frame">
+      <div class="turnbar">Round <span class="rd">1/12</span> — Your turn</div>
+      <div class="cur-hud">
+        <div class="you"><b>YOU</b>W 12  G 12  S 7</div>
+        <div class="ai"><b>AI</b>W 10  G 10  S 5</div>
+      </div>
+      <div class="cur-tiles">Tiles  You 2  •  AI 1</div>
+      <div class="board" data-board></div>
+      <div class="endturn">End Turn</div>
+      <div class="cur-legend">Claim neutral (5 wood) · Capture enemy (8 gold) · Siege fortified (16 gold) · Fortify yours (6 sto</div>
+    </div>
+    <p class="note">What ships today. Raw letters, no action mapping, legend clips off the frame.</p>
+  </div>
+
+  <!-- A -->
+  <div class="card">
+    <span class="tag">A · Resource → action cards</span>
+    <div class="frame">
+      <div class="turnbar">Round <span class="rd">1/12</span> — Your turn</div>
+      <div class="a-top">
+        <span class="you">YOU · 2 tiles</span>
+        <span class="ai">AI · 1 tile</span>
+      </div>
+      <div class="board" data-board></div>
+      <div class="a-cards">
+        <div class="rc" style="--dot:var(--wood)">
+          <div class="amt">12</div><div class="res">Wood</div>
+          <div class="act">Claim</div><div class="cost">5 each</div>
+        </div>
+        <div class="rc" style="--dot:var(--gold)">
+          <div class="amt">12</div><div class="res">Gold</div>
+          <div class="act">Capture · Siege</div><div class="cost">8 · 16</div>
+        </div>
+        <div class="rc" style="--dot:var(--stone)">
+          <div class="amt">7</div><div class="res">Stone</div>
+          <div class="act">Fortify</div><div class="cost">6 each</div>
+        </div>
+      </div>
+      <div class="endturn">End Turn</div>
+    </div>
+    <p class="note">Most explicit: each resource card names the action it powers and its cost. Teaches the
+      triangle fastest; takes the most vertical space.</p>
+  </div>
+
+  <!-- B -->
+  <div class="card">
+    <span class="tag">B · Color-key legend</span>
+    <div class="frame">
+      <div class="turnbar">Round <span class="rd">1/12</span> — Your turn</div>
+      <div class="b-chips">
+        <span class="chip" style="--dot:var(--wood)"><span class="dot"></span>12</span>
+        <span class="chip" style="--dot:var(--gold)"><span class="dot"></span>12</span>
+        <span class="chip" style="--dot:var(--stone)"><span class="dot"></span>7</span>
+      </div>
+      <div class="cur-tiles">You 2 &nbsp;•&nbsp; AI 1</div>
+      <div class="board" data-board></div>
+      <div class="b-key">
+        <div class="row"><span class="sw" style="--dot:var(--hl-claim)"></span><span class="lbl">Claim</span><span class="cst">5 wood</span></div>
+        <div class="row"><span class="sw" style="--dot:var(--hl-capture)"></span><span class="lbl">Capture</span><span class="cst">8 gold</span></div>
+        <div class="row"><span class="sw" style="--dot:var(--hl-siege)"></span><span class="lbl">Siege</span><span class="cst">16 gold</span></div>
+        <div class="row"><span class="sw" style="--dot:var(--hl-fortify)"></span><span class="lbl">Fortify</span><span class="cst">6 stone</span></div>
+      </div>
+      <div class="endturn">End Turn</div>
+    </div>
+    <p class="note">Leans on the board's own language: the legend swatches are the exact glow colors, so
+      "which tiles can I act on" is self-explanatory. Compact resource chips up top.</p>
+  </div>
+
+  <!-- C -->
+  <div class="card">
+    <span class="tag">C · Affordance rail</span>
+    <div class="frame">
+      <div class="turnbar">Round <span class="rd">1/12</span> — Your turn</div>
+      <div class="c-top">
+        <span class="c-res" style="--dot:var(--wood)"><span class="dot"></span>12</span>
+        <span class="c-res" style="--dot:var(--gold)"><span class="dot"></span>12</span>
+        <span class="c-res" style="--dot:var(--stone)"><span class="dot"></span>7</span>
+        <span class="c-res" style="color:var(--ink-dim)">·&nbsp; 2 v 1</span>
+      </div>
+      <div class="board" data-board></div>
+      <div class="c-rail">
+        <div class="btn" style="--dot:var(--hl-claim)"><div class="n">Claim</div><div class="c"><b>5</b> wood</div></div>
+        <div class="btn" style="--dot:var(--hl-capture)"><div class="n">Capture</div><div class="c"><b>8</b> gold</div></div>
+        <div class="btn off" style="--dot:var(--hl-siege)"><div class="n">Siege</div><div class="c"><b>16</b> gold</div></div>
+        <div class="btn" style="--dot:var(--hl-fortify)"><div class="n">Fortify</div><div class="c"><b>6</b> stone</div></div>
+      </div>
+      <div class="endturn">End Turn</div>
+    </div>
+    <p class="note">Game-HUD feel: a 4-button rail color-matched to the glows. Buttons dim when unaffordable
+      (Siege greyed here). Doubles as a live cost readout; most "polished product" of the three.</p>
+  </div>
+</div>
+
+<script>
+  // One shared board so all four frames show the same position — DRY per the stage workflow.
+  // r,c indexed; a small hand-built layout roughly matching the live prototype.
+  const YOU = [[0,0],[0,1]];
+  const AI  = [[7,7]];
+  const NODES = {
+    '0,3':'w','0,4':'s','0,5':'w','1,2':'g','1,6':'w','1,7':'g',
+    '2,2':'g','2,4':'s','2,6':'s','3,0':'g','4,2':'star','4,6':'w','4,7':'s',
+    '5,5':'w','5,6':'s','6,4':'star','7,4':'g','7,6':'g'
+  };
+  const HOME = { '0,0':1, '7,7':1 };
+  // Actionable highlights for the human this turn (adjacent to YOU territory).
+  const HL = { '0,2':'claim','1,0':'claim','1,1':'claim' };
+
+  function buildBoard(el) {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const key = r + ',' + c;
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (YOU.some(p => p[0]===r && p[1]===c)) cell.classList.add('you');
+        if (AI.some(p => p[0]===r && p[1]===c)) cell.classList.add('ai');
+        if (HOME[key]) { cell.classList.add('home'); cell.textContent = '⌂'; }
+        else if (NODES[key]) {
+          const n = NODES[key];
+          if (n === 'w') { cell.classList.add('w'); cell.textContent = 'W'; }
+          else if (n === 'g') { cell.classList.add('g'); cell.textContent = 'G'; }
+          else if (n === 's') { cell.classList.add('s'); cell.textContent = 'S'; }
+          else if (n === 'star') { cell.classList.add('star'); cell.textContent = '★'; }
+        }
+        if (HL[key]) cell.classList.add('hl-' + HL[key]);
+        el.appendChild(cell);
+      }
+    }
+  }
+  document.querySelectorAll('[data-board]').forEach(buildBoard);
+</script>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foothold — Version History</title>
+  <style>
+    :root {
+      --bg:           #1b1e2b;
+      --surface:      #242838;
+      --card:         #2b2f45;
+      --border:       rgba(231, 233, 240, 0.12);
+      --accent:       #3d6cff;
+      --accent-bright:#6f95ff;
+      --accent-dim:   rgba(61, 108, 255, 0.18);
+      --text:         #e7e9f0;
+      --text-muted:   #9aa1b8;
+      --radius:       12px;
+      --radius-sm:    8px;
+      --shadow:       0 4px 24px rgba(0, 0, 0, 0.5);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .page-header {
+      background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+      padding: 40px 24px 32px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px;
+      color: var(--accent); font-size: 0.82rem; font-weight: 600; text-decoration: none;
+      border: 1.5px solid var(--accent); border-radius: var(--radius-sm);
+      padding: 5px 12px; transition: background 0.15s;
+    }
+    .back-link:hover { background: var(--accent-dim); }
+    .page-title {
+      font-size: 2rem; font-weight: 900; letter-spacing: -0.5px;
+      color: var(--accent-bright); text-shadow: 0 2px 12px rgba(61, 108, 255, 0.25);
+      margin-bottom: 10px;
+    }
+    .page-sub {
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 14px;
+    }
+    .page-sub::before, .page-sub::after {
+      content: ''; display: block; width: 36px; height: 1px; background: var(--border);
+    }
+    .page-sub strong { color: var(--accent); font-weight: 700; }
+    .timeline { max-width: 720px; margin: 0 auto; padding: 44px 20px 72px; position: relative; }
+    .timeline::before {
+      content: ''; position: absolute; left: 47px; top: 44px; bottom: 72px; width: 2px;
+      background: linear-gradient(to bottom, var(--accent) 0%, rgba(61, 108, 255, 0.3) 60%, transparent 100%);
+    }
+    .version-entry { display: flex; gap: 20px; margin-bottom: 24px; position: relative; }
+    .version-entry:last-child { margin-bottom: 0; }
+    .v-dot {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      background: var(--bg); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;
+      margin-top: 18px; margin-left: 14px; font-size: 11px; color: var(--text-muted);
+    }
+    .version-entry.current .v-dot { border-color: var(--accent); background: var(--surface); color: var(--accent); font-size: 12px; }
+    .version-entry.oldest .v-dot { border-color: var(--text-muted); color: var(--text-muted); }
+    .v-card {
+      flex: 1; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      box-shadow: var(--shadow); overflow: hidden; transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .v-card:hover { box-shadow: 0 6px 28px rgba(0, 0, 0, 0.65); transform: translateY(-1px); }
+    .version-entry.current .v-card { border-color: var(--accent); }
+    .v-card-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px; border-bottom: 1px solid var(--border); }
+    .v-badge { font-size: 1.2rem; font-weight: 900; color: var(--accent-bright); }
+    .v-current-chip {
+      font-size: 0.6rem; font-weight: 800; letter-spacing: 0.14em; color: var(--accent);
+      border: 1px solid var(--accent); border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+    }
+    .v-date { font-size: 0.78rem; color: var(--text-muted); margin-left: auto; }
+    .v-card-body { padding: 14px 16px; }
+    .v-headline { font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .v-bullets { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .v-bullets li { font-size: 0.85rem; color: var(--text-muted); padding-left: 16px; position: relative; line-height: 1.45; }
+    .v-bullets li::before { content: '-'; position: absolute; left: 0; color: var(--accent); opacity: 0.5; }
+    .v-card-foot { padding: 10px 16px 14px; display: flex; justify-content: flex-end; }
+    .v-open-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.08em; color: var(--text-muted); border: 1.5px solid var(--border);
+      border-radius: 999px; padding: 6px 14px; text-decoration: none;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+    }
+    .v-open-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .version-entry.current .v-open-btn { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
+    <div class="page-title">&#9733; Foothold</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>4 snapshots</strong> captured</div>
+  </div>
+
+  <div class="timeline">
+
+    <!-- v0.04 — current -->
+    <div class="version-entry current">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.04</span>
+          <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 4, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Game-feel &amp; juice pass &mdash; sound, particles, shake</div>
+          <ul class="v-bullets">
+            <li>Procedural Web Audio SFX (no sample files): a distinct sound on claim, build, fortify, siege, end-turn, win &amp; lose</li>
+            <li>Every sound has 5 slight pitch variants so rapid repeats don&rsquo;t fatigue the ear; fortify is a metallic anvil &ldquo;tang&rdquo;</li>
+            <li>Capturing the enemy home plays its own heavier, pitched-down sound (not a normal siege)</li>
+            <li>Colored particle bursts on each tile that flips, plus camera shake (small on siege, big on a base capture)</li>
+            <li>Tiles pop in with an overshoot; the AI now plays its moves one at a time so each lands; animated win/lose overlay</li>
+            <li>Win banner now reads &ldquo;You Win on Round N!&rdquo;; fortify strengthened to &times;3 defense</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.04/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.03 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.03</span>
+          <span class="v-date">July 3, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Portrait 6&times;9 board, a river to cross &amp; real icons</div>
+          <ul class="v-bullets">
+            <li>Board reshaped to 6 wide &times; 9 tall (portrait) for one-handed mobile play</li>
+            <li>A meandering river splits the board through the middle rows &mdash; impassable and unclaimable, one water tile per column</li>
+            <li>Exactly two bridges (one per half) are the only claimable, passable crossings</li>
+            <li>Balanced node economy per half (2 wood / 2 gold / 2 stone) with asymmetric positions and 2 contested specials by the water</li>
+            <li>Kenney &ldquo;Board Game Icons&rdquo; (CC0), tinted per resource, replace the placeholder squares; hover tooltips explain each tile</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.03/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.02 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.02</span>
+          <span class="v-date">July 2, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">New action model, resource split &amp; base-capture win</div>
+          <ul class="v-bullets">
+            <li>Four actions: Claim (empty, gold), Build (resource tile, wood), Fortify (own node, stone), Siege (enemy tile, gold; 2&times; if fortified)</li>
+            <li>One job per resource; player now bottom-right (blue) vs AI top-left (red)</li>
+            <li>HUD reworked: resource counters with per-turn income (+N) and a color-key action legend</li>
+            <li>Filled purple shields mark fortified tiles; home tiles can't be fortified</li>
+            <li>Win by capturing the enemy base (instant) or holding the most tiles at round 12</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.02/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.01 — oldest -->
+    <div class="version-entry oldest">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.01</span>
+          <span class="v-date">July 2, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">First playable prototype — the beginning</div>
+          <ul class="v-bullets">
+            <li>8x8 turn-based territory control: you (top-left) vs a greedy AI (bottom-right)</li>
+            <li>Procedurally scattered wood / gold / stone / special resource nodes</li>
+            <li>Adjacent-only claiming, capture of undefended enemy tiles, fortify to defend</li>
+            <li>Per-turn income (specials multiply), win at round 12 or 60% board control</li>
+            <li>Phaser 3, ES modules, vendored locally — self-contained and offline-playable</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.01/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

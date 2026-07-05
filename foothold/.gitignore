@@ -1,0 +1,14 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.swp
+
+# Node (none used yet, but keep the repo clean if tooling is added later)
+node_modules/
+
+# Note: vendor/phaser.min.js and snapshots/ ARE committed on purpose —
+# the game must stay self-contained and the snapshot history is part of the project.

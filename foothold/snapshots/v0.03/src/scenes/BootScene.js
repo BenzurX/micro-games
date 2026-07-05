@@ -1,0 +1,20 @@
+// BootScene: entry point. Loads the shared UI icons, then hands off to GameScene.
+// Icons are single-color SVGs (white fill) rasterized here and tinted per-resource at
+// draw time, so one file serves both the HUD counters and the on-board nodes.
+export class BootScene extends Phaser.Scene {
+  constructor() {
+    super('BootScene');
+  }
+
+  preload() {
+    // Kenney "Board Game Icons" (CC0). d2→gold, resource_lumber→wood, resource_wood→stone
+    // (the brick-like log tinted grey; pack has no stone icon), award→special, house→home,
+    // watchtower→fortify marker. Rasterize at 128px so they stay crisp when scaled up on retina.
+    const icons = ['gold', 'wood', 'stone', 'special', 'home', 'fortify'];
+    icons.forEach((key) => this.load.svg(`ic_${key}`, `assets/icons/${key}.svg`, { width: 128, height: 128 }));
+  }
+
+  create() {
+    this.scene.start('GameScene');
+  }
+}

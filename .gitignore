@@ -1,0 +1,17 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.swp
+
+# Node (none used yet; keep clean if tooling is added later)
+node_modules/
+
+# Claude Code machine-local settings (permissions allowlist) — not shared
+.claude/settings.local.json
+
+# Committed on purpose (do NOT ignore): .claude/agents/, each game's vendor/phaser.min.js,
+# and snapshots/ — the games must stay self-contained and the snapshot history is the project.

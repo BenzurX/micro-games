@@ -1,0 +1,182 @@
+<meta charset="utf-8" />
+<style>
+  /* B direction, developed against Benzur's Mockup 1: top resource counters with income
+     deltas, material icons on the board, player home bottom-right, bottom action-color
+     legend. Faithful to Foothold's in-game tokens. Icons are emoji PLACEHOLDERS for a
+     TBD icon library. */
+  :root {
+    --bg: #1b1e2b;
+    --panel: #2a2e40;
+    --panel-2: #22263a;
+    --tile-neutral: #2b2f45;
+    --tile-you: #2f56b8;   /* blue player */
+    --tile-ai: #8e2b34;    /* red enemy   */
+    --gold: #f2c14e;
+    --wood: #b5793a;
+    --stone: #b9c2d0;
+    --special: #5ad1c8;
+    --ink: #e7e9f0;
+    --ink-dim: #aeb4c6;
+    --ink-faint: #7c8398;
+    --accent: #3d6cff;
+    --income: #5ac16f;
+    /* Action border colors, per Benzur's spec. */
+    --c-claim:   #ffce3a; /* gold   */
+    --c-build:   #57c97a; /* green  */
+    --c-fortify: #b06bff; /* purple */
+    --c-siege:   #ff6a3d; /* red/orange */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 24px 64px; background: #12141f; color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-dim); font-size: 14px; margin: 0 0 26px; max-width: 720px; line-height: 1.5; }
+  .frames { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+  .col .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  .col .note { color: var(--ink-dim); font-size: 13px; line-height: 1.45; margin: 12px 2px 0; max-width: 360px; }
+
+  /* Portrait frame 720x1280 scaled to 360 wide. */
+  .frame { width: 360px; aspect-ratio: 720 / 1280; background: var(--bg); border-radius: 20px;
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+    padding: 14px 14px 16px; box-shadow: 0 12px 44px rgba(0,0,0,.55); }
+
+  /* ---- top HUD: resource counters + settings ---- */
+  .hud { display: flex; gap: 7px; align-items: center; }
+  .counter { display: flex; align-items: center; gap: 6px; background: var(--panel);
+    border-radius: 10px; padding: 6px 10px 6px 8px; flex: 1; }
+  .counter .ic { font-size: 18px; line-height: 1; }
+  .counter .amt { font-size: 19px; font-weight: 800; }
+  .counter .inc { font-size: 12px; font-weight: 700; color: var(--income); align-self: flex-start; margin-top: 1px; }
+  .gear { width: 38px; height: 38px; flex: 0 0 auto; background: var(--panel); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; }
+
+  .round { text-align: center; font-size: 22px; font-weight: 800; margin: 14px 0 10px; }
+  .round .rd { color: var(--ink-dim); font-weight: 600; }
+
+  /* ---- board ---- */
+  .board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+  .cell { aspect-ratio: 1; background: var(--tile-neutral); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; position: relative; }
+  .cell.you { background: var(--tile-you); }
+  .cell.ai  { background: var(--tile-ai); }
+  .cell .home { font-size: 17px; }
+  /* action highlights (available this turn) */
+  .cell.hl-claim   { box-shadow: inset 0 0 0 3px var(--c-claim); }
+  .cell.hl-build   { box-shadow: inset 0 0 0 3px var(--c-build); }
+  .cell.hl-fortify { box-shadow: inset 0 0 0 3px var(--c-fortify); }
+  .cell.hl-siege   { box-shadow: inset 0 0 0 3px var(--c-siege); }
+  /* already-fortified: solid ring + shield, persists until captured */
+  .cell.fortified  { box-shadow: inset 0 0 0 3px var(--c-fortify); }
+  .cell .shield { position: absolute; top: -3px; right: -1px; font-size: 12px; }
+
+  /* ---- bottom legend (the B idea) ---- */
+  .legend { margin-top: auto; padding-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .legend .row { display: flex; align-items: center; gap: 9px; background: var(--panel-2);
+    border-radius: 9px; padding: 8px 10px; }
+  .legend .sw { width: 15px; height: 15px; border-radius: 4px; flex: 0 0 auto; }
+  .legend .txt { display: flex; flex-direction: column; line-height: 1.15; }
+  .legend .lbl { font-size: 13px; font-weight: 700; }
+  .legend .desc { font-size: 10px; color: var(--ink-faint); }
+  .legend .cst { margin-left: auto; font-size: 13px; font-weight: 700; }
+  .legend .cst .q { color: var(--c-build); }
+  .propose { text-align: center; font-size: 10px; color: var(--ink-faint); margin-top: 7px; }
+
+  .endturn { margin: 10px 6px 0; background: var(--accent); color: #fff; text-align: center;
+    font-weight: 800; font-size: 20px; padding: 14px; border-radius: 12px; }
+</style>
+
+<h1>Foothold — HUD (direction B, developed from Mockup 1)</h1>
+<p class="sub">
+  Merges your Mockup 1 (top resource counters with income deltas, material icons on the board,
+  player home bottom-right) with the B color-key legend. Border colors follow your spec:
+  <b style="color:#ffce3a">Claim</b> gold, <b style="color:#57c97a">Build</b> green,
+  <b style="color:#b06bff">Fortify</b> purple, <b style="color:#ff6a3d">Siege</b> red/orange.
+  Icons are emoji placeholders for the TBD icon library. Costs in the legend use my proposed
+  currency mapping — confirm or change and I'll update.
+</p>
+
+<div class="frames">
+  <div class="col">
+    <span class="tag">B · developed</span>
+    <div class="frame">
+      <div class="hud">
+        <div class="counter"><span class="ic">💰</span><span class="amt">20</span><span class="inc">+7</span></div>
+        <div class="counter"><span class="ic">🪵</span><span class="amt">10</span><span class="inc">+4</span></div>
+        <div class="counter"><span class="ic">🪨</span><span class="amt">16</span><span class="inc">+2</span></div>
+        <div class="gear">⚙️</div>
+      </div>
+      <div class="round">Round <span class="rd">4/12</span></div>
+      <div class="board" data-board></div>
+      <div class="legend">
+        <div class="row"><span class="sw" style="background:var(--c-claim)"></span>
+          <span class="txt"><span class="lbl">Claim</span><span class="desc">empty tile</span></span>
+          <span class="cst">💰 5</span></div>
+        <div class="row"><span class="sw" style="background:var(--c-build)"></span>
+          <span class="txt"><span class="lbl">Build</span><span class="desc">resource tile</span></span>
+          <span class="cst">🪵 5</span></div>
+        <div class="row"><span class="sw" style="background:var(--c-fortify)"></span>
+          <span class="txt"><span class="lbl">Fortify</span><span class="desc">your node</span></span>
+          <span class="cst">🪨 5</span></div>
+        <div class="row"><span class="sw" style="background:var(--c-siege)"></span>
+          <span class="txt"><span class="lbl">Siege</span><span class="desc">enemy tile · 2× if walled</span></span>
+          <span class="cst">💰 5</span></div>
+      </div>
+      <div class="propose">Build &amp; Fortify costs/currency are proposed — pending your confirm.</div>
+      <div class="endturn">End Turn</div>
+    </div>
+    <p class="note">Resource counters read like your mockup; the legend swatches are the exact
+      on-board glow colors, so "what can I do, and which tiles" is answered in one place.</p>
+  </div>
+</div>
+
+<script>
+  // Player (blue) home bottom-right, enemy (red) home top-left, per the new orientation.
+  const YOU = ['7,7','7,6','6,7','6,6','5,6'];
+  const AI  = ['0,0','0,1','1,0','1,1','5,7'];  // 5,7 is an enemy tile pressed against the player
+  const HOME = { '7,7': 'you', '0,0': 'ai' };
+  // Neutral resource nodes scattered; icons match the HUD materials.
+  const NODES = {
+    '0,3':'wood','0,6':'wood','0,7':'stone','1,2':'gold','1,7':'gold',
+    '2,1':'stone','2,2':'wood','3,1':'gold','3,4':'gold','3,5':'wood',
+    '4,3':'stone','4,4':'gold','4,6':'stone','5,0':'stone','5,1':'wood',
+    '5,3':'gold','5,5':'wood','7,0':'gold','7,1':'wood','7,2':'stone',
+    '2,7':'special','6,4':'special'
+  };
+  // Player owns a wood node at 6,6 (fortifiable). Enemy tile 5,7 is fortified (walled).
+  NODES['6,6'] = 'wood';
+  const FORTIFIED = { '5,7': true };
+  // This-turn action highlights around the player's frontier.
+  const HL = {
+    '7,5':'claim', '5,5':'claim',   // empty tiles adjacent to player
+    '4,6':'build',                  // neutral stone node adjacent to player
+    '6,6':'fortify',                // player's own wood node
+    '5,7':'siege'                   // enemy (fortified) tile adjacent to player
+  };
+  const ICON = { gold:'💰', wood:'🪵', stone:'🪨', special:'★' };
+
+  function build(el) {
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+      const key = r + ',' + c;
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (YOU.includes(key)) cell.classList.add('you');
+      if (AI.includes(key)) cell.classList.add('ai');
+      if (HOME[key]) { const h = document.createElement('span'); h.className='home'; h.textContent='🏠'; cell.appendChild(h); }
+      else if (NODES[key]) {
+        const n = NODES[key];
+        const s = document.createElement('span');
+        s.textContent = ICON[n];
+        if (n === 'special') s.style.color = 'var(--special)';
+        cell.appendChild(s);
+      }
+      if (FORTIFIED[key]) { cell.classList.add('fortified');
+        const sh = document.createElement('span'); sh.className='shield'; sh.textContent='🛡'; cell.appendChild(sh); }
+      if (HL[key]) cell.classList.add('hl-' + HL[key]);
+      el.appendChild(cell);
+    }
+  }
+  document.querySelectorAll('[data-board]').forEach(build);
+</script>

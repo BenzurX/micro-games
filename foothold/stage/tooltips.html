@@ -1,0 +1,279 @@
+<meta charset="utf-8" />
+<style>
+  /* Three tooltip styles for tile hover, staged against Foothold's real palette + the current
+     6x9 board (river through the middle, player blue bottom-right, enemy red top-left).
+     Hover any glowing tile to see that column's tooltip. Icons are emoji PLACEHOLDERS for the
+     in-game Kenney icons. Pick one and I'll build it in Phaser. */
+  :root {
+    --bg: #1b1e2b;
+    --panel: #2a2e40;
+    --panel-2: #22263a;
+    --tile-neutral: #2b2f45;
+    --tile-you: #2f56b8;
+    --tile-ai: #8e2b34;
+    --river: #264f6e;
+    --bridge: #6b4f2a;
+    --gold: #f2c14e;
+    --wood: #b5793a;
+    --stone: #b9c2d0;
+    --special: #5ad1c8;
+    --ink: #e7e9f0;
+    --ink-dim: #aeb4c6;
+    --ink-faint: #7c8398;
+    --accent: #3d6cff;
+    --income: #5ac16f;
+    --c-claim: #ffce3a;
+    --c-build: #57c97a;
+    --c-fortify: #b06bff;
+    --c-siege: #ff6a3d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 30px 24px 80px; background: #12141f; color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-dim); font-size: 14px; margin: 0 0 26px; max-width: 860px; line-height: 1.55; }
+  .frames { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+  .col { width: 320px; }
+  .col .tag { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink); margin-bottom: 8px; }
+  .col .tag em { color: var(--ink-faint); font-style: normal; font-weight: 600; text-transform: none;
+    letter-spacing: 0; }
+  .col .note { color: var(--ink-dim); font-size: 12.5px; line-height: 1.5; margin: 14px 2px 0; }
+  .col .note b { color: var(--ink); }
+
+  .frame { width: 320px; aspect-ratio: 720 / 1000; background: var(--bg); border-radius: 18px;
+    overflow: hidden; position: relative; padding: 14px; box-shadow: 0 12px 44px rgba(0,0,0,.55); }
+  .hud { display: flex; gap: 6px; margin-bottom: 10px; }
+  .counter { display: flex; align-items: center; gap: 6px; background: var(--panel);
+    border-radius: 9px; padding: 6px 9px; flex: 1; }
+  .counter .ic { font-size: 15px; }
+  .counter .amt { font-size: 16px; font-weight: 800; }
+  .counter .inc { font-size: 11px; font-weight: 700; color: var(--income); }
+
+  .board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+  .cell { aspect-ratio: 1; background: var(--tile-neutral); border-radius: 4px; display: flex;
+    align-items: center; justify-content: center; font-size: 16px; position: relative; }
+  .cell.you { background: var(--tile-you); }
+  .cell.ai { background: var(--tile-ai); }
+  .cell.river { background: var(--river); }
+  .cell.bridge { background: var(--bridge); }
+  .cell.hl-claim { box-shadow: inset 0 0 0 3px var(--c-claim); cursor: pointer; }
+  .cell.hl-build { box-shadow: inset 0 0 0 3px var(--c-build); cursor: pointer; }
+  .cell.hl-fortify { box-shadow: inset 0 0 0 3px var(--c-fortify); cursor: pointer; }
+  .cell.hl-siege { box-shadow: inset 0 0 0 3px var(--c-siege); cursor: pointer; }
+  .cell .shield { position: absolute; top: -4px; right: -2px; font-size: 11px; }
+
+  /* -------- shared tooltip shell -------- */
+  .tt { position: absolute; z-index: 20; pointer-events: none; transform: translate(-50%, -100%);
+    opacity: 0; transition: opacity .09s ease; will-change: left, top; }
+  .tt.show { opacity: 1; }
+
+  /* ===== Style A — Compact pill ===== */
+  .tt-a { background: #171a28; border-radius: 9px; border-left: 4px solid var(--ac);
+    padding: 7px 11px; box-shadow: 0 8px 20px rgba(0,0,0,.5); white-space: nowrap; }
+  .tt-a .main { font-size: 13px; font-weight: 800; }
+  .tt-a .main .cost { color: var(--ink-dim); font-weight: 700; margin-left: 6px; }
+  .tt-a .gain { font-size: 12px; font-weight: 700; color: var(--income); margin-top: 2px; }
+  .tt-a .gain.dim { color: var(--ink-faint); }
+
+  /* ===== Style B — Structured card ===== */
+  .tt-b { background: var(--panel); border-radius: 11px; border: 1px solid #363b52;
+    padding: 9px 11px 10px; min-width: 148px; box-shadow: 0 10px 26px rgba(0,0,0,.55); }
+  .tt-b .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tt-b .verb { font-size: 14px; font-weight: 800; color: var(--ac); }
+  .tt-b .cost-badge { font-size: 12px; font-weight: 800; background: #1b1e2c; color: var(--ink);
+    border-radius: 6px; padding: 3px 7px; }
+  .tt-b .divider { height: 1px; background: #363b52; margin: 8px -11px; }
+  .tt-b .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tt-b .k { font-size: 11px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase;
+    letter-spacing: .05em; }
+  .tt-b .v { font-size: 13px; font-weight: 800; color: var(--income); }
+  .tt-b .v.dim { color: var(--ink-dim); }
+  .tt-b .sub { font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
+
+  /* ===== Style C — Icon-forward callout with pointer ===== */
+  .tt-c { filter: drop-shadow(0 10px 20px rgba(0,0,0,.55)); }
+  .tt-c .body { background: #12141f; border: 1.5px solid var(--ac); border-radius: 12px;
+    padding: 8px 12px 0; text-align: center; }
+  .tt-c .gain { display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+  .tt-c .big-ic { font-size: 20px; }
+  .tt-c .big-num { font-size: 24px; font-weight: 900; color: var(--income); letter-spacing: -.02em; }
+  .tt-c .big-num.dim { color: var(--ink); }
+  .tt-c .per { font-size: 11px; font-weight: 700; color: var(--ink-faint); }
+  .tt-c .multi { font-size: 13px; font-weight: 900; color: var(--income); padding: 2px 0; }
+  .tt-c .foot { margin: 8px -12px 0; background: var(--ac); color: #12141f; font-size: 12px;
+    font-weight: 800; padding: 5px; border-radius: 0 0 11px 11px; }
+  .tt-c .arrow { display: block; width: 12px; height: 12px; background: #12141f;
+    border-right: 1.5px solid var(--ac); border-bottom: 1.5px solid var(--ac);
+    transform: rotate(45deg); margin: -7px auto 0; position: relative; z-index: -1; }
+</style>
+
+<h1>Foothold — tile hover tooltips (3 styles)</h1>
+<p class="sub">
+  Same board and the same hover data in all three, so only the tooltip design differs. Hover any
+  <b style="color:#57c97a">glowing</b> tile (Claim / Build / Fortify / Siege are the four action
+  colors) to see what you'd spend and what you'd gain. The <b>gold node</b> tile is shown by
+  default. Tell me which style to build in Phaser (or mix — e.g. "A's footprint, C's big number").
+</p>
+
+<div class="frames" id="frames"></div>
+
+<script>
+  const GRID_W = 6, GRID_H = 9;
+  const key = (r, c) => r + ',' + c;
+
+  // --- static board matching the current game (river rows 3–5, bridges, blue bottom-right) ---
+  const riverRow = [3, 4, 4, 5, 4, 3];      // one water/bridge tile per column
+  const bridges = new Set(['4,1', '4,4']);  // claimable crossings (one per half)
+
+  const YOU = new Set(['8,5', '8,4', '8,3', '7,5', '7,4', '7,3', '6,5']);
+  const AI  = new Set(['0,0', '0,1', '1,0', '1,1', '5,5']);
+  const HOME = { '8,5': 'you', '0,0': 'ai' };
+  const FORTIFIED = new Set(['5,5']);       // enemy gold node, walled → siege costs 2×
+
+  // resource nodes (neutral unless the tile is owned above)
+  const NODES = {
+    '6,4': 'gold', '7,2': 'special', '7,4': 'wood', '5,5': 'gold',
+    '2,3': 'gold', '1,4': 'wood', '2,0': 'stone', '0,4': 'stone',
+    '6,0': 'wood', '3,2': 'stone', '8,0': 'gold', '2,4': 'wood',
+  };
+  const ICON = { gold: '🪙', wood: '🪵', stone: '🪨', special: '⭐' };
+
+  // What each actionable tile offers on hover: action, cost, and the gain lines.
+  // gain.type: 'income' (green), 'multi' (special, green), 'none' (dim), 'defense'/'capture' (dim).
+  const HOVER = {
+    '6,4': { act: 'build',   verb: 'Build',   ac: 'c-build',   cost: '🪵 5', gain: { type: 'income', res: 'gold', n: 10 },
+             sub: 'Neutral gold node' },
+    '7,2': { act: 'build',   verb: 'Build',   ac: 'c-build',   cost: '🪵 5', gain: { type: 'multi', n: 5 },
+             sub: 'Special — all three' },
+    '6,3': { act: 'claim',   verb: 'Claim',   ac: 'c-claim',   cost: '💰 5', gain: { type: 'none' },
+             sub: 'Empty tile — territory only' },
+    '8,2': { act: 'claim',   verb: 'Claim',   ac: 'c-claim',   cost: '💰 5', gain: { type: 'none' },
+             sub: 'Empty tile — territory only' },
+    '7,4': { act: 'fortify', verb: 'Fortify', ac: 'c-fortify', cost: '🪨 5', gain: { type: 'defense' },
+             sub: 'Your wood node' },
+    '5,5': { act: 'siege',   verb: 'Siege',   ac: 'c-siege',   cost: '💰 10', gain: { type: 'capture', res: 'gold', n: 10 },
+             sub: 'Enemy gold node · walled (2×)' },
+  };
+  const AC = { claim: 'var(--c-claim)', build: 'var(--c-build)', fortify: 'var(--c-fortify)', siege: 'var(--c-siege)' };
+
+  // ---- gain text helpers, shared across styles ----
+  function gainLineA(g) {
+    if (g.type === 'income') return { txt: `+${g.n} ${g.res} / turn`, dim: false };
+    if (g.type === 'multi')  return { txt: `+${g.n} each / turn`, dim: false };
+    if (g.type === 'capture')return { txt: `take it · deny +${g.n} ${g.res}`, dim: false };
+    if (g.type === 'defense')return { txt: `2× harder to lose`, dim: true };
+    return { txt: `+1 territory`, dim: true };
+  }
+  function gainRowB(g) {
+    if (g.type === 'income') return { v: `${ICON[g.res]} +${g.n} / turn`, dim: false };
+    if (g.type === 'multi')  return { v: `+${g.n} 🪙 🪵 🪨 / turn`, dim: false };
+    if (g.type === 'capture')return { v: `steal ${ICON[g.res]} +${g.n} / turn`, dim: false };
+    if (g.type === 'defense')return { v: `siege cost ×2`, dim: true };
+    return { v: `none (+1 tile)`, dim: true };
+  }
+
+  function tooltipHTML(style, h) {
+    const acVar = AC[h.act];
+    if (style === 'a') {
+      const g = gainLineA(h.gain);
+      return `<div class="tt tt-a" style="--ac:${acVar}">
+        <div class="main">${h.verb} <span class="cost">${h.cost}</span></div>
+        <div class="gain ${g.dim ? 'dim' : ''}">${g.txt}</div></div>`;
+    }
+    if (style === 'b') {
+      const g = gainRowB(h.gain);
+      return `<div class="tt tt-b" style="--ac:${acVar}">
+        <div class="head"><span class="verb">${h.verb}</span><span class="cost-badge">${h.cost}</span></div>
+        <div class="divider"></div>
+        <div class="row"><span class="k">Yield</span><span class="v ${g.dim ? 'dim' : ''}">${g.v}</span></div>
+        <div class="sub">${h.sub}</div></div>`;
+    }
+    // style c
+    let gainBlock;
+    if (h.gain.type === 'multi') gainBlock = `<div class="multi">+${h.gain.n} 🪙 🪵 🪨</div>`;
+    else if (h.gain.type === 'income' || h.gain.type === 'capture')
+      gainBlock = `<div class="gain"><span class="big-ic">${ICON[h.gain.res]}</span><span class="big-num">+${h.gain.n}</span><span class="per">/turn</span></div>`;
+    else if (h.gain.type === 'defense')
+      gainBlock = `<div class="gain"><span class="big-ic">🛡</span><span class="big-num dim">×2</span></div>`;
+    else gainBlock = `<div class="gain"><span class="big-ic">📍</span><span class="big-num dim">+1</span><span class="per">tile</span></div>`;
+    return `<div class="tt tt-c" style="--ac:${acVar}">
+      <div class="body">${gainBlock}<div class="foot">${h.verb} · ${h.cost}</div></div>
+      <span class="arrow"></span></div>`;
+  }
+
+  function buildColumn(style, name, desc) {
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.innerHTML = `<span class="tag">Style ${style.toUpperCase()} — ${name}</span>`;
+
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    frame.innerHTML = `<div class="hud">
+        <div class="counter"><span class="ic">🪙</span><span class="amt">24</span><span class="inc">+12</span></div>
+        <div class="counter"><span class="ic">🪵</span><span class="amt">15</span><span class="inc">+8</span></div>
+        <div class="counter"><span class="ic">🪨</span><span class="amt">9</span><span class="inc">+4</span></div>
+      </div>`;
+
+    const board = document.createElement('div');
+    board.className = 'board';
+    for (let r = 0; r < GRID_H; r++) {
+      for (let c = 0; c < GRID_W; c++) {
+        const k = key(r, c);
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.k = k;
+        if (bridges.has(k)) cell.classList.add('bridge');
+        else if (riverRow[c] === r) cell.classList.add('river');
+        if (YOU.has(k)) cell.classList.add('you');
+        if (AI.has(k)) cell.classList.add('ai');
+        if (HOME[k]) cell.textContent = '🏰';
+        else if (NODES[k] && riverRow[c] !== r) {
+          const s = document.createElement('span');
+          s.textContent = ICON[NODES[k]];
+          if (NODES[k] === 'special') s.style.color = 'var(--special)';
+          cell.appendChild(s);
+        }
+        if (FORTIFIED.has(k)) { const sh = document.createElement('span'); sh.className = 'shield'; sh.textContent = '🛡'; cell.appendChild(sh); }
+        if (HOVER[k]) cell.classList.add('hl-' + HOVER[k].act);
+        board.appendChild(cell);
+      }
+    }
+    frame.appendChild(board);
+
+    // Stable wrapper so re-rendering the tooltip never invalidates our reference.
+    const tipWrap = document.createElement('div');
+    frame.appendChild(tipWrap);
+    col.appendChild(frame);
+    col.insertAdjacentHTML('beforeend', `<p class="note">${desc}</p>`);
+
+    // hover wiring
+    function show(k) {
+      const h = HOVER[k]; if (!h) return;
+      tipWrap.innerHTML = tooltipHTML(style, h);
+      const node = tipWrap.firstElementChild; // the .tt
+      const cell = board.querySelector(`[data-k="${k}"]`);
+      const fb = frame.getBoundingClientRect(), cb = cell.getBoundingClientRect();
+      node.style.left = (cb.left - fb.left + cb.width / 2) + 'px';
+      node.style.top = (cb.top - fb.top - 6) + 'px';
+      requestAnimationFrame(() => node.classList.add('show'));
+    }
+    board.querySelectorAll('.cell').forEach((cell) => {
+      const k = cell.dataset.k;
+      if (!HOVER[k]) return;
+      cell.addEventListener('mouseenter', () => show(k));
+    });
+    // default: feature the gold node so a tooltip is visible without hovering
+    requestAnimationFrame(() => show('6,4'));
+
+    return col;
+  }
+
+  const frames = document.getElementById('frames');
+  frames.appendChild(buildColumn('a', 'Compact pill',
+    '<b>Smallest footprint.</b> One line: action + cost, gain underneath in green. Fast to read, least occlusion of the board. Best if hovering is frequent and you want it out of the way.'));
+  frames.appendChild(buildColumn('b', 'Structured card',
+    '<b>Most informative.</b> Matches the HUD panels — verb, a cost badge, a labelled Yield row, and a context sub-line. Reads clearly but covers more tiles.'));
+  frames.appendChild(buildColumn('c', 'Icon callout',
+    '<b>Most game-y.</b> Leads with the gain as a big number + icon, action/cost demoted to a footer, with a pointer to the tile. Juiciest, but the least text detail.'));
+</script>
