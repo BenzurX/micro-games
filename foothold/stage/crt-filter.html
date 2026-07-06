@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold — CRT filter stage</title>
+<style>
+  /* Page chrome only. The game frames themselves are canvases drawn below. */
+  :root {
+    --bg: #14161f;
+    --panel: #1d2030;
+    --ink: #e7e9f0;
+    --muted: #8a90a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 28px 24px 60px;
+  }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 26px; max-width: 900px; line-height: 1.5; }
+  .sub b { color: var(--ink); }
+  h2 { font-size: 18px; margin: 38px 0 14px; color: var(--ink); }
+
+  .strip { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .card {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    width: 372px;
+  }
+  .card h3 { margin: 0 0 2px; font-size: 16px; }
+  .card h3 .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 6px; margin-right: 7px; vertical-align: 2px;
+    background: #3d6cff; color: #fff;
+  }
+  .card h3 .tag.ref { background: #3a3f57; }
+  .card p { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+  /* The "monitor". overflow hidden clips the canvas to the screen's corner rounding. */
+  .screen {
+    position: relative;
+    background: #000;
+    overflow: hidden;
+    border-radius: 6px;
+    line-height: 0;
+  }
+  .screen canvas { width: 100%; height: auto; }
+
+  /* Variant B sits inside a plastic CRT bezel and gets a curved-glass corner radius. */
+  .bezel {
+    padding: 13px;
+    border-radius: 22px;
+    background: linear-gradient(160deg, #34384a, #22242f 55%, #191b24);
+    box-shadow: inset 0 2px 3px rgba(255,255,255,.08), inset 0 -3px 6px rgba(0,0,0,.5);
+  }
+  .bezel .screen { border-radius: 18px / 14px; }
+
+  /* Static glass glare, variant B only. */
+  .glare {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 65% at 22% -4%, rgba(255,255,255,.09), rgba(255,255,255,0) 55%);
+  }
+
+  /* Phosphor shimmer on B and C — deliberately faint (readability + photosensitivity). */
+  @keyframes flicker { from { opacity: 1; } to { opacity: .975; } }
+  .flicker canvas { animation: flicker 90ms steps(2) infinite alternate; }
+
+  .zoomnote { color: var(--muted); font-size: 13px; margin: -6px 0 14px; }
+  .notes {
+    margin-top: 44px; max-width: 900px; background: var(--panel);
+    border-radius: 14px; padding: 18px 22px; font-size: 14px; line-height: 1.6; color: #b6bccd;
+  }
+  .notes h2 { margin: 0 0 10px; }
+  .notes b { color: var(--ink); }
+  .notes ul { margin: 8px 0 0; padding-left: 20px; }
+  .notes li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Foothold — CRT filter</h1>
+<p class="sub">
+  The same mid-game frame, now dialing in the <b>A + gentle-curve</b> direction.
+  <b>Current</b> is the live look; <b>A</b> is the flat subtle glow you liked;
+  <b>A+</b> and <b>A++</b> keep A's exact intensity but add a slight barrel bend inside a bezel
+  (A+ = barely there, A++ = a touch more). <b>B</b> stays only as the harsh version you rejected, for contrast.
+  All effects are computed per-pixel from the same source frame, so what you see is what a filter would really do.
+</p>
+
+<div class="strip" id="fullStrip"></div>
+
+<h2>Close-up — river / bridge / contested ★ node (same crop as your reference shots)</h2>
+<p class="zoomnote">Zoomed ~1.5&times; so the scanline texture and text/icon readability differences are honest.</p>
+<div class="strip" id="zoomStrip"></div>
+
+<div class="notes">
+  <h2>If we ship one, how it would be built</h2>
+  <ul>
+    <li><b>Any curve (A+ / A++ / B) needs the GPU:</b> the barrel bend is a per-pixel warp, so it has to be a
+      small Phaser WebGL PostFX pipeline — barrel warp + scanlines + bloom + vignette in one fragment shader.
+      Cheap on any phone GPU, but it is real engine code. The bezel + glare around it are just page CSS.</li>
+    <li><b>Flat A alone is nearly free:</b> if you drop the curve, A is a fixed overlay div on <code>#game</code>
+      (repeating-gradient scanlines + vignette) plus a one-line CSS <code>filter</code> for the glow — no engine changes.
+      Adding the bend is what pulls in the shader.</li>
+    <li><b>Recommendation if adopted:</b> go A+ or A++ (whichever curve you prefer) and make it a toggle in the
+      upcoming settings screen, likely off by default so players opt in. The shader carries all three curve levels;
+      the difference is one <code>warp</code> constant.</li>
+    <li>This page is design scratch under <code>stage/</code> — nothing here is wired into the game.</li>
+  </ul>
+</div>
+
+<script>
+'use strict';
+
+/* ================================================================== game mock
+   A faithful static repaint of the live GameScene (720x1280 design space):
+   same constants, colors, river ribbon math, bridge decks, HUD, legend.
+   One representative mid-game state, hardcoded. */
+
+const TILE = 82, GRID_W = 6, GRID_H = 9;
+const BOARD_W = GRID_W * TILE, BOARD_H = GRID_H * TILE;
+const ORIGIN_X = (720 - BOARD_W) / 2, ORIGIN_Y = 250;
+const FILL = { 0: '#2b2f45', 1: '#274a9d', 2: '#9d2f3a' };
+const RIVER_TILE = '#1a1c29';
+const ACTION_COLOR = { claim: '#ffce3a', build: '#57c97a', upgrade: '#b06bff', siege: '#ff6a3d' };
+const TINT = { gold: '#f2c14e', wood: '#b5793a', stone: '#b9c2d0', special: '#5ad1c8' };
+const FONT = 'system-ui, -apple-system, sans-serif';
+
+/* Fixed board state (legal under the game's rules: river steps <=1 row, one
+   special per side, balanced nodes, adjacency-grown territories). */
+const riverRow = [4, 4, 3, 3, 4, 4];
+const bridgeCols = new Set([1, 4]);
+const nodes = { // "r,c": resource
+  '1,0': 'stone', '1,2': 'wood', '0,4': 'wood', '2,1': 'gold', '1,5': 'gold', '2,3': 'stone', '3,4': 'special',
+  '6,4': 'wood', '5,0': 'wood', '7,2': 'gold', '5,5': 'gold', '8,1': 'stone', '5,3': 'stone', '4,2': 'special',
+};
+const owner1 = new Set(['8,5','8,4','8,3','7,5','7,4','7,3','7,2','6,5','6,4','6,2','5,2']); // player (blue)
+const owner2 = new Set(['0,0','0,1','1,0','1,1','1,2','2,1','3,1','4,1','4,2']);             // enemy (red)
+const upgraded = new Set(['7,2', '2,1']);
+const homes = { '0,0': 2, '8,5': 1 };
+const highlights = { // player-turn action glows, mirroring actionFor()
+  claim:   ['8,2','7,1','6,1','5,1','6,3','5,4'],
+  build:   ['5,3','5,5'],
+  siege:   ['4,2'],
+  upgrade: ['6,4'],
+};
+
+/* Kenney "Board Game Icons" (CC0) — the exact SVGs the game loads, inlined so
+   this page stays self-contained. White fills; tinted at draw time like Phaser does. */
+const SVGS = {
+  gold: `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-40 -40 80 80"><path fill="#FFFFFF" d="M19 -2 Q19 -9.85 13.45 -15.4 7.85 -21 0 -21 -7.85 -21 -13.4 -15.4 -19 -9.85 -19 -2 -19 5.85 -13.4 11.45 -7.85 17 0 17 7.85 17 13.45 11.45 19 5.85 19 -2 M11.35 -13.25 Q16 -8.6 16 -2 16 4.6 11.35 9.35 6.6 14 0 14 -6.6 14 -11.25 9.35 -16 4.6 -16 -2 -16 -8.6 -11.3 -13.25 L-11.25 -13.3 Q-6.6 -18 0 -18 6.6 -18 11.35 -13.25 M-25 -2 Q-25 -12.35 -17.65 -19.65 -10.35 -27 0 -27 10.35 -27 17.7 -19.65 25 -12.35 25 -2 L25 2 Q25 12.35 17.7 19.7 10.35 27 0 27 -10.35 27 -17.65 19.7 -25 12.35 -25 2 L-25 -2"/></svg>`,
+  wood: `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-40 -40 80 80"><path fill="#FFFFFF" d="M2.35 -22.7 Q0.8 -25.4 -4.4 -24.95 -9.5 -24.55 -15.25 -21.2 -21 -17.95 -23.95 -13.7 -26.95 -9.45 -25.4 -6.75 -23.85 -4.1 -18.65 -4.55 -13.5 -5 -7.75 -8.25 -2 -11.6 0.9 -15.8 3.9 -20.05 2.35 -22.7 M16.75 -25.05 Q18.45 -26.9 20.85 -27 23.35 -27.1 25.15 -25.35 26.95 -23.7 27 -21.2 27.1 -18.7 25.5 -16.9 19.85 -10.2 23.35 1.3 L23.6 2.8 25.05 5.3 Q25.7 6.35 25.85 7.65 26.55 11.7 22.8 17.05 L22.85 17.05 Q19.3 22.3 12.25 26.4 5.2 30.4 -1.15 30.9 -7.95 31.45 -11 28.6 -12 27.8 -12.55 26.8 L-31.05 -5.2 Q-31.65 -6.2 -31.8 -7.35 -32.8 -11.55 -28.85 -17.05 -25.3 -22.4 -18.25 -26.4 -11.25 -30.5 -4.9 -30.9 L-4.85 -30.9 Q1.8 -31.5 4.95 -28.7 L6.5 -26.85 11.85 -17.55 Q13.55 -21.7 16.75 -25.05 M-4.6 -18.7 Q-3.85 -17.35 -5.35 -15.25 -6.8 -13.1 -9.65 -11.45 -12.55 -9.8 -15.1 -9.6 -17.7 -9.4 -18.45 -10.75 -19.25 -12.1 -17.75 -14.2 -16.3 -16.3 -13.4 -17.95 -10.55 -19.6 -8 -19.85 -5.4 -20.05 -4.6 -18.7"/></svg>`,
+  stone: `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-40 -40 80 80"><path fill="#FFFFFF" d="M12.7 -12.7 L29.65 4.25 Q31.45 6.05 31.5 8.55 31.45 10.95 29.7 12.75 L12.7 29.7 Q10.95 31.45 8.5 31.5 6 31.5 4.2 29.7 L-1.45 24.05 Q-3.05 22.45 -3.15 20.15 -5.45 20.05 -7.1 18.4 L-29.7 -4.2 Q-31.5 -6 -31.45 -8.45 -31.45 -10.95 -29.7 -12.7 L-12.7 -29.65 Q-10.95 -31.45 -8.45 -31.4 -6.05 -31.45 -4.25 -29.65 L7.05 -18.35 Q8.65 -16.75 8.8 -14.5 11.05 -14.3 12.7 -12.7 M-19.8 -2.8 L-2.85 14.15 2.85 14.2 2.8 19.8 8.45 25.45 25.45 8.5 8.5 -8.45 2.8 -8.5 2.85 -14.1 -2.8 -19.75 -19.8 -2.8"/></svg>`,
+  special: `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-40 -40 80 80"><path fill="#FFFFFF" d="M9.6 -19.9 Q7.25 -22.85 8.35 -26 L8.65 -26.45 9 -26.65 Q12.25 -27.8 15.1 -25.4 18.2 -22.85 16.25 -19.25 L15.8 -18.8 Q12.25 -16.8 9.6 -19.9 M17.45 -16.35 Q19.65 -20.7 23.85 -21 L24.5 -20.9 24.95 -20.6 Q28 -17.3 26.55 -12.65 25.3 -7.5 20 -8 L19.55 -8.1 19.3 -7.7 Q16.2 -3.5 11.5 -5.8 7.3 -8.05 7 -12.4 L7.1 -13.1 7.35 -13.55 Q10.6 -16.7 15.1 -15.25 L16.85 -14.55 17.45 -16.35 M21.75 -0.75 Q25.25 -3.3 28.9 -1.8 L29.4 -1.45 29.65 -1.1 Q30.85 2.85 27.8 5.95 24.7 9.5 20.5 6.95 L20.15 6.65 19.85 6.9 Q15.6 9 12.6 5.25 10.05 1.6 11.55 -1.85 L11.9 -2.45 12.25 -2.65 Q16.2 -3.85 19.35 -0.85 L20.55 0.45 21.75 -0.75 M-21.75 -0.75 L-20.55 0.45 -19.35 -0.85 Q-16.2 -3.85 -12.25 -2.65 L-11.9 -2.45 -11.55 -1.85 Q-10.05 1.6 -12.6 5.25 -15.6 9 -19.85 6.9 L-20.15 6.65 -20.5 6.95 Q-24.7 9.5 -27.8 5.95 -30.85 2.85 -29.65 -1.1 L-29.4 -1.45 -28.9 -1.8 Q-25.25 -3.3 -21.75 -0.75 M-17.45 -16.35 L-16.85 -14.55 -15.1 -15.25 Q-10.6 -16.7 -7.35 -13.55 L-7.1 -13.1 -7 -12.4 Q-7.3 -8.05 -11.5 -5.8 -16.2 -3.5 -19.3 -7.7 L-19.55 -8.1 -20 -8 Q-25.3 -7.5 -26.55 -12.65 -28 -17.3 -24.95 -20.6 L-24.5 -20.9 -23.85 -21 Q-19.65 -20.7 -17.45 -16.35 M-9.6 -19.9 Q-12.25 -16.8 -15.8 -18.8 L-16.25 -19.25 Q-18.2 -22.85 -15.1 -25.4 -12.25 -27.8 -9 -26.65 L-8.65 -26.45 -8.35 -26 Q-7.25 -22.85 -9.6 -19.9 M15.95 23.4 Q16.85 24.2 17 25.45 17.1 26.65 16.3 27.65 15.5 28.55 14.3 28.7 13.05 28.8 12.1 28 6.85 23.6 0.15 21.4 -6.5 23.6 -11.75 28 -12.75 28.8 -13.95 28.7 -15.2 28.55 -16 27.65 -16.8 26.65 -16.65 25.45 -16.55 24.2 -15.6 23.4 -12.85 21.1 -9.7 19.3 L-13.75 19 Q-14.75 18.95 -15.45 18.4 -18.25 19.95 -21 17.7 -24.45 15.2 -23.9 11.35 L-23.75 10.95 -23.25 10.5 Q-20.15 8.65 -16.45 10.4 -15.65 10.8 -15.1 11.35 L-14.15 9.9 Q-11.7 6.6 -7.8 7.05 L-7.45 7.2 -7.05 7.7 Q-5.25 10.4 -6.45 13.65 L0.2 15.15 Q3.2 14.25 6.5 13.7 5.25 10.45 7.05 7.7 L7.45 7.2 7.8 7.05 Q11.7 6.6 14.15 9.9 L15.1 11.35 Q15.65 10.8 16.45 10.4 20.15 8.65 23.25 10.5 L23.75 10.95 23.9 11.35 Q24.45 15.2 21 17.7 18.35 19.85 15.6 18.5 14.9 18.95 14 19 L10.05 19.3 Q13.15 21.1 15.95 23.4"/></svg>`,
+  home: `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-40 -40 80 80"><path fill="#FFFFFF" d="M-26.1 -2.1 L-6.1 -22.1 Q-5.25 -23 -4 -23 L4 -23 Q5.25 -23 6.15 -22.1 L26.15 -2.1 Q27 -1.25 27 0 27 1.25 26.15 2.15 L22.15 6.15 Q21.25 7 20 7 L19 6.85 19 20 Q19 21.25 18.15 22.15 17.25 23 16 23 L8 23 Q6.75 23 5.9 22.15 5 21.25 5 20 L5 7 -5 7 -5 20 Q-5 21.25 -5.85 22.15 -6.75 23 -8 23 L-16 23 Q-17.25 23 -18.1 22.15 -19 21.25 -19 20 L-19 6.85 -20 7 Q-21.25 7 -22.1 6.15 L-26.1 2.15 Q-27 1.25 -27 0 -27 -1.25 -26.1 -2.1"/></svg>`,
+  upgrade: `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="-40 -36 80 80"><path fill="#FFFFFF" d="M5 6 Q5 8.05 3.55 9.55 2.05 11 0 11 -2.05 11 -3.5 9.55 -5 8.05 -5 6 L-5 -9.4 -8.15 -6.2 Q-9.35 -5.05 -11 -5.05 -12.65 -5.05 -13.8 -6.2 -15 -7.4 -15 -9.05 -15 -10.7 -13.8 -11.85 L-2.8 -22.85 Q-1.65 -24.05 0 -24.05 1.65 -24.05 2.85 -22.85 L13.85 -11.85 Q15 -10.7 15 -9.05 15 -7.4 13.85 -6.2 12.65 -5.05 11 -5.05 9.35 -5.05 8.2 -6.2 L5 -9.4 5 6 M-11 -2.05 Q-9.35 -2.05 -8 -2.7 L-8 6 Q-8 9.3 -5.65 11.65 -3.3 14 0 14 3.3 14 5.65 11.65 8 9.3 8 6 L8 -2.7 Q9.35 -2.05 11 -2.05 13.9 -2.05 15.95 -4.1 L16.85 -5.15 26.65 1 Q30.85 3.6 30.45 6.55 30.85 9.4 26.65 12.05 L1.6 27.75 Q-4.75 31.7 -11.1 27.75 L-11.15 27.75 -26.6 18 -26.55 18 Q-30.8 15.4 -30.4 12.5 -30.8 9.6 -26.55 7 L-26.6 7 -12.05 -2.1 -11 -2.05"/></svg>`,
+};
+
+const icons = {};       // name -> Image
+const tintCache = {};   // name|color -> tinted canvas
+
+function loadIcons() {
+  const jobs = Object.entries(SVGS).map(([name, svg]) => new Promise((res) => {
+    const img = new Image();
+    img.onload = () => { icons[name] = img; res(); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }));
+  return Promise.all(jobs);
+}
+
+// Phaser-style tint of a white icon: paint the image, then source-in a flat color.
+function tinted(name, color) {
+  const key = name + '|' + color;
+  if (tintCache[key]) return tintCache[key];
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.drawImage(icons[name], 0, 0, 128, 128);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = color;
+  x.fillRect(0, 0, 128, 128);
+  tintCache[key] = c;
+  return c;
+}
+
+const cxOf = (c) => ORIGIN_X + c * TILE + TILE / 2;
+const cyOf = (r) => ORIGIN_Y + r * TILE + TILE / 2;
+const isRiver = (r, c) => riverRow[c] === r && !bridgeCols.has(c);
+const isBridge = (r, c) => riverRow[c] === r && bridgeCols.has(c);
+const ownerOf = (r, c) => owner1.has(r + ',' + c) ? 1 : owner2.has(r + ',' + c) ? 2 : 0;
+
+// Catmull-Rom sampler (same curve family as Phaser.Curves.Spline).
+function crSample(pts, total) {
+  const out = [];
+  const segs = pts.length - 1;
+  for (let i = 0; i < total; i++) {
+    const t = i / (total - 1) * segs;
+    const seg = Math.min(segs - 1, Math.floor(t));
+    const u = t - seg;
+    const p0 = pts[Math.max(0, seg - 1)], p1 = pts[seg], p2 = pts[seg + 1], p3 = pts[Math.min(pts.length - 1, seg + 2)];
+    const u2 = u * u, u3 = u2 * u;
+    out.push({
+      x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * u + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * u3),
+      y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3),
+    });
+  }
+  return out;
+}
+
+function drawGame(ctx) {
+  ctx.fillStyle = '#1b1e2b';
+  ctx.fillRect(0, 0, 720, 1280);
+  ctx.textBaseline = 'alphabetic';
+
+  const roundRect = (x, y, w, h, r, color) => {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  };
+
+  // --- HUD: three resource cards + gear ---
+  const pad = 20, gap = 12, gearW = 60, cardH = 76, top = 24;
+  const cardW = Math.floor((720 - pad * 2 - gearW - gap * 3) / 3);
+  const hud = [['gold', '42', '+12'], ['wood', '23', '+7'], ['stone', '15', '+2']];
+  hud.forEach(([res, amt, inc], i) => {
+    const x = pad + i * (cardW + gap);
+    roundRect(x, top, cardW, cardH, 12, '#2a2e40');
+    ctx.drawImage(tinted(res, TINT[res]), x + 14, top + cardH / 2 - 20, 40, 40);
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 36px ' + FONT; ctx.fillStyle = '#e7e9f0';
+    ctx.fillText(amt, x + cardW - 14, top + 8 + 33);
+    ctx.font = 'bold 20px ' + FONT; ctx.fillStyle = '#5ac16f';
+    ctx.fillText(inc, x + cardW - 14, top + 49 + 18);
+  });
+  const gx = 720 - pad - gearW;
+  roundRect(gx, top, gearW, cardH, 12, '#2a2e40');
+  ctx.textAlign = 'center';
+  ctx.font = '30px ' + FONT;
+  ctx.fillText('⚙️', gx + gearW / 2, top + cardH / 2 + 11);
+
+  // --- Round / tiles status ---
+  ctx.font = 'bold 34px ' + FONT; ctx.fillStyle = '#e7e9f0';
+  ctx.fillText('Round 6/12  —  Your turn', 360, 140 + 30);
+  ctx.font = '26px ' + FONT; ctx.fillStyle = '#aeb4c6';
+  ctx.fillText('Tiles  You 11  •  Enemy 9', 360, 196 + 23);
+
+  // --- Board tiles ---
+  for (let r = 0; r < GRID_H; r++) {
+    for (let c = 0; c < GRID_W; c++) {
+      const x = cxOf(c), y = cyOf(r);
+      ctx.fillStyle = isRiver(r, c) ? RIVER_TILE : FILL[ownerOf(r, c)];
+      ctx.fillRect(x - (TILE - 4) / 2, y - (TILE - 4) / 2, TILE - 4, TILE - 4);
+    }
+  }
+
+  // --- River ribbon (port of buildRiver: varying-width fills + sine ripples) ---
+  const pts = [{ x: ORIGIN_X, y: cyOf(riverRow[0]) }];
+  for (let c = 0; c < GRID_W; c++) pts.push({ x: cxOf(c), y: cyOf(riverRow[c]) });
+  pts.push({ x: ORIGIN_X + BOARD_W, y: cyOf(riverRow[GRID_W - 1]) });
+  const line = crSample(pts, GRID_W * 18);
+
+  const fillRibbon = (baseHalf, color, alpha = 1) => {
+    const topE = [], botE = [];
+    for (let i = 0; i < line.length; i++) {
+      const p = line[i];
+      const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)];
+      const tx = b.x - a.x, ty = b.y - a.y, len = Math.hypot(tx, ty) || 1;
+      const nx = -ty / len, ny = tx / len;
+      const diag = Math.abs(ty) / (Math.abs(tx) + Math.abs(ty) || 1);
+      const hw = baseHalf * (1 - 0.6 * diag);
+      topE.push({ x: p.x + nx * hw, y: p.y + ny * hw });
+      botE.push({ x: p.x - nx * hw, y: p.y - ny * hw });
+    }
+    const poly = topE.concat(botE.reverse());
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    poly.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+  };
+  fillRibbon(TILE * 0.35, '#1c3a52');
+  fillRibbon(TILE * 0.29, '#264f6e');
+  fillRibbon(TILE * 0.20, '#35709a');
+
+  const ripple = (amp, phase, color, alpha) => {
+    ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    line.forEach((p, i) => {
+      const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)];
+      const tx = b.x - a.x, ty = b.y - a.y, len = Math.hypot(tx, ty) || 1;
+      const nx = -ty / len, ny = tx / len;
+      const off = Math.sin(i * 0.45 + phase) * amp;
+      i ? ctx.lineTo(p.x + nx * off, p.y + ny * off) : ctx.moveTo(p.x + nx * off, p.y + ny * off);
+    });
+    ctx.stroke(); ctx.globalAlpha = 1;
+  };
+  ripple(TILE * 0.15, 0.0, '#8fc4e6', 0.5);
+  ripple(TILE * 0.11, 2.3, '#c4e3f4', 0.32);
+
+  // --- Bridge decks (port of drawBridges: arched deck, planks, owner rails) ---
+  for (const c of bridgeCols) {
+    const r = riverRow[c], bx = cxOf(c), by = cyOf(r);
+    const dw = TILE * 0.60, half = dw / 2, LIFT = 6, ARC = 7, N = 12;
+    const top2 = by - TILE / 2 - 2, bot = by + TILE / 2 + 2, span = bot - top2;
+    const L = bx - half, R = bx + half;
+    const lift = (s) => ARC * 4 * s * (1 - s);
+    const SKEW_END = 2, SKEW_MID = 4;
+    const skew = (s) => -SKEW_END + (SKEW_MID + SKEW_END) * 4 * s * (1 - s);
+    const ys = [], xo = [];
+    for (let k = 0; k <= N; k++) { const s = k / N; ys.push(top2 + span * s - lift(s)); xo.push(skew(s)); }
+    const leftE = ys.map((y, k) => ({ x: L + xo[k], y }));
+    const rightE = ys.map((y, k) => ({ x: R + xo[k], y }));
+    const deck = leftE.concat([...rightE].reverse());
+    const fillPoly = (poly, color) => {
+      ctx.fillStyle = color; ctx.beginPath();
+      poly.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.closePath(); ctx.fill();
+    };
+    fillPoly(deck.map((p) => ({ x: p.x, y: p.y + LIFT })), '#53381c');
+    fillPoly(deck, '#8a6636');
+    ctx.strokeStyle = '#5f451f'; ctx.lineWidth = 2;
+    for (let i = 1; i < 7; i++) {
+      const s = i / 7, y = top2 + span * s - lift(s), sx = skew(s);
+      ctx.beginPath(); ctx.moveTo(L + sx, y); ctx.lineTo(R + sx, y); ctx.stroke();
+    }
+    const yc = top2 + span * 0.5 - lift(0.5), xc = skew(0.5);
+    ctx.strokeStyle = 'rgba(156,122,68,.8)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(L + xc, yc); ctx.lineTo(R + xc, yc); ctx.stroke();
+    const own = ownerOf(r, c);
+    const rail = own === 0 ? '#6b4a22' : FILL[own];
+    const railStrip = (base, dxo, dxi) => {
+      const strip = ys.map((y, k) => ({ x: base + xo[k] + dxo, y }))
+        .concat(ys.map((y, k) => ({ x: base + xo[k] + dxi, y })).reverse());
+      fillPoly(strip, rail);
+    };
+    railStrip(L, -3, 2);
+    railStrip(R, 3, -2);
+  }
+
+  // --- Action highlights (stroked tile outlines) ---
+  for (const [act, cells] of Object.entries(highlights)) {
+    ctx.strokeStyle = ACTION_COLOR[act]; ctx.lineWidth = 4;
+    for (const key of cells) {
+      const [r, c] = key.split(',').map(Number);
+      ctx.strokeRect(cxOf(c) - (TILE - 4) / 2, cyOf(r) - (TILE - 4) / 2, TILE - 4, TILE - 4);
+    }
+  }
+
+  // --- Node / home icons, upgrade badges, income labels ---
+  for (let r = 0; r < GRID_H; r++) {
+    for (let c = 0; c < GRID_W; c++) {
+      const key = r + ',' + c, x = cxOf(c), y = cyOf(r);
+      const res = nodes[key];
+      if (res) ctx.drawImage(tinted(res, TINT[res]), x - 25, y - 25, 50, 50);
+      else if (homes[key]) ctx.drawImage(tinted('home', '#ffffff'), x - 25, y - 25, 50, 50);
+      if (upgraded.has(key)) ctx.drawImage(tinted('upgrade', ACTION_COLOR.upgrade), x + TILE / 2 - 33, y - TILE / 2 + 1, 32, 32);
+      const own = ownerOf(r, c);
+      if (own !== 0 && res) {
+        const m = upgraded.has(key) ? 2 : 1;
+        const txt = res === 'special' ? `+${3 * m} all` : `+${5 * m}`;
+        ctx.font = 'bold 17px ' + FONT; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right';
+        ctx.fillText(txt, x + TILE / 2 - 6, y + TILE / 2 - 6);
+      }
+    }
+  }
+
+  // --- Legend (2x2 paneled rows) ---
+  const legend = [
+    { color: ACTION_COLOR.claim, label: 'Claim empty tiles', desc: 'Expand your territory', res: 'gold', amt: '5' },
+    { color: ACTION_COLOR.build, label: 'Build on resource nodes', desc: 'Harvest tile resources', res: 'wood', amt: '5' },
+    { color: ACTION_COLOR.upgrade, label: 'Upgrade resource nodes', desc: "Double that tile's output", res: 'stone', amt: '5' },
+    { color: ACTION_COLOR.siege, label: 'Siege enemy tiles', desc: 'Capture — nodes also cost wood', res: 'gold', amt: '10' },
+  ];
+  const rowW = Math.floor((720 - pad * 2 - gap) / 2), rowH = 60, legTop = ORIGIN_Y + BOARD_H + 12, SW = 30;
+  legend.forEach((item, i) => {
+    const x = pad + (i % 2) * (rowW + gap);
+    const y = legTop + Math.floor(i / 2) * (rowH + 8);
+    const yMid = y + rowH / 2;
+    roundRect(x, y, rowW, rowH, 10, '#22263a');
+    ctx.strokeStyle = item.color; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect(x + 12, yMid - SW / 2, SW, SW, 6); ctx.stroke();
+    const textX = x + 12 + SW + 14;
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 18px ' + FONT; ctx.fillStyle = '#e7e9f0';
+    ctx.fillText(item.label, textX, yMid + 1);
+    ctx.font = '15px ' + FONT; ctx.fillStyle = '#7c8398';
+    ctx.fillText(item.desc, textX, yMid + 3 + 13);
+    ctx.font = 'bold 28px ' + FONT; ctx.fillStyle = '#e7e9f0'; ctx.textAlign = 'right';
+    const amtW = ctx.measureText(item.amt).width;
+    ctx.fillText(item.amt, x + rowW - 12, yMid + 10);
+    ctx.drawImage(tinted(item.res, TINT[item.res]), x + rowW - 12 - amtW - 8 - 30, yMid - 15, 30, 30);
+  });
+
+  // --- End Turn ---
+  const btnY = legTop + 2 * rowH + 8 + 16 + 48;
+  ctx.fillStyle = '#3d6cff';
+  ctx.fillRect(360 - 160, btnY - 48, 320, 96);
+  ctx.font = 'bold 38px ' + FONT; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
+  ctx.fillText('End Turn', 360, btnY + 13);
+  ctx.textAlign = 'left';
+}
+
+/* ================================================================== CRT pipeline
+   Each output canvas is drawn from the master frame, then processed per-pixel at
+   DISPLAY resolution (so scanline spacing etc. is what the eye actually sees). */
+
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+function makeOutput(master, srcRect, cssW, cssH, fx) {
+  const W = Math.round(cssW * DPR), H = Math.round(cssH * DPR);
+  const out = document.createElement('canvas');
+  out.width = W; out.height = H;
+  out.style.width = cssW + 'px';
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(master, srcRect.x, srcRect.y, srcRect.w, srcRect.h, 0, 0, W, H);
+  if (!fx) return out;
+
+  // 1. Barrel curvature: inverse-map each dest pixel outward; corners fall off-screen.
+  if (fx.warp) {
+    const src = ctx.getImageData(0, 0, W, H);
+    const dst = ctx.createImageData(W, H);
+    const s = src.data, d = dst.data, k = fx.warp;
+    for (let y = 0; y < H; y++) {
+      const ny = (y / H) * 2 - 1;
+      for (let x = 0; x < W; x++) {
+        const nx = (x / W) * 2 - 1;
+        const f = 1 + k * (nx * nx + ny * ny);
+        const sx = Math.round(((nx * f) + 1) / 2 * W);
+        const sy = Math.round(((ny * f) + 1) / 2 * H);
+        const di = (y * W + x) * 4;
+        if (sx >= 0 && sx < W && sy >= 0 && sy < H) {
+          const si = (sy * W + sx) * 4;
+          d[di] = s[si]; d[di + 1] = s[si + 1]; d[di + 2] = s[si + 2]; d[di + 3] = 255;
+        } else {
+          d[di + 3] = 255; // off the curved glass: black
+        }
+      }
+    }
+    ctx.putImageData(dst, 0, 0);
+  }
+
+  // 2. Chromatic aberration: split into R/G/B layers, re-add with horizontal offsets.
+  if (fx.chroma) {
+    const off = fx.chroma * DPR;
+    const channel = (color) => {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const x = c.getContext('2d');
+      x.drawImage(out, 0, 0);
+      x.globalCompositeOperation = 'multiply';
+      x.fillStyle = color;
+      x.fillRect(0, 0, W, H);
+      return c;
+    };
+    const rC = channel('#ff0000'), gC = channel('#00ff00'), bC = channel('#0000ff');
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(rC, -off, 0);
+    ctx.drawImage(gC, 0, 0);
+    ctx.drawImage(bC, off, 0);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // 3. Bloom: blurred additive copy — bright pixels bleed into neighbours.
+  if (fx.bloom) {
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    tmp.getContext('2d').drawImage(out, 0, 0);
+    ctx.save();
+    ctx.filter = `blur(${fx.bloom.blur * DPR}px)`;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = fx.bloom.alpha;
+    ctx.drawImage(tmp, 0, 0);
+    ctx.restore();
+  }
+
+  // 4. Scanlines: dark horizontal lines every few device pixels.
+  if (fx.scan) {
+    ctx.fillStyle = `rgba(0,0,0,${fx.scan.alpha})`;
+    const period = Math.max(2, Math.round(fx.scan.period * DPR));
+    for (let y = 0; y < H; y += period) ctx.fillRect(0, y, W, Math.max(1, Math.round(period / 3)));
+  }
+
+  // 5. Aperture grille: faint vertical R/G/B phosphor stripes.
+  if (fx.grille) {
+    const cols = [`rgba(255,60,60,${fx.grille})`, `rgba(60,255,60,${fx.grille})`, `rgba(80,80,255,${fx.grille})`];
+    const w = Math.max(1, Math.round(DPR));
+    for (let x = 0, i = 0; x < W; x += w, i++) {
+      ctx.fillStyle = cols[i % 3];
+      ctx.fillRect(x, 0, w, H);
+    }
+  }
+
+  // 6. Vignette: darkened corners/edges like a real tube.
+  if (fx.vignette) {
+    const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.hypot(W, H) * 0.62);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(0,0,0,${fx.vignette})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  return out;
+}
+
+/* ================================================================== variants */
+
+const VARIANTS = [
+  {
+    id: 'current', tag: 'REF', name: 'Current',
+    desc: 'The live build, no filter. The control for the comparison.',
+    fx: null,
+  },
+  {
+    id: 'a', tag: 'A', name: 'Subtle glow (flat)',
+    desc: 'The original A: faint scanlines, soft bloom, gentle vignette, no curve. The intensity you said looked good — kept here as the flat baseline.',
+    fx: { scan: { alpha: 0.13, period: 3 }, grille: 0.028, bloom: { blur: 1.6, alpha: 0.28 }, vignette: 0.26 },
+  },
+  {
+    id: 'ab1', tag: 'A+', name: 'Gentle curve', bezel: true, glare: true,
+    desc: "A's exact glow/scanline intensity, plus a barely-there barrel bend (warp 0.018 vs B's 0.05) inside the bezel. The subtlest curve — corners just kiss the glass.",
+    fx: { warp: 0.018, scan: { alpha: 0.13, period: 3 }, grille: 0.03, bloom: { blur: 1.7, alpha: 0.28 }, vignette: 0.30 },
+  },
+  {
+    id: 'ab2', tag: 'A++', name: 'Medium curve', bezel: true, glare: true,
+    desc: 'Same A intensity, a touch more bend (warp 0.032) and vignette so the tube reads more clearly. Still far short of B. Pick between this and A+ for how much curve you want.',
+    fx: { warp: 0.032, scan: { alpha: 0.14, period: 3 }, grille: 0.032, bloom: { blur: 1.8, alpha: 0.30 }, vignette: 0.34 },
+  },
+  {
+    id: 'b', tag: 'B', name: 'Classic CRT (too extreme)', bezel: true, flicker: true, glare: true,
+    desc: 'Kept for contrast only — the harsh one you rejected: heavy warp, chromatic split, strong scanlines. Shown so the gap to A+ / A++ is obvious.',
+    fx: { warp: 0.05, chroma: 0.6, scan: { alpha: 0.26, period: 3 }, grille: 0.06, bloom: { blur: 2.4, alpha: 0.4 }, vignette: 0.42 },
+  },
+];
+
+const FULL = { x: 0, y: 0, w: 720, h: 1280 };
+// Crop centered on the contested band: bridge, river ripples, enemy-held ★ special,
+// siege/build highlights — the busiest pixels, like the reference close-ups.
+const ZOOM = { x: 150, y: 462, w: 240, h: 176 };
+
+function card(v, srcRect, cssW, cssH, master, showText) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  if (showText) {
+    el.innerHTML = `<h3><span class="tag${v.fx ? '' : ' ref'}">${v.tag}</span>${v.name}</h3><p>${v.desc}</p>`;
+  } else {
+    el.innerHTML = `<h3><span class="tag${v.fx ? '' : ' ref'}">${v.tag}</span>${v.name}</h3><p></p>`;
+  }
+  const screen = document.createElement('div');
+  screen.className = 'screen' + (v.flicker ? ' flicker' : '');
+  screen.appendChild(makeOutput(master, srcRect, cssW, cssH, v.fx));
+  if (v.glare) {
+    const g = document.createElement('div');
+    g.className = 'glare';
+    screen.appendChild(g);
+  }
+  if (v.bezel) {
+    const b = document.createElement('div');
+    b.className = 'bezel';
+    b.appendChild(screen);
+    el.appendChild(b);
+  } else {
+    el.appendChild(screen);
+  }
+  return el;
+}
+
+loadIcons().then(() => {
+  const master = document.createElement('canvas');
+  master.width = 720; master.height = 1280;
+  drawGame(master.getContext('2d'));
+
+  const fullStrip = document.getElementById('fullStrip');
+  const zoomStrip = document.getElementById('zoomStrip');
+  for (const v of VARIANTS) {
+    fullStrip.appendChild(card(v, FULL, 344, 612, master, true));
+    zoomStrip.appendChild(card(v, ZOOM, 344, 252, master, false));
+  }
+});
+</script>
+</body>
+</html>

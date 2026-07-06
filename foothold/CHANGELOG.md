@@ -3,6 +3,19 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.05 — 2026-07-06 — Upgrade economy, CRT filter & mobile-first layout
+- Fortify replaced by **Upgrade**: spend stone to double a resource node's per-turn output
+  instead of walling it. Captured nodes arrive un-upgraded (siege strips the ×2, re-develop with stone).
+- New CRT post-processing filter (`src/lib/CrtPipeline.js`), first pass: a subtle barrel curve,
+  scanlines, an aperture-grille phosphor tint, soft bloom and a gentle vignette. WebGL-only, with a
+  Canvas fallback that runs unfiltered; every knob lives in the `CRT` config object.
+- Mobile-first responsive layout: the design width stays locked at 720 but the height now matches
+  the device's aspect ratio, so tall phones fill top-to-bottom instead of showing letterbox bars.
+- Layout split into three anchored zones — HUD (resources + gear) pinned top, action legend +
+  End Turn pinned bottom, board vertically centered in the space between.
+- Fixed a double-centering bug (CSS flex + Phaser CENTER_BOTH) that pushed the canvas toward the lower-right.
+- Known issue (WIP): CRT edge/corner darkening still reads too black on some screens — being tuned.
+
 ## v0.04 — 2026-07-04 — Game-feel & juice pass
 - Added a procedural Web Audio sound engine (`src/lib/sfx.js`) — no audio files, fully
   synthesized: distinct sounds on claim, build, fortify, siege, end-turn, win and lose.

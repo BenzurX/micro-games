@@ -19,15 +19,21 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 
 ## Today's Target
 *(One line. Set it each morning before opening Claude Code.)*
-- **Date:** 2026-07-04
-- **Target:** Reconcile the July 3 work (6x9 board, river, Kenney icons, tooltips) — backfill the log and snapshot it as v0.03.
-- **Status:** done (v0.03 snapshot saved self-contained; gallery + log updated). Benzur confirmed the July 3 build was working.
+- **Date:** 2026-07-05
+- **Target:** Late-game snowball balance fix (item 1 of the prior queue).
+- **Status:** direction reworked & implemented, NOT yet locked. Replaced Fortify with **Upgrade** (×2 tile output), halved base node income (10→5), made Siege cost 2x-a-claim + 5 wood on nodes, capturing a node strips its upgrade, added a hard 100 resource cap, special node → +3-all, on-tile income labels, "AI"→"Enemy", seamless post-claim tooltip, new special/destructive/node-capture sounds. **All live-only: uncommitted, undocumented, and ahead of snapshot v0.04.** Needs a confirming playtest + docs + snapshot v0.05 next session.
 
 ## Next Session
 *(Canonical resume queue — the single source of truth for "ready to continue?". Set at
 session close via the Session End Ritual; restated verbatim and worked from item 1 on
 resume. A newer plan replaces this whole section. See global CLAUDE.md → Session handoff.)*
-- (set at session close)
+1. **Lock in the Upgrade-economy rework** (this session's work is live-only). Do a full confirming playtest of the current build; if it feels right, DOCUMENT it and freeze it: rewrite DESIGN.md (Fortify→Upgrade action + the rules/numbers), add Decision Log entries (Fortify replaced by Upgrade = ×2 output; base node income 10→5; Siege = 2x-a-claim + 5 wood on nodes; captured nodes lose their upgrade; hard 100 resource cap; special = +3-all; "Enemy" not "AI"), update CHANGELOG + README, and save self-contained snapshot **v0.05**. The live build is currently uncommitted and ahead of both the docs and v0.04. (If the direction still feels off, keep iterating balance first.)
+2. **Title screen + custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
+3. **Run the ux-reviewer agent** on the v0.05 build; log and triage whatever it flags.
+4. **Help / tutorial panel** — an in-game panel that teaches new players how to play (actions, costs, win condition).
+5. **Settings page (gear icon)** — a settings screen opened from the gear icon, with sound controls (mute / volume).
+6. **New Game button** next to End Turn — starts a fresh game; shows a confirmation modal only if at least one turn has been taken.
+7. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
 
 ## Daily Log
 *(Append one entry per work day. Three lines max.)*
@@ -46,8 +52,15 @@ resume. A newer plan replaces this whole section. See global CLAUDE.md → Sessi
 ### 2026-07-04
 - Done: Reconciled the un-snapshotted July 3 work into snapshot **v0.03** (self-contained, vendored Phaser + Kenney icons). Updated the snapshots gallery and backfilled the 2026-07-03 log. Benzur confirmed the July 3 build was working.
 - Done (juice pass): Balance tweaks (win banner "You Win on Round N!", fortify → x3, legend copy). Full game-feel pass — new procedural Web Audio SFX engine (`src/lib/sfx.js`, no audio files) with sound on every action, 5 pitch variants per sound, metallic anvil "tang" for fortify (old bell kept as `glassClang` backup), heavier pitched-down base-capture sound, particle bursts (fixed double-offset bug), camera shake, tile pops, stepped AI turns, animated game-over. Saved snapshot **v0.04**; added CHANGELOG.md + README.md; added a Pre-Push Gate to the pipeline CLAUDE.md. Initialized the foothold git repo + first commit. Logged the late-game snowball as a v1 balance to-do.
-- Blocked: Can't push to GitHub yet — `gh` not installed and no remote exists (needs Benzur: GitHub Desktop publish or install gh).
-- Tomorrow (next session): (set at session close)
+- Done (repo): Benzur created the GitHub remote; locked in a **single monorepo** at the pipeline root (BenzurX/micro-games, branch `main`). Committed and pushed the whole pipeline (template + all games as sibling folders); working tree clean, in sync with origin. HTTPS auth via Git Credential Manager; `gh` still not installed.
+- Blocked: None.
+- Tomorrow (next session): Late-game snowball balance fix (item 1 of Next Session queue).
+
+### 2026-07-05
+- Done (economy rework — the snowball fix): tried a soft resource ceiling, reverted it, then pivoted the design — **Fortify → Upgrade** (costs stone, DOUBLES a node's output; card_lift icon), base node income halved 10→5, **Siege = 2x a claim (10 gold) + 5 wood to re-develop a captured node**, capturing a node **strips its upgrade** (revives stone as a late-game sink + kills the steal-bait), **hard 100 cap** on every resource, special node → **+3 all** (doubles when upgraded). Added on-tile per-node income labels, made the post-claim tooltip seamless (re-show under cursor).
+- Done (polish): "AI" → "Enemy" in all displayed text. New procedural SFX — magical acquire/upgrade sound for the ★ node (5 variants; upgrade pitched up), and a heavier/longer **destructive** node-capture sound (pitched down further when the node was upgraded); sieging a special uses the destructive sound, not the magical one.
+- Blocked: None. **Caveat: all of the above is live-only — uncommitted, undocumented (DESIGN.md/Decision Log still describe Fortify), and ahead of snapshot v0.04.** Reconcile next session (see Next Session item 1).
+- Tomorrow (next session): Lock in the Upgrade-economy rework — confirming playtest, then docs + snapshot v0.05.
 
 ## Balance / Tuning To-Do (v1 — must solve before ship)
 - **Late-game snowball (raised 2026-07-04):** by ~turn 6+, a player with early gold/wood
