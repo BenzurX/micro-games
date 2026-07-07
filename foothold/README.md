@@ -1,9 +1,9 @@
 # Foothold
 
 A small, turn-based territory-control game: you vs one AI on a procedural portrait board.
-Claim empty ground, build on resource nodes, upgrade them to double their output, and siege
-the enemy — win by capturing their home base or holding the most tiles when the rounds run
-out. Game 1 of the Micro Games pipeline.
+Expand onto empty ground, build on resource nodes, upgrade them to double their output, and
+siege the enemy - win by capturing their home base or holding the most tiles when the rounds
+run out. Game 1 of the Micro Games pipeline.
 
 - **Engine:** Phaser 3 (vendored locally under `vendor/`, no CDN)
 - **Stack:** plain ES modules, no build step
@@ -23,10 +23,12 @@ Then open <http://localhost:8123>.
 
 ```
 src/main.js            Phaser bootstrap (720-wide, device-aspect height, Scale.FIT)
-src/scenes/            BootScene (asset load) + GameScene (the whole game loop for now)
+src/scenes/            BootScene (asset load), TitleScene (splash), GameScene (the match)
 src/lib/sfx.js         Procedural Web Audio sound engine (synthesized, no audio files)
+src/lib/settings.js    Persisted user prefs (sound / volume / CRT) via localStorage
+src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel
 src/lib/CrtPipeline.js WebGL CRT post-processing filter (curve, scanlines, grille, bloom, vignette)
-assets/icons/          Kenney "Board Game Icons" (CC0), tinted per resource — see assets/CREDITS.md
+assets/icons/          Kenney "Board Game Icons" (CC0), tinted per resource - see assets/CREDITS.md
 snapshots/             Frozen, self-contained playable copies of past versions + gallery
 vendor/phaser.min.js   Vendored Phaser 3.80.1
 ```

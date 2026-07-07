@@ -3,6 +3,23 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.06 - 2026-07-06 - Title screen, settings & How to Play, plus a polish pass
+- New **title / splash screen** (`src/scenes/TitleScene.js`): watchtower hero art on a soft gold
+  halo that lights up (radial glow) and grows on hover, a colored four-verb tagline, and a
+  breathing Start button. BootScene now hands off to the title, not straight into the match.
+- Medieval herald's fanfare plays on the splash (first load or returning from a game) and replays
+  whenever you tap the tower; new procedural `title` sound in `sfx.js`.
+- Shared UI overlays extracted to `src/lib/ui.js`: a **How to Play** tutorial (resource + action
+  reference) and a **Settings** panel (sound/volume/CRT, About), both reachable from the title gear.
+- Persistent settings store (`src/lib/settings.js`): sound, volume and CRT toggle saved to
+  localStorage and re-applied on load; single `VERSION` source of truth shown in the UI.
+- Renamed the Claim action to **Expand** everywhere (legend, tooltips, tutorial copy).
+- Modals no longer close when you click the card itself - only the bottom button, the X, or a
+  click outside the card dismisses them (invisible click-block over the card).
+- HUD polish: resource names in ALL CAPS, larger amount + income type, and the income "+N" raised
+  off the bottom edge. Fixed a bug where a spend's downward number-bounce stayed down a line.
+- Title and in-game settings gear now render identically (same rounded card, glyph and hit zone).
+
 ## v0.05 — 2026-07-06 — Upgrade economy, CRT filter & mobile-first layout
 - Fortify replaced by **Upgrade**: spend stone to double a resource node's per-turn output
   instead of walling it. Captured nodes arrive un-upgraded (siege strips the ×2, re-develop with stone).

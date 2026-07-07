@@ -1,0 +1,28 @@
+/* Prototype styling only. The real title screen / UI comes in the polish pass. */
+:root {
+  --bg: #1b1e2b;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: #e7e9f0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  overflow: hidden;
+  /* Stop iOS double-tap zoom / text selection on a game surface. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* Full-viewport host for the canvas. Phaser's Scale.CENTER_BOTH owns the centering
+   (it sets the canvas margins), so we must NOT also flex-center here — doing both
+   stacks two offsets and shoves the canvas off toward the lower-right. */
+#game {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+canvas { display: block; }

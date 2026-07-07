@@ -18,6 +18,7 @@ Before pushing any game's repo, complete these first (skip nothing):
    (and its `snapshots/index.html` card). No web service-worker/cache string exists yet;
    if one is added later, bump it here too.
 4. Confirm `assets/CREDITS.md` covers every third-party asset in the build.
+5. Remove any "em dashes" (—) and use regular dashes (-) instead.
 
 Only after all four: commit, then push.
 
