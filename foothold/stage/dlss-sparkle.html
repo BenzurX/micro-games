@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold — DLSS sparkle stage</title>
+<!-- Phaser vendored locally, same copy the game ships, so these previews match in-game exactly. -->
+<script src="../vendor/phaser.min.js"></script>
+<style>
+  :root {
+    --bg: #14161f;
+    --panel: #1d2030;
+    --ink: #e7e9f0;
+    --muted: #8a90a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 28px 24px 60px;
+  }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 26px; max-width: 900px; line-height: 1.5; }
+  .sub b { color: var(--ink); }
+
+  .strip { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .card {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 14px 14px 14px;
+    width: 372px;
+  }
+  .card h3 { margin: 0 0 3px; font-size: 16px; }
+  .card h3 .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 6px; margin-right: 7px; vertical-align: 2px;
+    background: #3d6cff; color: #fff;
+  }
+  .card h3 .tag.cur { background: #2f7d4f; }
+  .card p { margin: 8px 0 12px; font-size: 12.5px; color: var(--muted); line-height: 1.45; min-height: 34px; }
+  .screen {
+    position: relative;
+    background: #1b1e2b;
+    overflow: hidden;
+    border-radius: 8px;
+    line-height: 0;
+  }
+  .screen canvas { display: block; }
+  .notes {
+    margin-top: 40px; max-width: 900px; background: var(--panel);
+    border-radius: 14px; padding: 18px 22px; font-size: 13.5px; line-height: 1.6; color: #b6bccd;
+  }
+  .notes b { color: var(--ink); }
+  code { background: #12141f; padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+  <h1>DLSS + Frame Gen — sparkle options</h1>
+  <p class="sub">Four alternatives for the gag "graphics enhancement" effect. Each preview runs the
+  <b>real Phaser particle config</b> over a faux board, so whatever you pick lifts straight into
+  <code>startDlssSparkles()</code> in <code>src/lib/ui.js</code>. Tell me the letter and I'll wire it in.</p>
+
+  <div class="strip">
+    <div class="card">
+      <h3><span class="tag">A</span> Twinkle Stars</h3>
+      <p>Small gold/white 4-point stars twinkling in place, sparse and tasteful. A calmer, less
+         rainbow take on what's in the build now.</p>
+      <div class="screen" id="a"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">B</span> Anamorphic Flares</h3>
+      <p>Bright cyan/white points with a horizontal light streak — reads like a lens flare / "graphics
+         card" glint. Fewer, bigger, more premium-tech.</p>
+      <div class="screen" id="b"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">C</span> Holo Bokeh Rising</h3>
+      <p>Soft rainbow orbs drifting slowly upward, fading as they go. Dreamy, holographic, ambient —
+         least "in your face".</p>
+      <div class="screen" id="c"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">D</span> Prismatic Bursts</h3>
+      <p>Little firework pops of rainbow shards firing off at random spots. The most celebratory /
+         triumphant, matches the fanfare energy.</p>
+      <div class="screen" id="d"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag cur">NOW</span> Star (rainbow)</h3>
+      <p>The current build for reference: multicolored rotating 4-point stars, everywhere at once.</p>
+      <div class="screen" id="now"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <p><b>How they differ.</b> A &amp; NOW sit still (twinkle); B is sparse bright streaks; C drifts
+    upward; D bursts radially. All use additive blending so they glow over the dark board.</p>
+    <p><b>Tuning.</b> Density (<code>frequency</code>), size (<code>scale</code>), and palette
+    (<code>tint</code>) are all easy to dial after you pick a direction — e.g. "B, but a touch denser".</p>
+  </div>
+
+<script>
+const CW = 344, CH = 240; // preview screen size
+
+// ---- Texture builders (each game has its own texture manager, so keys don't collide) ----
+function makeStar(scene, key) {
+  if (scene.textures.exists(key)) return;
+  const g = scene.make.graphics({ add: false });
+  g.fillStyle(0xffffff, 1);
+  g.fillPoints([
+    { x: 16, y: 0 }, { x: 20, y: 12 }, { x: 32, y: 16 }, { x: 20, y: 20 },
+    { x: 16, y: 32 }, { x: 12, y: 20 }, { x: 0, y: 16 }, { x: 12, y: 12 },
+  ], true);
+  g.fillCircle(16, 16, 3);
+  g.generateTexture(key, 32, 32);
+  g.destroy();
+}
+function makeShard(scene, key) {
+  if (scene.textures.exists(key)) return;
+  const g = scene.make.graphics({ add: false });
+  g.fillStyle(0xffffff, 1);
+  g.fillPoints([{ x: 5, y: 0 }, { x: 10, y: 5 }, { x: 5, y: 14 }, { x: 0, y: 5 }], true);
+  g.generateTexture(key, 10, 14);
+  g.destroy();
+}
+function makeOrb(scene, key) {
+  if (scene.textures.exists(key)) return;
+  const tex = scene.textures.createCanvas(key, 64, 64);
+  const ctx = tex.getContext();
+  const rg = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rg.addColorStop(0, 'rgba(255,255,255,0.9)');
+  rg.addColorStop(0.4, 'rgba(255,255,255,0.4)');
+  rg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0, 0, 64, 64);
+  tex.refresh();
+}
+function makeFlare(scene, key) {
+  if (scene.textures.exists(key)) return;
+  const tex = scene.textures.createCanvas(key, 96, 96);
+  const ctx = tex.getContext();
+  // bright core
+  const rg = ctx.createRadialGradient(48, 48, 0, 48, 48, 15);
+  rg.addColorStop(0, 'rgba(255,255,255,1)');
+  rg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = rg;
+  ctx.beginPath(); ctx.arc(48, 48, 15, 0, Math.PI * 2); ctx.fill();
+  // horizontal streak (the anamorphic part)
+  const hg = ctx.createLinearGradient(0, 48, 96, 48);
+  hg.addColorStop(0, 'rgba(255,255,255,0)');
+  hg.addColorStop(0.5, 'rgba(255,255,255,0.85)');
+  hg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, 45, 96, 6);
+  // faint vertical streak
+  const vg = ctx.createLinearGradient(48, 0, 48, 96);
+  vg.addColorStop(0, 'rgba(255,255,255,0)');
+  vg.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+  vg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(46, 0, 4, 96);
+  tex.refresh();
+}
+
+const RAINBOW = [0x8ef6ff, 0xff9de8, 0xfff29d, 0xbf9dff, 0xffffff];
+
+// A muted faux board so the sparkles have game-like context underneath.
+function drawBoard(scene) {
+  scene.add.rectangle(CW / 2, CH / 2, CW, CH, 0x1b1e2b);
+  const cols = 5, rows = 3, t = 54, gap = 8;
+  const gw = cols * t + (cols - 1) * gap, gh = rows * t + (rows - 1) * gap;
+  const ox = (CW - gw) / 2, oy = (CH - gh) / 2;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      scene.add.rectangle(ox + c * (t + gap) + t / 2, oy + r * (t + gap) + t / 2, t, t, 0x2b2f45)
+        .setStrokeStyle(1, 0x363b57);
+    }
+  }
+}
+
+function makeScene(effect) {
+  return {
+    create() {
+      drawBoard(this);
+      const W = CW, H = CH;
+
+      if (effect === 'a') { // Twinkle Stars — sparse gold/white, still
+        makeStar(this, 'star');
+        this.add.particles(0, 0, 'star', {
+          x: { min: 0, max: W }, y: { min: 0, max: H },
+          lifespan: 1000, scale: { start: 0.55, end: 0 }, alpha: { start: 1, end: 0 },
+          rotate: { min: 0, max: 90 }, frequency: 150, quantity: 1,
+          tint: [0xffffff, 0xfff2b0, 0xcfeaff], blendMode: 'ADD',
+        });
+
+      } else if (effect === 'b') { // Anamorphic Flares — bright, streaky, sparse
+        makeFlare(this, 'flare');
+        this.add.particles(0, 0, 'flare', {
+          x: { min: 0, max: W }, y: { min: 0, max: H },
+          lifespan: 800, scale: { start: 0.85, end: 0.1 }, alpha: { start: 1, end: 0 },
+          frequency: 300, quantity: 1,
+          tint: [0xbfefff, 0xffffff, 0x9fd0ff], blendMode: 'ADD',
+        });
+
+      } else if (effect === 'c') { // Holo Bokeh — soft orbs drifting up
+        makeOrb(this, 'orb');
+        this.add.particles(0, 0, 'orb', {
+          x: { min: 0, max: W }, y: { min: H * 0.5, max: H + 20 },
+          lifespan: 2800, speedY: { min: -30, max: -70 }, speedX: { min: -12, max: 12 },
+          scale: { start: 0.25, end: 0.85 }, alpha: { start: 0.7, end: 0 },
+          frequency: 220, quantity: 1, tint: RAINBOW, blendMode: 'ADD',
+        });
+
+      } else if (effect === 'd') { // Prismatic Bursts — periodic firework pops
+        makeShard(this, 'shard');
+        const p = this.add.particles(0, 0, 'shard', {
+          lifespan: 750, speed: { min: 60, max: 250 }, scale: { start: 0.9, end: 0 },
+          alpha: { start: 1, end: 0 }, angle: { min: 0, max: 360 }, rotate: { min: 0, max: 360 },
+          tint: RAINBOW, blendMode: 'ADD', emitting: false,
+        });
+        this.time.addEvent({ delay: 430, loop: true, callback: () => {
+          p.explode(16, Phaser.Math.Between(40, W - 40), Phaser.Math.Between(40, H - 40));
+        } });
+
+      } else { // 'now' — current build: rainbow rotating stars everywhere
+        makeStar(this, 'star');
+        this.add.particles(0, 0, 'star', {
+          x: { min: 0, max: W }, y: { min: 0, max: H },
+          lifespan: 800, scale: { start: 0.7, end: 0 }, alpha: { start: 1, end: 0 },
+          rotate: { min: 0, max: 360 }, frequency: 110, quantity: 2,
+          tint: RAINBOW, blendMode: 'ADD',
+        });
+      }
+    },
+  };
+}
+
+function mount(parent, effect) {
+  new Phaser.Game({
+    type: Phaser.AUTO,
+    parent,
+    width: CW,
+    height: CH,
+    backgroundColor: '#1b1e2b',
+    scene: makeScene(effect),
+    banner: false,
+  });
+}
+
+['a', 'b', 'c', 'd'].forEach((id) => mount(id, id));
+mount('now', 'now');
+</script>
+</body>
+</html>

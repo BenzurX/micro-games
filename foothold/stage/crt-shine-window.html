@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold - CRT window reflection</title>
+<!-- Phaser vendored locally, same copy the game ships, so these previews match in-game exactly. -->
+<script src="../vendor/phaser.min.js"></script>
+<style>
+  :root {
+    --bg: #14161f;
+    --panel: #1d2030;
+    --ink: #e7e9f0;
+    --muted: #8a90a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 28px 24px 60px;
+  }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 26px; max-width: 900px; line-height: 1.5; }
+  .sub b { color: var(--ink); }
+
+  .strip { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .card {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 14px 14px 14px;
+    width: 372px;
+  }
+  .card h3 { margin: 0 0 3px; font-size: 16px; }
+  .card h3 .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 6px; margin-right: 7px; vertical-align: 2px;
+    background: #c88a2a; color: #fff;
+  }
+  .card h3 .tag.cur { background: #55607a; }
+  .card p { margin: 8px 0 12px; font-size: 12.5px; color: var(--muted); line-height: 1.45; min-height: 34px; }
+  .screen {
+    position: relative;
+    background: #1b1e2b;
+    overflow: hidden;
+    border-radius: 8px;
+    line-height: 0;
+  }
+  .screen canvas { display: block; }
+  .notes {
+    margin-top: 40px; max-width: 900px; background: var(--panel);
+    border-radius: 14px; padding: 18px 22px; font-size: 13.5px; line-height: 1.6; color: #b6bccd;
+  }
+  .notes b { color: var(--ink); }
+  code { background: #12141f; padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+  <h1>CRT window reflection - crooked variants</h1>
+  <p class="sub">Four more distorted / crooked takes on the <b>Window Pane</b> reflection, all at about
+  <b>half the previous brightness</b> (0.24 &rarr; 0.12). Same real CRT shader as the game; whatever
+  you pick lifts straight into <code>CrtPipeline.js</code>. The last card shows the plain upright pane
+  at the new reduced brightness as a baseline.</p>
+
+  <div class="strip">
+    <div class="card">
+      <h3><span class="tag">A</span> Tilted Pane</h3>
+      <p>The whole window rotated off-axis, like the screen is angled to the window. Clean rectangle,
+         just leaning.</p>
+      <div class="screen" id="a"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">B</span> Leaning Parallelogram</h3>
+      <p>Sheared into a parallelogram and tilted - a stronger perspective lean, as if the window is
+         off to the side of the room.</p>
+      <div class="screen" id="b"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">C</span> Warped Glass</h3>
+      <p>Rectangle with wavy, rippling edges, like an old imperfect CRT curving the reflection. The
+         most irregular / organic.</p>
+      <div class="screen" id="c"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">D</span> Tilted + Mullions</h3>
+      <p>Tilted pane with a cross bar dividing it into four lights - unmistakably a window, crooked on
+         the glass.</p>
+      <div class="screen" id="d"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag cur">FLAT</span> Upright baseline</h3>
+      <p>The original upright pane at the new reduced brightness, for comparison against the crooked
+         ones above.</p>
+      <div class="screen" id="flat"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <p><b>Tuning.</b> Tilt angle, skew amount, ripple strength, size, position, and brightness are all
+    one-line tweaks after you pick - e.g. "C, but tilt it more and nudge it left".</p>
+  </div>
+
+<script>
+const CW = 344, CH = 240;
+const SHINE = 0.12; // ~50% of the previous 0.24
+
+const FRAG = `
+precision mediump float;
+uniform sampler2D uMainSampler;
+uniform vec2 uResolution;
+uniform int uMode;
+uniform float uShine;
+varying vec2 outTexCoord;
+
+const float WARP = 0.018;
+const float SCAN_ALPHA = 0.13;
+const float GRILLE = 0.03;
+const float VIGN = 0.16;
+
+float sdRoundBox (vec2 p, vec2 b, float r) {
+  vec2 d = abs(p) - b + vec2(r);
+  return length(max(d, 0.0)) - r + min(max(d.x, d.y), 0.0);
+}
+vec2 rot (vec2 p, float a) {
+  float c = cos(a), s = sin(a);
+  return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
+void main () {
+  vec2 uv = outTexCoord;
+  vec2 n = uv * 2.0 - 1.0;
+  float f = 1.0 + WARP * dot(n, n);
+  vec2 suv = n * f * 0.5 + 0.5;
+  if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) {
+    gl_FragColor = vec4(0.106, 0.118, 0.169, 1.0);
+    return;
+  }
+  vec3 col = texture2D(uMainSampler, suv).rgb;
+
+  float scan = 0.5 + 0.5 * sin(suv.y * (uResolution.y / 6.0) * 6.2831853);
+  col *= 1.0 - SCAN_ALPHA * scan;
+
+  float ci = mod(gl_FragCoord.x, 3.0);
+  vec3 g = ci < 1.0 ? vec3(1.0 + GRILLE, 1.0 - GRILLE, 1.0 - GRILLE)
+         : ci < 2.0 ? vec3(1.0 - GRILLE, 1.0 + GRILLE, 1.0 - GRILLE)
+                    : vec3(1.0 - GRILLE, 1.0 - GRILLE, 1.0 + GRILLE);
+  col *= g;
+
+  float d = length(uv - 0.5);
+  col *= 1.0 - VIGN * smoothstep(0.35, 0.75, d);
+
+  // --- window-pane reflection, distorted per mode ---
+  vec3 tint = vec3(0.95, 0.97, 1.0);
+  vec2 p = uv - vec2(0.30, 0.75); // upper-left anchor (y increases upward)
+  float m = 0.0;
+
+  if (uMode == 0) {
+    // A - Tilted: clean rectangle, rotated off-axis.
+    vec2 lp = rot(p, -0.34);
+    float s = sdRoundBox(lp * vec2(1.7, 2.3), vec2(0.17, 0.12), 0.05);
+    m = 1.0 - smoothstep(-0.02, 0.12, s);
+
+  } else if (uMode == 1) {
+    // B - Leaning parallelogram: shear then tilt.
+    vec2 lp = p;
+    lp.x += lp.y * 0.6;         // shear into a parallelogram
+    lp = rot(lp, -0.22);
+    float s = sdRoundBox(lp * vec2(1.6, 2.4), vec2(0.17, 0.12), 0.04);
+    m = 1.0 - smoothstep(-0.02, 0.12, s);
+
+  } else if (uMode == 2) {
+    // C - Warped glass: ripple the coordinates so the edges go wavy.
+    vec2 lp = rot(p, -0.20);
+    lp.x += 0.028 * sin(lp.y * 22.0);
+    lp.y += 0.020 * sin(lp.x * 18.0);
+    float s = sdRoundBox(lp * vec2(1.7, 2.3), vec2(0.16, 0.12), 0.03);
+    m = 1.0 - smoothstep(-0.03, 0.13, s);
+
+  } else if (uMode == 3) {
+    // D - Tilted + mullions: rectangle minus a cross bar = a four-light window.
+    vec2 lp = rot(p, -0.30);
+    float s = sdRoundBox(lp * vec2(1.7, 2.3), vec2(0.17, 0.12), 0.04);
+    m = 1.0 - smoothstep(-0.02, 0.12, s);
+    float barV = 1.0 - smoothstep(0.0, 0.012, abs(lp.x));
+    float barH = 1.0 - smoothstep(0.0, 0.012, abs(lp.y));
+    m *= 1.0 - 0.75 * max(barV, barH);
+
+  } else {
+    // FLAT - upright baseline at the reduced brightness.
+    float s = sdRoundBox(p * vec2(1.7, 2.3), vec2(0.17, 0.12), 0.05);
+    m = 1.0 - smoothstep(-0.02, 0.12, s);
+  }
+
+  col += tint * m * uShine;
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function makePipelineClass(mode) {
+  return class extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
+    constructor(game) { super({ game, name: 'CrtShine', fragShader: FRAG }); }
+    onPreRender() {
+      this.set2f('uResolution', this.renderer.width, this.renderer.height);
+      this.set1i('uMode', mode);
+      this.set1f('uShine', SHINE);
+    }
+  };
+}
+
+function drawBoard(scene) {
+  const W = CW, H = CH;
+  scene.add.rectangle(W / 2, H / 2, W, H, 0x1b1e2b);
+  const cols = 5, rows = 3, t = 46, gap = 8;
+  const gw = cols * t + (cols - 1) * gap, gh = rows * t + (rows - 1) * gap;
+  const ox = (W - gw) / 2, oy = (H - gh) / 2 + 6;
+  scene.add.rectangle(W / 2, oy + t + gap / 2, W, t + 10, 0x2b5cff, 0.5);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      scene.add.rectangle(ox + c * (t + gap) + t / 2, oy + r * (t + gap) + t / 2, t, t, 0x2b2f45)
+        .setStrokeStyle(1, 0x363b57);
+    }
+  }
+  scene.add.text(14, 10, '⚔ 12   ⛏ 8   ◆ 6', {
+    fontFamily: 'system-ui, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#e7e9f0',
+  });
+}
+
+function mount(parent, mode) {
+  new Phaser.Game({
+    type: Phaser.WEBGL,
+    parent,
+    width: CW,
+    height: CH,
+    backgroundColor: '#1b1e2b',
+    banner: false,
+    pipeline: { CrtShine: makePipelineClass(mode) },
+    scene: {
+      create() {
+        drawBoard(this);
+        this.cameras.main.setBackgroundColor('#1b1e2b');
+        this.cameras.main.setPostPipeline('CrtShine');
+      },
+    },
+  });
+}
+
+mount('a', 0);
+mount('b', 1);
+mount('c', 2);
+mount('d', 3);
+mount('flat', 9);
+</script>
+</body>
+</html>

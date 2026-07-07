@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold - god ray stage</title>
+<!-- Phaser vendored locally, same copy the game ships, so these previews match in-game exactly. -->
+<script src="../vendor/phaser.min.js"></script>
+<style>
+  :root {
+    --bg: #14161f;
+    --panel: #1d2030;
+    --ink: #e7e9f0;
+    --muted: #8a90a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 28px 24px 60px;
+  }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 26px; max-width: 900px; line-height: 1.5; }
+  .sub b { color: var(--ink); }
+
+  .strip { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .card {
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 14px 14px 14px;
+    width: 372px;
+  }
+  .card h3 { margin: 0 0 3px; font-size: 16px; }
+  .card h3 .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 6px; margin-right: 7px; vertical-align: 2px;
+    background: #7a3dff; color: #fff;
+  }
+  .card p { margin: 8px 0 12px; font-size: 12.5px; color: var(--muted); line-height: 1.45; min-height: 34px; }
+  .screen {
+    position: relative;
+    background: #1b1e2b;
+    overflow: hidden;
+    border-radius: 8px;
+    line-height: 0;
+  }
+  .screen canvas { display: block; }
+  .notes {
+    margin-top: 40px; max-width: 900px; background: var(--panel);
+    border-radius: 14px; padding: 18px 22px; font-size: 13.5px; line-height: 1.6; color: #b6bccd;
+  }
+  .notes b { color: var(--ink); }
+  code { background: #12141f; padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+  <h1>Pseudo god rays - rainbow options</h1>
+  <p class="sub">Four takes on the "rainbow light shafts" effect, layered under the DLSS sparkles.
+  Each preview runs real Phaser objects over a faux board (additive-blended gradient beams, animated
+  live) so whatever you pick lifts straight into <code>src/lib/ui.js</code> next to
+  <code>startDlssSparkles()</code>. Tell me the letter and I'll wire it in behind the game like the
+  sparkles. The faint DLSS stars are drawn on top here so you can judge how the two read together.</p>
+
+  <div class="strip">
+    <div class="card">
+      <h3><span class="tag">A</span> Diagonal Shafts</h3>
+      <p>A handful of soft rainbow beams tilted from the top-left, slowly drifting sideways and
+         breathing in brightness. The classic "light through a window" read.</p>
+      <div class="screen" id="a"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">B</span> Radial Sunburst</h3>
+      <p>Rays fanning out from a single point above the top edge, gently pulsing. Reads like sun
+         breaking through - the most focal / dramatic.</p>
+      <div class="screen" id="b"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">C</span> Aurora Curtain</h3>
+      <p>Tall vertical rainbow shafts that sway and swell like an aurora. Ambient, dreamy, spread
+         evenly across the screen - least directional.</p>
+      <div class="screen" id="c"></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="tag">D</span> Sweeping Prism Fan</h3>
+      <p>A tight ordered spectrum fan anchored off the top-right corner, slowly rotating as one group
+         so the colors sweep across the board. The most overtly "prismatic".</p>
+      <div class="screen" id="d"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <p><b>How they differ.</b> A is directional and calm; B radiates from one hot point; C is
+    vertical/ambient with no clear source; D is an ordered spectrum that sweeps. All use additive
+    blending so they glow over the dark board and never fully hide it, and all are built to sit at a
+    low depth (behind the game, above the background) exactly like the sparkles.</p>
+    <p><b>Tuning.</b> Beam count, width, opacity (kept low on purpose so gameplay stays readable),
+    sway speed, and the palette are all easy to dial after you pick - e.g. "B, but softer and slower".</p>
+  </div>
+
+<script>
+const CW = 344, CH = 240; // preview screen size
+
+// Rainbow ordered spectrum (used where color order matters, e.g. the prism fan).
+const SPECTRUM = [0xff5d6c, 0xffab5e, 0xfff29d, 0x8ef6a0, 0x8ef6ff, 0x9db8ff, 0xd39dff];
+// Same palette shuffled-feeling for the softer effects.
+const RAINBOW = [0x8ef6ff, 0xff9de8, 0xfff29d, 0x8ef6a0, 0xbf9dff];
+
+// ---- Textures -------------------------------------------------------------
+// A single vertical light shaft: bright soft core fading to nothing at both side
+// edges, and feathered top+bottom so a beam never shows a hard end. Drawn white so
+// per-image tint can recolor it. This one texture, rotated/tinted, makes every ray.
+function makeBeam(scene, key) {
+  if (scene.textures.exists(key)) return;
+  const w = 64, h = 256;
+  const tex = scene.textures.createCanvas(key, w, h);
+  const ctx = tex.getContext();
+  // horizontal gradient: transparent -> bright center -> transparent
+  const hg = ctx.createLinearGradient(0, 0, w, 0);
+  hg.addColorStop(0.0, 'rgba(255,255,255,0)');
+  hg.addColorStop(0.5, 'rgba(255,255,255,1)');
+  hg.addColorStop(1.0, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, 0, w, h);
+  // vertical fade mask: feather the top and bottom ends
+  const vg = ctx.createLinearGradient(0, 0, 0, h);
+  vg.addColorStop(0.0, 'rgba(0,0,0,1)');    // fully cut at top
+  vg.addColorStop(0.18, 'rgba(0,0,0,0)');   // open through the middle
+  vg.addColorStop(0.82, 'rgba(0,0,0,0)');
+  vg.addColorStop(1.0, 'rgba(0,0,0,1)');    // fully cut at bottom
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+  tex.refresh();
+}
+
+// Small 4-point star, so we can overlay the current DLSS sparkles for context.
+function makeStar(scene, key) {
+  if (scene.textures.exists(key)) return;
+  const g = scene.make.graphics({ add: false });
+  g.fillStyle(0xffffff, 1);
+  g.fillPoints([
+    { x: 16, y: 0 }, { x: 20, y: 12 }, { x: 32, y: 16 }, { x: 20, y: 20 },
+    { x: 16, y: 32 }, { x: 12, y: 20 }, { x: 0, y: 16 }, { x: 12, y: 12 },
+  ], true);
+  g.fillCircle(16, 16, 3);
+  g.generateTexture(key, 32, 32);
+  g.destroy();
+}
+
+// A muted faux board so the rays have game-like context underneath.
+function drawBoard(scene) {
+  scene.add.rectangle(CW / 2, CH / 2, CW, CH, 0x1b1e2b);
+  const cols = 5, rows = 3, t = 54, gap = 8;
+  const gw = cols * t + (cols - 1) * gap, gh = rows * t + (rows - 1) * gap;
+  const ox = (CW - gw) / 2, oy = (CH - gh) / 2;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      scene.add.rectangle(ox + c * (t + gap) + t / 2, oy + r * (t + gap) + t / 2, t, t, 0x2b2f45)
+        .setStrokeStyle(1, 0x363b57);
+    }
+  }
+}
+
+// Overlay the current DLSS sparkles on top, so we see the two together.
+function addSparkles(scene) {
+  makeStar(scene, 'star');
+  scene.add.particles(0, 0, 'star', {
+    x: { min: 0, max: CW }, y: { min: 0, max: CH },
+    lifespan: 800, scale: { start: 0.5, end: 0 }, alpha: { start: 0.8, end: 0 },
+    rotate: { min: 0, max: 360 }, frequency: 150, quantity: 1,
+    tint: [0x8ef6ff, 0xff9de8, 0xfff29d, 0xbf9dff, 0xffffff], blendMode: 'ADD',
+  }).setDepth(5);
+}
+
+function makeScene(effect) {
+  return {
+    create() {
+      drawBoard(this);
+      makeBeam(this, 'beam');
+      const W = CW, H = CH;
+
+      if (effect === 'a') {
+        // Diagonal Shafts - parallel beams tilted from the top-left, drifting + breathing.
+        const n = 5;
+        for (let i = 0; i < n; i++) {
+          const x = W * (0.12 + i * 0.19);
+          const beam = this.add.image(x, H * 0.42, 'beam')
+            .setDepth(1).setBlendMode(Phaser.BlendModes.ADD)
+            .setAngle(22).setScale(0.9, 1.6)
+            .setTint(RAINBOW[i % RAINBOW.length])
+            .setAlpha(0.16);
+          this.tweens.add({ targets: beam, x: x + 26, duration: 3600 + i * 400,
+            yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+          this.tweens.add({ targets: beam, alpha: 0.30, duration: 1700 + i * 260,
+            yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: i * 200 });
+        }
+
+      } else if (effect === 'b') {
+        // Radial Sunburst - beams sharing an origin above the top edge, fanned + pulsing.
+        const ox = W * 0.5, oy = -30, n = 7;
+        for (let i = 0; i < n; i++) {
+          const ang = -55 + i * (110 / (n - 1)); // fan from -55deg to +55deg
+          const beam = this.add.image(ox, oy, 'beam')
+            .setOrigin(0.5, 0).setDepth(1).setBlendMode(Phaser.BlendModes.ADD)
+            .setAngle(ang).setScale(0.7, 1.5)
+            .setTint(SPECTRUM[i % SPECTRUM.length])
+            .setAlpha(0.14);
+          this.tweens.add({ targets: beam, alpha: 0.30, scaleX: 0.95,
+            duration: 1500 + i * 180, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: i * 130 });
+        }
+
+      } else if (effect === 'c') {
+        // Aurora Curtain - vertical shafts that sway and swell, evenly spread, ambient.
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const x = W * (0.08 + i * 0.17);
+          const beam = this.add.image(x, H * 0.5, 'beam')
+            .setDepth(1).setBlendMode(Phaser.BlendModes.ADD)
+            .setScale(0.8, 1.9)
+            .setTint(RAINBOW[i % RAINBOW.length])
+            .setAlpha(0.14);
+          this.tweens.add({ targets: beam, angle: 6, duration: 2600 + i * 300,
+            yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: i * 220 });
+          this.tweens.add({ targets: beam, scaleX: 1.25, alpha: 0.26, duration: 2000 + i * 250,
+            yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: i * 160 });
+        }
+
+      } else {
+        // 'd' - Sweeping Prism Fan: an ordered spectrum anchored off the top-right, the whole
+        // group slowly rotating so the colors sweep across the board.
+        const grp = this.add.container(W * 0.9, -20).setDepth(1);
+        const n = 7;
+        for (let i = 0; i < n; i++) {
+          const ang = 120 + i * 8; // tight ordered fan pointing down-left
+          const beam = this.add.image(0, 0, 'beam')
+            .setOrigin(0.5, 0).setBlendMode(Phaser.BlendModes.ADD)
+            .setAngle(ang).setScale(0.6, 1.7)
+            .setTint(SPECTRUM[i])
+            .setAlpha(0.20);
+          grp.add(beam);
+          this.tweens.add({ targets: beam, alpha: 0.32, duration: 1600 + i * 150,
+            yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: i * 120 });
+        }
+        this.tweens.add({ targets: grp, angle: 18, duration: 5200,
+          yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      }
+
+      addSparkles(this);
+    },
+  };
+}
+
+function mount(parent, effect) {
+  new Phaser.Game({
+    type: Phaser.AUTO,
+    parent,
+    width: CW,
+    height: CH,
+    backgroundColor: '#1b1e2b',
+    scene: makeScene(effect),
+    banner: false,
+  });
+}
+
+['a', 'b', 'c', 'd'].forEach((id) => mount(id, id));
+</script>
+</body>
+</html>

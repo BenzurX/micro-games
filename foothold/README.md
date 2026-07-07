@@ -22,10 +22,10 @@ Then open <http://localhost:8123>.
 ## Layout
 
 ```
-src/main.js            Phaser bootstrap (720-wide, device-aspect height, Scale.FIT)
+src/main.js            Phaser bootstrap (picks a portrait 720-wide or wide 900-tall canvas, Scale.FIT)
 src/scenes/            BootScene (asset load), TitleScene (splash), GameScene (the match)
 src/lib/sfx.js         Procedural Web Audio sound engine (synthesized, no audio files)
-src/lib/settings.js    Persisted user prefs (sound / volume / CRT) via localStorage
+src/lib/settings.js    Persisted user prefs (sound / volume / CRT / DLSS gag) via localStorage
 src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel
 src/lib/CrtPipeline.js WebGL CRT post-processing filter (curve, scanlines, grille, bloom, vignette)
 assets/icons/          Kenney "Board Game Icons" (CC0), tinted per resource - see assets/CREDITS.md

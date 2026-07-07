@@ -3,6 +3,22 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.07 - 2026-07-06 - Wide/desktop layout, a DLSS gag, and a game-feel pass
+- **Responsive-up layout**: landscape tablets and desktop now boot a wide canvas (height locked to
+  900, width matched to the aspect) with a board-left / info-rail-right composition; portrait phones
+  are unchanged. The mode is picked once at load (`src/main.js`, `GameScene.computeLayout`).
+- **"DLSS + Frame Gen" toggle** (Settings > Display): a purely cosmetic gag. Turning it on adds
+  rainbow sparkles, an aurora curtain of rainbow "god ray" light shafts behind the board, a
+  holographic shimmering label, and a triumphant fanfare. It does nothing to the actual rendering,
+  and now persists across the title screen and a new game (`src/lib/ui.js`, new `dlss` sound).
+- **Maxed-resource indicator**: a resource counter turns orange once it hits the cap, distinct from
+  the amber flash shown when you spend/lose resources.
+- **Opener balance**: each side is now guaranteed a wood AND a gold node within 4 tiles of its home
+  base, replacing the looser "any node within 2 tiles" rule, so no one starts economically starved.
+- Swapped the **End Turn** and **New Game** button positions.
+- **CRT filter**: added a subtle phosphor flicker (75% the strength of the staged Classic CRT
+  reference). The How to Play popup now scales to fit the shorter wide layout.
+
 ## v0.06 - 2026-07-06 - Title screen, settings & How to Play, plus a polish pass
 - New **title / splash screen** (`src/scenes/TitleScene.js`): watchtower hero art on a soft gold
   halo that lights up (radial glow) and grows on hover, a colored four-verb tagline, and a

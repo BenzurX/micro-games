@@ -19,21 +19,19 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 
 ## Today's Target
 *(One line. Set it each morning before opening Claude Code.)*
-- **Date:** 2026-07-05
-- **Target:** Late-game snowball balance fix (item 1 of the prior queue).
-- **Status:** direction reworked & implemented, NOT yet locked. Replaced Fortify with **Upgrade** (×2 tile output), halved base node income (10→5), made Siege cost 2x-a-claim + 5 wood on nodes, capturing a node strips its upgrade, added a hard 100 resource cap, special node → +3-all, on-tile income labels, "AI"→"Enemy", seamless post-claim tooltip, new special/destructive/node-capture sounds. **All live-only: uncommitted, undocumented, and ahead of snapshot v0.04.** Needs a confirming playtest + docs + snapshot v0.05 next session.
+- **Date:** 2026-07-06
+- **Target:** Lock in v0.05, then title screen / settings / tutorial polish pass.
+- **Status:** DONE and pushed. v0.05 (upgrade economy, CRT filter, mobile-first layout) and v0.06 (TitleScene splash, Settings + How to Play overlays in `ui.js`, persisted settings in `settings.js`, Claim→Expand rename, HUD/modal polish) both committed, snapshotted, and pushed to origin/main. Responsive update deferred to next session (usage budget).
 
 ## Next Session
 *(Canonical resume queue — the single source of truth for "ready to continue?". Set at
 session close via the Session End Ritual; restated verbatim and worked from item 1 on
 resume. A newer plan replaces this whole section. See global CLAUDE.md → Session handoff.)*
-1. **Lock in the Upgrade-economy rework** (this session's work is live-only). Do a full confirming playtest of the current build; if it feels right, DOCUMENT it and freeze it: rewrite DESIGN.md (Fortify→Upgrade action + the rules/numbers), add Decision Log entries (Fortify replaced by Upgrade = ×2 output; base node income 10→5; Siege = 2x-a-claim + 5 wood on nodes; captured nodes lose their upgrade; hard 100 resource cap; special = +3-all; "Enemy" not "AI"), update CHANGELOG + README, and save self-contained snapshot **v0.05**. The live build is currently uncommitted and ahead of both the docs and v0.04. (If the direction still feels off, keep iterating balance first.)
-2. **Title screen + custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
-3. **Run the ux-reviewer agent** on the v0.05 build; log and triage whatever it flags.
-4. **Help / tutorial panel** — an in-game panel that teaches new players how to play (actions, costs, win condition).
-5. **Settings page (gear icon)** — a settings screen opened from the gear icon, with sound controls (mute / volume).
-6. **New Game button** next to End Turn — starts a fresh game; shows a confirmation modal only if at least one turn has been taken.
-7. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
+1. **Responsive update, Tier 1 (fluid portrait)** — resume phrase "Let's proceed with the responsive update"; plan lives in memory `foothold-responsive-plan`. First step: extract a single layout module that owns all region/coordinate math (kills the scattered 720/360 literals), then unlock the fixed width, Scale.FIT→RESIZE, and a re-run-on-resize `layout()` path. Tier 3 (distinct tablet/desktop layout) is a scope-expansion decision — flag it, don't start it.
+2. **Custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
+3. **Run the ux-reviewer agent** on the v0.06 build; log and triage whatever it flags.
+4. **New Game button** next to End Turn — starts a fresh game; shows a confirmation modal only if at least one turn has been taken.
+5. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
 
 ## Daily Log
 *(Append one entry per work day. Three lines max.)*
@@ -61,6 +59,11 @@ resume. A newer plan replaces this whole section. See global CLAUDE.md → Sessi
 - Done (polish): "AI" → "Enemy" in all displayed text. New procedural SFX — magical acquire/upgrade sound for the ★ node (5 variants; upgrade pitched up), and a heavier/longer **destructive** node-capture sound (pitched down further when the node was upgraded); sieging a special uses the destructive sound, not the magical one.
 - Blocked: None. **Caveat: all of the above is live-only — uncommitted, undocumented (DESIGN.md/Decision Log still describe Fortify), and ahead of snapshot v0.04.** Reconcile next session (see Next Session item 1).
 - Tomorrow (next session): Lock in the Upgrade-economy rework — confirming playtest, then docs + snapshot v0.05.
+
+### 2026-07-06
+- Done: Locked in the economy rework as **v0.05** (playtest confirmed; DESIGN.md/Decision Log/CHANGELOG/README updated, snapshot saved, pushed). Then built **v0.06**: TitleScene splash (watchtower hero + glow, fanfare, breathing Start), shared overlays in `src/lib/ui.js` (How to Play + Settings), persisted settings store (`src/lib/settings.js`: sound/volume/CRT, single VERSION source), Claim→Expand rename, modal click-through fix, HUD restyle. Snapshot v0.06 + full pre-push gate, pushed to origin/main.
+- Blocked: None. Responsive update assessed (3 tiers, see memory `foothold-responsive-plan`) but deferred — usage budget too low to start the refactor safely.
+- Tomorrow (next session): Responsive update Tier 1 (item 1 of Next Session queue).
 
 ## Balance / Tuning To-Do (v1 — must solve before ship)
 - **Late-game snowball (raised 2026-07-04):** by ~turn 6+, a player with early gold/wood
