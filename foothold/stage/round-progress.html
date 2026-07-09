@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Round progress ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --special:#5ad1c8;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    /* day-cycle stops: dawn -> morning -> noon -> afternoon -> dusk -> night */
+    --dawn:#f2a54e; --morning:#ffce3a; --noon:#ffe9a8; --dusk:#c76b9e; --night:#3a3f6b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 80px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 26px;max-width:640px;}
+  .controls{position:sticky;top:0;z-index:5;background:rgba(27,30,43,.92);
+    backdrop-filter:blur(4px);padding:14px 16px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .controls label{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .controls input[type=range]{flex:1;min-width:200px;accent-color:var(--blue);}
+  .controls .val{font-family:var(--head);font-weight:700;font-size:22px;min-width:74px;text-align:right;}
+  .grid{display:grid;grid-template-columns:1fr;gap:22px;max-width:520px;}
+  .idea{background:var(--card);border:1px solid #313650;border-radius:16px;overflow:hidden;}
+  .idea .tag{display:flex;align-items:baseline;gap:10px;padding:14px 18px 0;}
+  .idea .tag b{font-family:var(--head);font-weight:700;font-size:20px;}
+  .idea .tag .note{color:var(--muted);font-size:13px;}
+  /* the "phone HUD strip" the indicator would actually live in */
+  .stage{margin:14px;padding:18px 16px 20px;border-radius:12px;background:var(--bg);
+    border:1px solid #262a3e;}
+  .ref{max-width:520px;margin:0 0 22px;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .ref .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  .ref .cur{font-family:var(--head);font-weight:700;font-size:26px;margin-top:6px;}
+  .ref .cur .turn{color:var(--subtle);}
+
+  /* ---------- shared bits ---------- */
+  .ico{width:22px;height:22px;flex:none;}
+  .ico.sun{filter:drop-shadow(0 0 6px rgba(255,206,58,.55));}
+  .ico.moon{filter:drop-shadow(0 0 5px rgba(160,185,255,.4));}
+  .caption{margin-top:12px;text-align:center;font-family:var(--head);font-weight:700;
+    font-size:17px;color:var(--ink);}
+  .caption .turn{color:var(--subtle);font-weight:400;}
+
+  /* ===== A: gradient day-track with travelling orb ===== */
+  .A-wrap{display:flex;align-items:center;gap:12px;}
+  .A-track{position:relative;flex:1;height:14px;border-radius:8px;
+    background:linear-gradient(90deg,var(--dawn),var(--morning) 22%,var(--noon) 45%,var(--dusk) 72%,var(--night));
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.5);}
+  .A-ticks{position:absolute;inset:0;display:flex;justify-content:space-between;padding:0 2px;align-items:center;}
+  .A-ticks span{width:1px;height:6px;background:rgba(0,0,0,.28);}
+  .A-orb{position:absolute;top:50%;width:24px;height:24px;border-radius:50%;
+    transform:translate(-50%,-50%);background:radial-gradient(circle at 38% 35%,#fff,var(--gold));
+    box-shadow:0 0 12px 2px rgba(255,220,120,.7),0 1px 3px rgba(0,0,0,.5);transition:left .25s ease,background .25s;}
+
+  /* ===== B: sky-dome arc ===== */
+  .B-wrap{position:relative;height:96px;}
+  .B-wrap svg{display:block;width:100%;height:100%;overflow:visible;}
+
+  /* ===== C: 12 segmented pips ===== */
+  .C-wrap{display:flex;align-items:center;gap:10px;}
+  .C-pips{flex:1;display:flex;gap:4px;}
+  .C-pips i{flex:1;height:16px;border-radius:4px;background:#20233a;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.4);transition:background .2s,box-shadow .2s;}
+  .C-pips i.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);}
+  .C-pips i.now{outline:2px solid #fff;outline-offset:1px;box-shadow:0 0 8px rgba(255,255,255,.4);}
+
+  /* ===== D: minimal orb slider ===== */
+  .D-wrap{display:flex;align-items:center;gap:12px;}
+  .D-cap{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;
+    background:var(--card2);border:1px solid #333a58;}
+  .D-track{position:relative;flex:1;height:10px;border-radius:6px;background:#20233a;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.5);}
+  .D-fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;
+    background:linear-gradient(90deg,var(--dawn),var(--dusk));transition:width .25s ease;}
+  .D-orb{position:absolute;top:50%;width:20px;height:20px;border-radius:50%;transform:translate(-50%,-50%);
+    box-shadow:0 0 10px 2px rgba(255,220,150,.6),0 1px 2px rgba(0,0,0,.5);transition:left .25s ease,background .25s;}
+  .D-num{font-family:var(--head);font-weight:700;font-size:15px;color:var(--subtle);min-width:44px;text-align:right;}
+</style>
+</head>
+<body>
+  <h1>Round progress — 4 ideas</h1>
+  <p class="lede">Replaces the plain <em>“Round 5/12”</em> text with a morning→evening timeline:
+    sun on the left, moon on the right, the marker travelling as the 12 rounds pass.
+    Drag the slider to scrub through a whole match and watch each idea animate.</p>
+
+  <div class="controls">
+    <label for="rnd">Round</label>
+    <input id="rnd" type="range" min="1" max="12" value="5" />
+    <span class="val" id="rndVal">5 / 12</span>
+  </div>
+
+  <div class="ref">
+    <div class="k">Current (what it looks like today)</div>
+    <div class="cur">Round 5/12 <span class="turn">- Your turn</span></div>
+  </div>
+
+  <div class="grid" id="grid">
+
+    <div class="idea">
+      <div class="tag"><b>A</b><span class="note">Gradient day-track — a sun/glow orb travels dawn→night; 12 ticks mark the rounds.</span></div>
+      <div class="stage">
+        <div class="A-wrap">
+          <svg class="ico sun" viewBox="0 0 24 24" id="sunA"></svg>
+          <div class="A-track"><div class="A-ticks" id="ticksA"></div><div class="A-orb" id="orbA"></div></div>
+          <svg class="ico moon" viewBox="0 0 24 24" id="moonA"></svg>
+        </div>
+        <div class="caption"><span id="capA">Round 5 of 12</span> <span class="turn">· Your turn</span></div>
+      </div>
+    </div>
+
+    <div class="idea">
+      <div class="tag"><b>B</b><span class="note">Sky dome — the sun rises on the left and sets on the right along an arc. Most literal, most “scene”.</span></div>
+      <div class="stage">
+        <div class="B-wrap" id="wrapB"></div>
+        <div class="caption"><span id="capB">Round 5 of 12</span> <span class="turn">· Your turn</span></div>
+      </div>
+    </div>
+
+    <div class="idea">
+      <div class="tag"><b>C</b><span class="note">Segmented pips — 12 discrete cells fill on a warm→cool gradient. Reads the exact round count at a glance.</span></div>
+      <div class="stage">
+        <div class="C-wrap">
+          <svg class="ico sun" viewBox="0 0 24 24" id="sunC"></svg>
+          <div class="C-pips" id="pipsC"></div>
+          <svg class="ico moon" viewBox="0 0 24 24" id="moonC"></svg>
+        </div>
+        <div class="caption"><span id="capC">Round 5 of 12</span> <span class="turn">· Your turn</span></div>
+      </div>
+    </div>
+
+    <div class="idea">
+      <div class="tag"><b>D</b><span class="note">Minimal bar — sun & moon end-caps, a slim fill, one glowing orb that warms→cools. Quietest / smallest footprint.</span></div>
+      <div class="stage">
+        <div class="D-wrap">
+          <span class="D-cap"><svg class="ico sun" viewBox="0 0 24 24" id="sunD"></svg></span>
+          <div class="D-track"><div class="D-fill" id="fillD"></div><div class="D-orb" id="orbD"></div></div>
+          <span class="D-cap"><svg class="ico moon" viewBox="0 0 24 24" id="moonD"></svg></span>
+          <span class="D-num" id="numD">5/12</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const MAX = 12;
+  // Inline SVG icon paths so the page stays self-contained (no external icon set).
+  const SUN = '<circle cx="12" cy="12" r="5" fill="#ffce3a"/>' +
+    '<g stroke="#ffce3a" stroke-width="2" stroke-linecap="round">' +
+    '<line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/>' +
+    '<line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/>' +
+    '<line x1="4" y1="4" x2="6" y2="6"/><line x1="18" y1="18" x2="20" y2="20"/>' +
+    '<line x1="20" y1="4" x2="18" y2="6"/><line x1="6" y1="18" x2="4" y2="20"/></g>';
+  const MOON = '<path d="M20 14.5A8.5 8.5 0 1 1 10.5 4a6.6 6.6 0 0 0 9.5 10.5z" fill="#aebbe6"/>';
+  document.querySelectorAll('.ico.sun').forEach(s=>s.innerHTML=SUN);
+  document.querySelectorAll('.ico.moon').forEach(s=>s.innerHTML=MOON);
+
+  // --- A ticks ---
+  const ticksA = document.getElementById('ticksA');
+  for(let i=0;i<MAX;i++) ticksA.appendChild(document.createElement('span'));
+
+  // --- C pips ---
+  const pipsC = document.getElementById('pipsC');
+  const pipEls=[];
+  const dayColor = (t)=>{ // t in 0..1 across the day
+    const stops=[[242,165,78],[255,206,58],[255,233,168],[199,107,158],[58,63,107]];
+    const p=t*(stops.length-1), i=Math.min(stops.length-2,Math.floor(p)), f=p-i;
+    const c=(a,b)=>Math.round(a+(b-a)*f);
+    const A=stops[i],B=stops[i+1];
+    return `rgb(${c(A[0],B[0])},${c(A[1],B[1])},${c(A[2],B[2])})`;
+  };
+  for(let i=0;i<MAX;i++){const e=document.createElement('i');pipsC.appendChild(e);pipEls.push(e);}
+
+  // --- B sky dome (built once, sun repositioned on update) ---
+  const wrapB=document.getElementById('wrapB');
+  wrapB.innerHTML = `
+    <svg viewBox="0 0 320 96" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="skyB" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0"  stop-color="#f2a54e" stop-opacity=".55"/>
+          <stop offset=".45" stop-color="#ffe9a8" stop-opacity=".35"/>
+          <stop offset=".75" stop-color="#c76b9e" stop-opacity=".4"/>
+          <stop offset="1"  stop-color="#3a3f6b" stop-opacity=".6"/>
+        </linearGradient>
+        <clipPath id="domeClip"><path d="M12 88 A148 78 0 0 1 308 88 Z"/></clipPath>
+      </defs>
+      <g clip-path="url(#domeClip)"><rect x="0" y="0" width="320" height="96" fill="url(#skyB)"/></g>
+      <path d="M12 88 A148 78 0 0 1 308 88" fill="none" stroke="#4a5170" stroke-width="2" stroke-dasharray="3 5"/>
+      <line x1="6" y1="88" x2="314" y2="88" stroke="#39405c" stroke-width="2"/>
+      <g id="sunB"></g>
+    </svg>`;
+
+  function arcPoint(t){ // t 0..1 left->right along the dome ellipse (rx148, ry78, cx160, cy88)
+    const ang = Math.PI - t*Math.PI; // 180deg -> 0deg
+    return { x:160 + 148*Math.cos(ang), y:88 - 78*Math.sin(ang) };
+  }
+
+  function render(r){
+    const t = MAX>1 ? (r-1)/(MAX-1) : 0;      // 0 at round1 .. 1 at round12
+    document.getElementById('rndVal').textContent = r+' / '+MAX;
+    ['capA','capB','capC'].forEach(id=>document.getElementById(id).textContent='Round '+r+' of '+MAX);
+
+    // A: orb position (center of the current round segment) + warm->cool tint
+    const posA = ((r-0.5)/MAX)*100;
+    const orbA=document.getElementById('orbA');
+    orbA.style.left = posA+'%';
+    orbA.style.background = `radial-gradient(circle at 38% 35%, #fff, ${dayColor(t)})`;
+
+    // B: place the sun on the dome
+    const p=arcPoint(t);
+    document.getElementById('sunB').innerHTML =
+      `<circle cx="${p.x}" cy="${p.y}" r="11" fill="${dayColor(t)}" filter="url(#none)"/>`+
+      `<circle cx="${p.x}" cy="${p.y}" r="16" fill="${dayColor(t)}" opacity=".25"/>`;
+
+    // C: fill pips up to r, current gets a ring
+    pipEls.forEach((e,i)=>{
+      const on = i < r;
+      e.className = on ? (i===r-1?'on now':'on') : '';
+      e.style.background = on ? dayColor(i/(MAX-1)) : '#20233a';
+    });
+
+    // D: fill + orb
+    const posD=(r/MAX)*100;
+    document.getElementById('fillD').style.width = posD+'%';
+    const orbD=document.getElementById('orbD');
+    orbD.style.left = posD+'%';
+    orbD.style.background = `radial-gradient(circle at 38% 35%, #fff, ${dayColor(t)})`;
+    document.getElementById('numD').textContent = r+'/'+MAX;
+  }
+
+  const slider=document.getElementById('rnd');
+  slider.addEventListener('input',e=>render(+e.target.value));
+  render(5);
+</script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Tile score ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    /* team colours: tile fills from the game, plus a brighter UI variant of each */
+    --you:#274a9d; --you-lit:#4f7df0; --enemy:#9d2f3a; --enemy-lit:#e05668;
+    --neutral:#39405c;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 90px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 24px;max-width:660px;}
+  .controls{position:sticky;top:0;z-index:5;background:rgba(27,30,43,.92);backdrop-filter:blur(4px);
+    padding:14px 16px;margin:0 0 26px;border-radius:12px;border:1px solid #333850;
+    display:grid;grid-template-columns:auto 1fr auto;gap:10px 14px;align-items:center;}
+  .controls label{font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .controls label.you{color:var(--you-lit);}
+  .controls label.enemy{color:var(--enemy-lit);}
+  .controls input[type=range]{width:100%;}
+  .controls .val{font-family:var(--head);font-weight:700;font-size:18px;min-width:58px;text-align:right;}
+  #youR{accent-color:var(--you-lit);} #enemyR{accent-color:var(--enemy-lit);}
+
+  .ref{max-width:540px;margin:0 0 24px;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .ref .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  .ref .cur{font-size:24px;margin-top:8px;color:var(--subtle);}
+  .ref .cur b{color:var(--ink);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:22px;max-width:540px;}
+  .idea{background:var(--card);border:1px solid #313650;border-radius:16px;overflow:hidden;}
+  .idea .tag{display:flex;align-items:baseline;gap:10px;padding:14px 18px 0;}
+  .idea .tag b{font-family:var(--head);font-weight:700;font-size:20px;}
+  .idea .tag .note{color:var(--muted);font-size:13px;}
+  .stage{margin:14px;padding:20px 18px;border-radius:12px;background:var(--bg);border:1px solid #262a3e;}
+
+  .tower{width:18px;height:18px;flex:none;}
+
+  /* ===== A: tug-of-war control bar (you | neutral | enemy) ===== */
+  .A-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;font-weight:700;}
+  .A-head .youL{color:var(--you-lit);display:flex;gap:6px;align-items:center;}
+  .A-head .enemyL{color:var(--enemy-lit);display:flex;gap:6px;align-items:center;}
+  .A-bar{display:flex;height:20px;border-radius:7px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);background:var(--neutral);}
+  .A-bar .seg{transition:width .3s ease;}
+  .A-bar .you{background:linear-gradient(180deg,var(--you-lit),var(--you));}
+  .A-bar .neu{background:repeating-linear-gradient(45deg,#333952,#333952 5px,#2f3550 5px,#2f3550 10px);}
+  .A-bar .enemy{background:linear-gradient(180deg,var(--enemy-lit),var(--enemy));}
+  .A-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--muted);}
+
+  /* ===== B: two owner chips, leader glows ===== */
+  .B-wrap{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .chip{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 12px;border-radius:12px;
+    background:var(--card2);border:1px solid #333a58;transition:.25s;}
+  .chip .who{font-size:13px;font-weight:700;letter-spacing:.02em;}
+  .chip .n{font-family:var(--head);font-weight:700;font-size:30px;line-height:1;}
+  .chip.you{border-color:rgba(79,125,240,.4);} .chip.you .who{color:var(--you-lit);}
+  .chip.enemy{border-color:rgba(224,86,104,.4);} .chip.enemy .who{color:var(--enemy-lit);}
+  .chip.lead.you{background:rgba(79,125,240,.16);box-shadow:0 0 16px rgba(79,125,240,.35);}
+  .chip.lead.enemy{background:rgba(224,86,104,.16);box-shadow:0 0 16px rgba(224,86,104,.3);}
+  .B-vs{font-family:var(--head);font-style:italic;color:var(--muted);font-size:15px;}
+  .crown{width:16px;height:16px;opacity:0;transition:.25s;}
+  .chip.lead .crown{opacity:1;}
+
+  /* ===== C: pure lead split (owned only), sliding divider ===== */
+  .C-wrap{display:flex;align-items:center;gap:12px;}
+  .C-n{font-family:var(--head);font-weight:700;font-size:32px;min-width:40px;}
+  .C-n.you{color:var(--you-lit);text-align:right;} .C-n.enemy{color:var(--enemy-lit);}
+  .C-bar{position:relative;flex:1;height:16px;border-radius:8px;overflow:hidden;display:flex;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.5);}
+  .C-bar .you{background:linear-gradient(180deg,var(--you-lit),var(--you));transition:width .3s ease;}
+  .C-bar .enemy{background:linear-gradient(180deg,var(--enemy-lit),var(--enemy));flex:1;}
+  .C-bar .div{position:absolute;top:-3px;bottom:-3px;width:3px;background:#fff;transform:translateX(-50%);
+    box-shadow:0 0 6px rgba(255,255,255,.6);transition:left .3s ease;}
+
+  /* ===== D: heraldic banners ===== */
+  .D-wrap{display:flex;align-items:stretch;justify-content:center;gap:10px;}
+  .banner{position:relative;width:96px;padding:12px 8px 20px;text-align:center;
+    clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);}
+  .banner.you{background:linear-gradient(180deg,var(--you-lit),var(--you));}
+  .banner.enemy{background:linear-gradient(180deg,var(--enemy-lit),var(--enemy));}
+  .banner .who{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.85;
+    display:flex;gap:5px;align-items:center;justify-content:center;}
+  .banner .n{font-family:var(--head);font-weight:700;font-size:38px;line-height:1.1;
+    text-shadow:0 2px 3px rgba(0,0,0,.35);}
+  .banner.dim{filter:saturate(.6) brightness(.7);}
+  .D-mid{display:flex;align-items:center;font-family:var(--head);font-style:italic;color:var(--muted);}
+</style>
+</head>
+<body>
+  <h1>Tile score — 4 ideas</h1>
+  <p class="lede">Replaces the plain <em>“Tiles&nbsp; You&nbsp;12&nbsp;•&nbsp;Enemy&nbsp;9”</em> line with a colour-coded
+    read of who holds the board (blue = you, red = enemy). Drag the two sliders to change the
+    tile counts and see how each idea reacts — including who’s in the lead.</p>
+
+  <div class="controls">
+    <label class="you" for="youR">Your tiles</label>
+    <input id="youR" type="range" min="0" max="40" value="12" />
+    <span class="val" id="youV">12</span>
+    <label class="enemy" for="enemyR">Enemy tiles</label>
+    <input id="enemyR" type="range" min="0" max="40" value="9" />
+    <span class="val" id="enemyV">9</span>
+  </div>
+
+  <div class="ref">
+    <div class="k">Current (what it looks like today)</div>
+    <div class="cur">Tiles&nbsp; <b>You 12</b> &nbsp;•&nbsp; <b>Enemy 9</b></div>
+  </div>
+
+  <div class="grid">
+
+    <div class="idea">
+      <div class="tag"><b>A</b><span class="note">Tug-of-war bar — blue vs hatched-neutral vs red, sized to the whole board. Shows control AND momentum.</span></div>
+      <div class="stage">
+        <div class="A-head">
+          <span class="youL"><svg class="tower" id="twYouA" viewBox="0 0 24 24"></svg>You <span id="aYou">12</span></span>
+          <span class="enemyL">Enemy <span id="aEnemy">9</span><svg class="tower" id="twEnemyA" viewBox="0 0 24 24"></svg></span>
+        </div>
+        <div class="A-bar">
+          <div class="seg you" id="aBarYou"></div>
+          <div class="seg neu" id="aBarNeu"></div>
+          <div class="seg enemy" id="aBarEnemy"></div>
+        </div>
+        <div class="A-foot"><span>held</span><span id="aNeu">29 tiles still open</span><span>held</span></div>
+      </div>
+    </div>
+
+    <div class="idea">
+      <div class="tag"><b>B</b><span class="note">Owner chips — closest to today’s text but colour-coded; the leader lights up and gets a crown.</span></div>
+      <div class="stage">
+        <div class="B-wrap">
+          <div class="chip you" id="chipYou">
+            <svg class="crown" id="crYou" viewBox="0 0 24 24"></svg>
+            <svg class="tower" id="twYouB" viewBox="0 0 24 24"></svg>
+            <span class="who">YOU</span><span class="n" id="bYou">12</span>
+          </div>
+          <span class="B-vs">vs</span>
+          <div class="chip enemy" id="chipEnemy">
+            <span class="n" id="bEnemy">9</span><span class="who">ENEMY</span>
+            <svg class="tower" id="twEnemyB" viewBox="0 0 24 24"></svg>
+            <svg class="crown" id="crEnemy" viewBox="0 0 24 24"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="idea">
+      <div class="tag"><b>C</b><span class="note">Lead split — owned tiles only; the white divider slides toward whoever’s losing ground. Pure “who’s ahead”.</span></div>
+      <div class="stage">
+        <div class="C-wrap">
+          <span class="C-n you" id="cYou">12</span>
+          <div class="C-bar"><div class="you" id="cBarYou"></div><div class="enemy"></div><div class="div" id="cDiv"></div></div>
+          <span class="C-n enemy" id="cEnemy">9</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="idea">
+      <div class="tag"><b>D</b><span class="note">Heraldic banners — medieval pennants in team colours with big serif numbers; the trailing side dims. Most on-theme.</span></div>
+      <div class="stage">
+        <div class="D-wrap">
+          <div class="banner you" id="banYou">
+            <div class="who"><svg class="tower" id="twYouD" viewBox="0 0 24 24"></svg>YOU</div>
+            <div class="n" id="dYou">12</div>
+          </div>
+          <div class="D-mid">–</div>
+          <div class="banner enemy" id="banEnemy">
+            <div class="who"><svg class="tower" id="twEnemyD" viewBox="0 0 24 24"></svg>ENEMY</div>
+            <div class="n" id="dEnemy">9</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const TOTAL = 50; // ~claimable tiles on the 6x9 board after the river
+  const TOWER = '<path d="M5 21V9l2-1V5h2v2h2V5h2v2h2V5h2v3l2 1v12z" fill="currentColor"/>';
+  const CROWN = '<path d="M3 8l3.5 3L12 5l5.5 6L21 8l-1.5 11h-15z" fill="#ffce3a"/>';
+  document.querySelectorAll('.tower').forEach(t=>t.innerHTML=TOWER);
+  document.querySelectorAll('.crown').forEach(c=>c.innerHTML=CROWN);
+  // tint the towers to their side
+  ['twYouA','twYouB','twYouD'].forEach(id=>document.getElementById(id).style.color='var(--you-lit)');
+  ['twEnemyA','twEnemyB','twEnemyD'].forEach(id=>document.getElementById(id).style.color='var(--enemy-lit)');
+  // banner towers sit on the coloured field -> use near-white
+  ['twYouD','twEnemyD'].forEach(id=>document.getElementById(id).style.color='rgba(255,255,255,.9)');
+
+  const $ = id => document.getElementById(id);
+  function render(){
+    let you = +$('youR').value, enemy = +$('enemyR').value;
+    const total = Math.max(TOTAL, you+enemy);
+    const neu = Math.max(0, total - you - enemy);
+    $('youV').textContent = you; $('enemyV').textContent = enemy;
+
+    // A
+    $('aYou').textContent=you; $('aEnemy').textContent=enemy;
+    $('aBarYou').style.width   = (you/total*100)+'%';
+    $('aBarNeu').style.width   = (neu/total*100)+'%';
+    $('aBarEnemy').style.width = (enemy/total*100)+'%';
+    $('aNeu').textContent = neu+' tiles still open';
+
+    // B
+    $('bYou').textContent=you; $('bEnemy').textContent=enemy;
+    $('chipYou').classList.toggle('lead', you>enemy);
+    $('chipEnemy').classList.toggle('lead', enemy>you);
+
+    // C (owned-only ratio)
+    const owned = Math.max(1, you+enemy);
+    $('cYou').textContent=you; $('cEnemy').textContent=enemy;
+    $('cBarYou').style.width = (you/owned*100)+'%';
+    $('cDiv').style.left = (you/owned*100)+'%';
+
+    // D
+    $('dYou').textContent=you; $('dEnemy').textContent=enemy;
+    $('banYou').classList.toggle('dim', you<enemy);
+    $('banEnemy').classList.toggle('dim', enemy<you);
+  }
+  $('youR').addEventListener('input',render);
+  $('enemyR').addEventListener('input',render);
+  render();
+</script>
+</body>
+</html>

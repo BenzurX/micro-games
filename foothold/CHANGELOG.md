@@ -3,6 +3,22 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.09 - 2026-07-08 - Mobile legibility pass, top-anchored frame, copy cleanup
+- **Mobile text legibility**: the portrait canvas (locked to 720px) is fit down to roughly half size
+  on a phone, so 15-18px fonts were landing near 8-10 CSS px. Bumped the legend (labels 18->22, desc
+  15->17, taller rows) and tightened its copy to a single action verb per row; the How to Play card is
+  now built slightly narrower and uniformly scaled up so everything grows together with no reflow; and
+  Settings labels/sections/about text are bumped per element (the card stays unscaled so the volume
+  slider's drag math is unaffected). Wide/desktop is untouched (`src/scenes/GameScene.js`, `src/lib/ui.js`).
+- **Frame anchored to the top on mobile**: portrait now boots with `CENTER_HORIZONTALLY` instead of
+  `CENTER_BOTH`, so any vertical letterbox slack falls to the bottom, keeping a mobile browser's address
+  bar over dead space instead of over the bottom-anchored End Turn button (`src/main.js`).
+- Larger **New Game** button text (24 -> 29px).
+- How to Play copy cleanup: Special now reads "Provides all resource types", Build drops "each turn",
+  and Siege reads "Nodes cost wood" (`src/lib/ui.js`).
+- Staged (not yet wired in) design explorations for a sun-to-moon **round timeline** and a **your-tiles
+  vs enemy-tiles** indicator: 4 variations each under `stage/round-progress.html` and `stage/tile-score.html`.
+
 ## v0.08 - 2026-07-08 - Display serif, arcane river, watchtower keep
 - **Grenze display serif** (Omnibus-Type, OFL): a medieval serif now sets the game title, tagline,
   modal headings (How to Play, Settings, confirm dialog), the win/lose result, and every button.
