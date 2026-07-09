@@ -1,7 +1,21 @@
-# Changelog — Foothold
+# Changelog - Foothold
 
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
+
+## v0.10 - 2026-07-08 - Round timeline and tile-control bar
+- **Sun-to-moon round timeline** (staged idea C): the "Round X/12" text is now a strip of 12 pips
+  that fill on a dawn-to-night gradient (warm orange -> gold -> pale noon -> dusk pink -> night blue),
+  the round in play ringed white, with a drawn sun on the left and crescent moon on the right
+  (no new image assets; both icons are Phaser Graphics).
+- **Tile-control tug-of-war bar** (staged idea A): the "Tiles You 12 - Enemy 9" text is now a bar
+  sized to every claimable tile - blue (you) grows from the left, red (enemy) from the right, the
+  dark middle is land still up for grabs - with colored "You N" / "Enemy N" counts above. Sits
+  ABOVE the day/night strip.
+- Removed the "Round X of 12 - Your turn" caption entirely (the pips carry the round count), and
+  added padding between the HUD block and the board.
+- Layout budgets adjusted in both modes (portrait HUD block ends at 254px; wide rail legend moved
+  to roundY+122); verified the board still fits the tightest 720x1280 portrait canvas.
 
 ## v0.09 - 2026-07-08 - Mobile legibility pass, top-anchored frame, copy cleanup
 - **Mobile text legibility**: the portrait canvas (locked to 720px) is fit down to roughly half size
@@ -68,7 +82,7 @@ under `snapshots/`. Newest first.
   off the bottom edge. Fixed a bug where a spend's downward number-bounce stayed down a line.
 - Title and in-game settings gear now render identically (same rounded card, glyph and hit zone).
 
-## v0.05 — 2026-07-06 — Upgrade economy, CRT filter & mobile-first layout
+## v0.05 - 2026-07-06 - Upgrade economy, CRT filter & mobile-first layout
 - Fortify replaced by **Upgrade**: spend stone to double a resource node's per-turn output
   instead of walling it. Captured nodes arrive un-upgraded (siege strips the ×2, re-develop with stone).
 - New CRT post-processing filter (`src/lib/CrtPipeline.js`), first pass: a subtle barrel curve,
@@ -76,13 +90,13 @@ under `snapshots/`. Newest first.
   Canvas fallback that runs unfiltered; every knob lives in the `CRT` config object.
 - Mobile-first responsive layout: the design width stays locked at 720 but the height now matches
   the device's aspect ratio, so tall phones fill top-to-bottom instead of showing letterbox bars.
-- Layout split into three anchored zones — HUD (resources + gear) pinned top, action legend +
+- Layout split into three anchored zones - HUD (resources + gear) pinned top, action legend +
   End Turn pinned bottom, board vertically centered in the space between.
 - Fixed a double-centering bug (CSS flex + Phaser CENTER_BOTH) that pushed the canvas toward the lower-right.
-- Known issue (WIP): CRT edge/corner darkening still reads too black on some screens — being tuned.
+- Known issue (WIP): CRT edge/corner darkening still reads too black on some screens - being tuned.
 
-## v0.04 — 2026-07-04 — Game-feel & juice pass
-- Added a procedural Web Audio sound engine (`src/lib/sfx.js`) — no audio files, fully
+## v0.04 - 2026-07-04 - Game-feel & juice pass
+- Added a procedural Web Audio sound engine (`src/lib/sfx.js`) - no audio files, fully
   synthesized: distinct sounds on claim, build, fortify, siege, end-turn, win and lose.
 - Every sound picks from 5 slight pitch variants per play so rapid repeats don't fatigue the ear.
 - Fortify now plays a metallic anvil "tang" (inharmonic, detuned-beating partials).
@@ -93,7 +107,7 @@ under `snapshots/`. Newest first.
 - Animated game-over overlay (fade + text pop); win banner reads "You Win on Round N!".
 - Balance: fortify strengthened to ×3 enemy capture cost; legend/tooltip copy updated.
 
-## v0.03 — 2026-07-03 — Portrait board, river & real icons
+## v0.03 - 2026-07-03 - Portrait board, river & real icons
 - Board reshaped to 6 wide × 9 tall (portrait) for one-handed mobile play.
 - Added a meandering river (impassable/unclaimable, one water tile per column) splitting the
   two halves, with exactly two bridges as the only crossings.
@@ -101,12 +115,12 @@ under `snapshots/`. Newest first.
   contested specials by the water.
 - Replaced placeholder squares with tinted Kenney "Board Game Icons" (CC0); added hover tooltips.
 
-## v0.02 — 2026-07-02 — Four-action model
+## v0.02 - 2026-07-02 - Four-action model
 - Four actions (Claim / Build / Fortify / Siege) with a gold/wood/stone split.
 - Player moved to bottom-right; reworked HUD (income deltas + color-key legend).
 - Win by capturing the enemy base or holding the most tiles at round 12.
 
-## v0.01 — 2026-07-02 — First playable prototype
+## v0.01 - 2026-07-02 - First playable prototype
 - 8×8 turn-based territory control vs a greedy AI; procedural resource nodes.
 - Adjacent-only claiming, capture of undefended tiles, fortify to defend.
-- Phaser 3, ES modules, vendored locally — self-contained and offline-playable.
+- Phaser 3, ES modules, vendored locally - self-contained and offline-playable.
