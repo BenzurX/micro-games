@@ -3,6 +3,16 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.11 - 2026-07-08 - Bigger mobile board, HUD spacing balance
+- **The board fills the phone**: portrait now grows the tiles to the largest square that fits both
+  the canvas width (20px side margins) and the HUD-to-legend region - from the classic 82px up to
+  ~113px on a tall phone - instead of floating a fixed-size board in dead space. Per-tile art
+  (node icons, the home keep, upgrade badges, income labels) scales in step via a tileK factor;
+  the river, bridges and tile rects already derive from the tile size. Wide/desktop stays at 82.
+- **HUD spacing balance (mobile)**: tightened the resource-cards-to-tile-bar gap (40 -> 20px),
+  added 12px between the tile bar and the day/night strip, and trimmed the HUD block's bottom pad
+  so the space above the board matches the space below it (before the legend).
+
 ## v0.10 - 2026-07-08 - Round timeline and tile-control bar
 - **Sun-to-moon round timeline** (staged idea C): the "Round X/12" text is now a strip of 12 pips
   that fill on a dawn-to-night gradient (warm orange -> gold -> pale noon -> dusk pink -> night blue),
