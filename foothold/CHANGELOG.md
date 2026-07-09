@@ -3,6 +3,22 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.08 - 2026-07-08 - Display serif, arcane river, watchtower keep
+- **Grenze display serif** (Omnibus-Type, OFL): a medieval serif now sets the game title, tagline,
+  modal headings (How to Play, Settings, confirm dialog), the win/lose result, and every button.
+  Body text (HUD counters, income, tile labels, descriptions) stays system-ui so it reads cleanly
+  under the CRT filter. Weights 400 + 700 are vendored locally as woff2 under `assets/fonts/`, and
+  `main.js` waits for `document.fonts.load` before booting so the first render never falls back
+  (`style.css` `@font-face`, `src/main.js`).
+- **"Arcane flow" river**: the water was rebuilt from solid ripples into a dark channel with a soft
+  cyan glow and two bright dashed streaks that drift downstream every frame (a moving dash offset on
+  a static spline, redrawn in `GameScene.drawRiverFlow`).
+- **Watchtower keep**: the home-base tile now uses the watchtower shape (was the plain house icon)
+  and renders larger (66px) so each side's keep reads clearly.
+- Bumped the How to Play resource rows (taller rows, larger icons + text) and fixed the tall card so
+  it stays vertically centered on wide/desktop instead of clipping.
+- Removed a stray em dash from the round/turn status line.
+
 ## v0.07 - 2026-07-06 - Wide/desktop layout, a DLSS gag, and a game-feel pass
 - **Responsive-up layout**: landscape tablets and desktop now boot a wide canvas (height locked to
   900, width matched to the aspect) with a board-left / info-rail-right composition; portrait phones

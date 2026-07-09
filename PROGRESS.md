@@ -27,11 +27,12 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 *(Canonical resume queue — the single source of truth for "ready to continue?". Set at
 session close via the Session End Ritual; restated verbatim and worked from item 1 on
 resume. A newer plan replaces this whole section. See global CLAUDE.md → Session handoff.)*
-1. **Responsive update, Tier 1 (fluid portrait)** — resume phrase "Let's proceed with the responsive update"; plan lives in memory `foothold-responsive-plan`. First step: extract a single layout module that owns all region/coordinate math (kills the scattered 720/360 literals), then unlock the fixed width, Scale.FIT→RESIZE, and a re-run-on-resize `layout()` path. Tier 3 (distinct tablet/desktop layout) is a scope-expansion decision — flag it, don't start it.
-2. **Custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
-3. **Run the ux-reviewer agent** on the v0.06 build; log and triage whatever it flags.
-4. **New Game button** next to End Turn — starts a fresh game; shows a confirmation modal only if at least one turn has been taken.
-5. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
+1. **Custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
+2. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
+3. **60fps device test** — run on a real mid-range mobile before ship (quality-bar requirement).
+4. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
+
+Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layout shipped v0.07) and New Game button next to End Turn.
 
 ## Daily Log
 *(Append one entry per work day. Three lines max.)*
@@ -65,19 +66,10 @@ resume. A newer plan replaces this whole section. See global CLAUDE.md → Sessi
 - Blocked: None. Responsive update assessed (3 tiers, see memory `foothold-responsive-plan`) but deferred — usage budget too low to start the refactor safely.
 - Tomorrow (next session): Responsive update Tier 1 (item 1 of Next Session queue).
 
-## Balance / Tuning To-Do (v1 — must solve before ship)
-- **Late-game snowball (raised 2026-07-04):** by ~turn 6+, a player with early gold/wood
-  nodes can chain-claim ~10 tiles in a single turn, which feels hasty vs the slow opening.
-  Likely causes: income compounds too fast (flat +10/node with no upkeep) and/or chained
-  actions per turn are unbounded for the human. Candidate fixes to weigh later: per-turn
-  action cap, rising claim cost as you hold more tiles, diminishing/again node income, or
-  a soft economy ceiling. Decide by playtest AFTER the juice pass (juice must not mask it).
-
 ## Scope Backlog (v1.1 ideas — NOT for v1)
 *(Claude: when Benzur suggests an out-of-scope feature, it goes here.)*
 - Game 1 — real-time variant (tiles fill red/blue as they capture gradually); playtest vs turn-based.
 - Game 1 — terrain obstacles: ~~rivers (cross at bridges)~~ [PULLED INTO v1 2026-07-03] and mountains (walk around).
-- Game 1 — watchtower/far-reach tile: sanctioned exception to adjacent-only, reaches one square further.
 
 ## Decision Log
 *(Settled questions. Later models: do not reopen these.)*

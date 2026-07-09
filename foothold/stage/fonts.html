@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foothold - Font Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Marcellus&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Grenze:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* --- Foothold design tokens (copied from the app) --- */
+  :root {
+    --bg: #1b1e2b;
+    --card: #22263a;
+    --row: #1a1d2c;
+    --ink: #e7e9f0;
+    --subtle: #aeb4c6;
+    --muted: #7c8398;
+    --accent: #3d6cff;
+    --claim: #ffce3a;   /* Expand */
+    --build: #57c97a;   /* Build */
+    --upgrade: #b06bff; /* Upgrade */
+    --siege: #ff6a3d;   /* Siege */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #12141d;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    padding: 32px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1.page { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+  p.page  { color: var(--subtle); margin: 0 0 32px; font-size: 14px; max-width: 760px; line-height: 1.5; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 28px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+
+  .option { display: flex; flex-direction: column; gap: 14px; }
+  .tag {
+    display: flex; align-items: baseline; gap: 10px;
+    font-family: system-ui, sans-serif;
+  }
+  .tag .letter {
+    font-weight: 700; font-size: 13px; letter-spacing: .08em;
+    background: var(--accent); color: #fff; border-radius: 6px;
+    padding: 3px 9px;
+  }
+  .tag .name { font-weight: 700; font-size: 16px; }
+  .tag .note { color: var(--muted); font-size: 12.5px; }
+
+  /* --- device frame: a mini title screen + a mini UI card --- */
+  .frame {
+    background: var(--bg);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid #2a2f45;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  }
+
+  /* Title screen block */
+  .title-screen {
+    padding: 40px 24px 34px;
+    text-align: center;
+    background:
+      radial-gradient(120% 90% at 50% 0%, #262b42 0%, var(--bg) 60%);
+  }
+  .game-title {
+    font-size: 62px;
+    line-height: 1;
+    margin: 0 0 18px;
+    text-shadow: 0 3px 10px rgba(0,0,0,.5);
+  }
+  .tagline {
+    display: flex; justify-content: center; flex-wrap: wrap;
+    gap: 4px 14px; margin-bottom: 26px;
+  }
+  .tagline span { font-size: 18px; text-shadow: 0 2px 4px rgba(0,0,0,.6); }
+  .t-claim   { color: var(--claim); }
+  .t-build   { color: var(--build); }
+  .t-upgrade { color: var(--upgrade); }
+  .t-siege   { color: var(--siege); }
+
+  .btn {
+    display: inline-block;
+    background: var(--accent); color: #fff;
+    padding: 14px 54px; border-radius: 999px;
+    font-size: 22px;
+  }
+
+  /* UI card block (mirrors How-to-Play / Settings panel) */
+  .ui-card {
+    background: var(--card);
+    margin: 0 18px 22px;
+    border-radius: 16px;
+    padding: 22px 22px 24px;
+  }
+  .ui-card .card-title { font-size: 26px; margin: 0 0 4px; }
+  .ui-card .goal { font-size: 15px; color: var(--ink); margin: 0 0 18px; font-weight: 600; }
+  .section {
+    font-family: system-ui, sans-serif;
+    font-size: 12px; letter-spacing: .12em; font-weight: 700;
+    color: var(--muted); margin: 0 0 12px;
+  }
+  .act-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--row); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .swatch { width: 26px; height: 26px; border-radius: 6px; border: 3px solid; flex: none; }
+  .act-body { flex: 1; min-width: 0; }
+  .act-name { font-size: 17px; font-weight: 600; line-height: 1.15; }
+  .act-desc { font-size: 12.5px; color: var(--subtle); font-family: system-ui, sans-serif; }
+  .cost { font-size: 20px; font-weight: 700; }
+
+  /* Bottom body-text sample so long-form legibility is visible */
+  .body-sample {
+    padding: 0 22px 24px;
+    color: var(--subtle);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .body-sample b { color: var(--ink); }
+
+  /* ---- per-option font assignments ---- */
+  /* A: Cinzel (carved Roman caps) - title only; body falls back to a readable serif */
+  .fA .game-title, .fA .card-title { font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: .01em; }
+  .fA .tagline span, .fA .btn { font-family: 'Cinzel', serif; font-weight: 600; }
+  .fA .act-name, .fA .goal, .fA .cost, .fA .body-sample { font-family: 'EB Garamond', serif; }
+
+  /* B: Marcellus (classical, restrained, all one family) */
+  .fB .game-title, .fB .card-title, .fB .tagline span, .fB .btn,
+  .fB .act-name, .fB .goal, .fB .cost, .fB .body-sample { font-family: 'Marcellus', serif; }
+  .fB .game-title { letter-spacing: .02em; }
+
+  /* C: EB Garamond (classic book serif, most readable) */
+  .fC .game-title, .fC .card-title, .fC .tagline span, .fC .btn,
+  .fC .act-name, .fC .goal, .fC .cost, .fC .body-sample { font-family: 'EB Garamond', serif; }
+  .fC .game-title { font-weight: 700; }
+
+  /* D: Grenze (genuine medieval texture, still legible) */
+  .fD .game-title, .fD .card-title, .fD .tagline span, .fD .btn,
+  .fD .act-name, .fD .goal, .fD .cost, .fD .body-sample { font-family: 'Grenze', serif; }
+  .fD .game-title { font-weight: 700; }
+</style>
+</head>
+<body>
+  <h1 class="page">Foothold - 4 font options</h1>
+  <p class="page">Each option is applied to the title screen (title + tagline + button) and a mini How-to-Play card, plus a body-text sample at the bottom so you can judge long-form legibility, not just the logo. Range runs from most "medieval" (D) to cleanest serif (C). Fonts load from Google Fonts, so an internet connection is needed to preview.</p>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const options = [
+      { cls: 'fA', letter: 'A', name: 'Cinzel', note: 'carved Roman caps - heraldic, title-forward' },
+      { cls: 'fB', letter: 'B', name: 'Marcellus', note: 'classical + calm, one family everywhere' },
+      { cls: 'fC', letter: 'C', name: 'EB Garamond', note: 'classic book serif - most readable' },
+      { cls: 'fD', letter: 'D', name: 'Grenze', note: 'old-manuscript texture - leans most medieval' },
+    ];
+
+    const card = (o) => `
+      <div class="option ${o.cls}">
+        <div class="tag">
+          <span class="letter">${o.letter}</span>
+          <span class="name">${o.name}</span>
+          <span class="note">${o.note}</span>
+        </div>
+        <div class="frame">
+          <div class="title-screen">
+            <div class="game-title">Foothold</div>
+            <div class="tagline">
+              <span class="t-claim">Expand.</span>
+              <span class="t-build">Build.</span>
+              <span class="t-upgrade">Upgrade.</span>
+              <span class="t-siege">Siege.</span>
+            </div>
+            <span class="btn">Start</span>
+          </div>
+          <div class="ui-card">
+            <div class="card-title">How to Play</div>
+            <div class="goal">Expand your territory, conquer your enemy.</div>
+            <div class="section">ACTIONS</div>
+            <div class="act-row">
+              <div class="swatch" style="border-color: var(--claim)"></div>
+              <div class="act-body">
+                <div class="act-name">Expand</div>
+                <div class="act-desc">Take an empty neutral tile next to you.</div>
+              </div>
+              <div class="cost">5</div>
+            </div>
+            <div class="act-row">
+              <div class="swatch" style="border-color: var(--siege)"></div>
+              <div class="act-body">
+                <div class="act-name">Siege</div>
+                <div class="act-desc">Capture an enemy tile next to your territory.</div>
+              </div>
+              <div class="cost">10</div>
+            </div>
+          </div>
+          <div class="body-sample">
+            Win by <b>capturing the enemy base</b>, or by holding more tiles after 12 rounds. Every turn you spend gold, wood, and stone to grow your foothold one node at a time.
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('grid').innerHTML = options.map(card).join('');
+  </script>
+</body>
+</html>

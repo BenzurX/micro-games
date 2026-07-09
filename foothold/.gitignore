@@ -10,5 +10,8 @@ desktop.ini
 # Node (none used yet, but keep the repo clean if tooling is added later)
 node_modules/
 
+# Personal working notes — not shared to the public repo
+Foothold personal notes.md
+
 # Note: vendor/phaser.min.js and snapshots/ ARE committed on purpose —
 # the game must stay self-contained and the snapshot history is part of the project.

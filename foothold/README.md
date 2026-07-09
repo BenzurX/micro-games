@@ -29,6 +29,7 @@ src/lib/settings.js    Persisted user prefs (sound / volume / CRT / DLSS gag) vi
 src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel
 src/lib/CrtPipeline.js WebGL CRT post-processing filter (curve, scanlines, grille, bloom, vignette)
 assets/icons/          Kenney "Board Game Icons" (CC0), tinted per resource - see assets/CREDITS.md
+assets/fonts/          Grenze display serif (OFL), vendored woff2 for titles/headings/buttons
 snapshots/             Frozen, self-contained playable copies of past versions + gallery
 vendor/phaser.min.js   Vendored Phaser 3.80.1
 ```

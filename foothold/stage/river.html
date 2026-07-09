@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foothold - River design variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --card:#22263a; --row:#1a1d2c; --river-tile:#1a1c29;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398; --accent:#3d6cff;
+    --gold:#f2c14e; --tile-neutral:#2a2f45; --tile-line:#343a54;
+    --head:'Grenze', Georgia, serif; --body:system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);padding:32px 20px 80px}
+  h1{font-family:var(--head);font-weight:700;font-size:34px;margin:0 0 6px;text-align:center}
+  .sub{color:var(--subtle);text-align:center;max-width:760px;margin:0 auto 34px;font-size:15px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:26px;max-width:1500px;margin:0 auto}
+  .cardv{background:var(--card);border:1px solid #2e3350;border-radius:18px;padding:20px 20px 24px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .cardv.current{border-color:#3d6cff88}
+  .cap{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+  .tag{font-family:var(--head);font-weight:700;font-size:22px}
+  .badge{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0e1017;background:var(--accent);padding:3px 8px;border-radius:6px}
+  .note{color:var(--subtle);font-size:13.5px;line-height:1.5;margin:0 0 14px;min-height:40px}
+  svg{display:block;width:100%;height:auto;border-radius:12px;background:var(--bg)}
+  @keyframes flow{to{stroke-dashoffset:-200}}
+  @keyframes drift{to{stroke-dashoffset:-60}}
+</style>
+</head>
+<body>
+
+<h1>River design variants</h1>
+<p class="sub">Same board, five treatments of the water. <b>Current</b> is the shipped ribbon. A-D are alternatives - pick one (or mix ideas) and I'll wire it into <code>buildRiver()</code>. Bridges/home bases shown for context only.</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+// ---- board geometry (a compact stand-in for the real 7-wide board) ----
+const COLS=7, ROWS=6, T=64, GAP=7, PAD=16;
+const W = PAD*2 + COLS*T + (COLS-1)*GAP;
+const H = PAD*2 + ROWS*T + (ROWS-1)*GAP;
+const riverRow=[3,3,2,3,3,4,3];      // gentle meander through the middle band
+const bridges={1:true,5:true};        // two claimable crossings
+const homes=[{r:0,c:0,owner:2},{r:5,c:6,owner:1}];
+
+const tx=c=>PAD+c*(T+GAP);
+const ty=r=>PAD+r*(T+GAP);
+const cx=c=>tx(c)+T/2;
+const cy=r=>ty(r)+T/2;
+
+// ---- Catmull-Rom spline through the river-row centers, clamped to the frame edges ----
+function splinePts(){
+  const p=[{x:0,y:cy(riverRow[0])}];
+  for(let c=0;c<COLS;c++) p.push({x:cx(c),y:cy(riverRow[c])});
+  p.push({x:W,y:cy(riverRow[COLS-1])});
+  return p;
+}
+// dense sampled centerline (like the game's spline.getPoints)
+function centerline(){
+  const p=splinePts(), out=[];
+  const seg=22;
+  for(let i=0;i<p.length-1;i++){
+    const p0=p[i-1]||p[i], p1=p[i], p2=p[i+1], p3=p[i+2]||p[i+1];
+    for(let s=0;s<seg;s++){
+      const t=s/seg, t2=t*t, t3=t2*t;
+      out.push({
+        x:0.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
+        y:0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3)
+      });
+    }
+  }
+  out.push(p[p.length-1]);
+  return out;
+}
+const LINE=centerline();
+
+// a filled ribbon polygon of varying half-width (pinches on diagonals, like the game)
+function ribbon(baseHalf){
+  const top=[],bot=[];
+  for(let i=0;i<LINE.length;i++){
+    const p=LINE[i], a=LINE[Math.max(0,i-1)], b=LINE[Math.min(LINE.length-1,i+1)];
+    const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len, ny=dx/len;
+    const diag=Math.abs(dy)/((Math.abs(dx)+Math.abs(dy))||1);
+    const hw=baseHalf*(1-0.55*diag);
+    top.push([p.x+nx*hw,p.y+ny*hw]);
+    bot.push([p.x-nx*hw,p.y-ny*hw]);
+  }
+  const pts=top.concat(bot.reverse());
+  return 'M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' L')+'Z';
+}
+// centerline as a smooth open path (for strokes / ripples)
+function centerPath(off=0,amp=0,phase=0){
+  let d='';
+  for(let i=0;i<LINE.length;i++){
+    const p=LINE[i], a=LINE[Math.max(0,i-1)], b=LINE[Math.min(LINE.length-1,i+1)];
+    const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len, ny=dx/len;
+    const o=off + (amp?Math.sin(i*0.45+phase)*amp:0);
+    d+=(i?'L':'M')+(p.x+nx*o).toFixed(1)+' '+(p.y+ny*o).toFixed(1);
+  }
+  return d;
+}
+
+// ---- base board (tiles + home icons), shared by every variant ----
+const watchtower='M9 -11 L9 -16 Q9 -17.25 9.9 -18.1 10.75 -19 12 -19 L16 -19 Q17.25 -19 18.15 -18.1 19 -17.25 19 -16 L19 -4 Q19 -2.75 18.15 -1.85 L15 1.25 15 10.75 18.15 13.9 Q19 14.75 19 16 L19 20 Q19 21.25 18.15 22.15 17.25 23 16 23 L8 23 Q6.75 23 5.9 22.15 5 21.25 5 20 L5 8 Q5 5.95 3.55 4.5 2.05 3 0 3 -2.05 3 -3.5 4.5 -5 5.95 -5 8 L-5 20 Q-5 21.25 -5.85 22.15 -6.75 23 -8 23 L-16 23 Q-17.25 23 -18.1 22.15 -19 21.25 -19 20 L-19 16 Q-19 14.75 -18.1 13.9 L-15 10.75 -15 1.25 -18.1 -1.85 Q-19 -2.75 -19 -4 L-19 -16 Q-19 -17.25 -18.1 -18.1 -17.25 -19 -16 -19 L-12 -19 Q-10.75 -19 -9.85 -18.1 -9 -17.25 -9 -16 L-9 -11 -7 -11 -7 -16 Q-7 -17.25 -6.1 -18.1 -5.25 -19 -4 -19 L4 -19 Q5.25 -19 6.15 -18.1 7 -17.25 7 -16 L7 -11 9 -11';
+function tiles(){
+  let s='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const isRiver=riverRow[c]===r && !bridges[c];
+    const isBridge=riverRow[c]===r && bridges[c];
+    const fill=isRiver?'var(--river-tile)':(isBridge?'#242a40':'var(--tile-neutral)');
+    s+=`<rect x="${tx(c)}" y="${ty(r)}" width="${T}" height="${T}" rx="9" fill="${fill}" stroke="var(--tile-line)" stroke-width="1"/>`;
+  }
+  return s;
+}
+function homeIcons(){
+  return homes.map(h=>{
+    const col=h.owner===1?'#5aa0ff':'#ff7a5a';
+    return `<g transform="translate(${cx(h.c)},${cy(h.r)}) scale(0.62)"><path d="${watchtower}" fill="${col}"/></g>`;
+  }).join('');
+}
+function bridgeDecks(){
+  let s='';
+  for(let c=0;c<COLS;c++) if(bridges[c]){
+    const r=riverRow[c], x=cx(c), y=cy(r), w=T*0.60, plankW=T*0.9;
+    for(let i=0;i<4;i++){
+      const py=y-plankW/2 + i*(plankW/3);
+      s+=`<rect x="${x-w/2}" y="${py-4}" width="${w}" height="8" rx="3" fill="#9c7a4e" stroke="#6f5636" stroke-width="1"/>`;
+    }
+  }
+  return s;
+}
+
+// ---- variant river layers ----
+const variants=[
+  {tag:'Current', badge:'Shipped', note:'Layered ribbon: dark bank to water to lit channel, with two sine ripple lines. Reads as flowing water; the stacked strokes can look a touch busy at small sizes.',
+   defs:'',
+   river:()=>`
+     <path d="${ribbon(T*0.35)}" fill="#1c3a52"/>
+     <path d="${ribbon(T*0.29)}" fill="#264f6e"/>
+     <path d="${ribbon(T*0.20)}" fill="#35709a"/>
+     <path d="${centerPath(0,T*0.15,0)}" fill="none" stroke="#8fc4e6" stroke-width="2.5" stroke-opacity=".5" stroke-linecap="round"/>
+     <path d="${centerPath(0,T*0.11,2.3)}" fill="none" stroke="#c4e3f4" stroke-width="2.5" stroke-opacity=".32" stroke-linecap="round"/>`},
+
+  {tag:'A · Calm current', badge:'', note:'One soft-edged ribbon with a top-lit vertical gradient instead of three stacked fills. Cleaner and more modern; a single slow drift line keeps it alive without the busy stroke stack.',
+   defs:`<linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3f7ea6"/><stop offset=".5" stop-color="#2b5f82"/><stop offset="1" stop-color="#1d4361"/>
+    </linearGradient>
+    <filter id="softA" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="1.4"/></filter>`,
+   river:()=>`
+     <path d="${ribbon(T*0.34)}" fill="#16344a" filter="url(#softA)"/>
+     <path d="${ribbon(T*0.30)}" fill="url(#gA)"/>
+     <path d="${centerPath(-T*0.06,T*0.05,0)}" fill="none" stroke="#bfe2f2" stroke-width="2" stroke-opacity=".4"
+       stroke-linecap="round" stroke-dasharray="10 26" style="animation:drift 6s linear infinite"/>`},
+
+  {tag:'B · Stone banks', badge:'', note:'Water flanked by pale pebbled banks: an illustrated fantasy-map feel that also makes the impassable edge unmistakable. Best if we lean into a hand-drawn art direction.',
+   defs:`<linearGradient id="gB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#356f93"/><stop offset="1" stop-color="#20465f"/></linearGradient>`,
+   river:()=>`
+     <path d="${ribbon(T*0.40)}" fill="#5a6377"/>
+     <path d="${ribbon(T*0.37)}" fill="none" stroke="#8b93a6" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
+     <path d="${ribbon(T*0.32)}" fill="url(#gB)"/>
+     <path d="${centerPath(-T*0.07,T*0.06,0)}" fill="none" stroke="#a9d6ec" stroke-width="2" stroke-opacity=".45" stroke-linecap="round"/>
+     <path d="${centerPath(T*0.07,T*0.06,1.6)}" fill="none" stroke="#a9d6ec" stroke-width="2" stroke-opacity=".3" stroke-linecap="round"/>`},
+
+  {tag:'C · Water tiles', badge:'', note:'Drop the continuous ribbon: each river cell is its own rounded water tile with a little wave. Reads instantly as discrete impassable squares and sits cleanly on the grid; less organic, more boardgame.',
+   defs:`<linearGradient id="gC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f6288"/><stop offset="1" stop-color="#1b4059"/></linearGradient>`,
+   river:()=>{let s='';for(let c=0;c<COLS;c++){const r=riverRow[c];if(bridges[c])continue;const x=tx(c),y=ty(r);
+      s+=`<rect x="${x+3}" y="${y+3}" width="${T-6}" height="${T-6}" rx="9" fill="url(#gC)"/>`;
+      const my=y+T/2;
+      s+=`<path d="M${x+12} ${my} q9 -7 18 0 t18 0" fill="none" stroke="#8fc4e6" stroke-width="2.4" stroke-opacity=".55" stroke-linecap="round"/>`;
+      s+=`<path d="M${x+12} ${my+11} q9 -7 18 0 t18 0" fill="none" stroke="#bfe2f2" stroke-width="2" stroke-opacity=".33" stroke-linecap="round"/>`;
+     }return s;}},
+
+  {tag:'D · Arcane flow', badge:'', note:'Very dark deep water with bright animated flow streaks running downstream: a magical, high-contrast current. Most "game-feel"; watch that it does not upstage the tiles it separates.',
+   defs:`<linearGradient id="gD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16324a"/><stop offset="1" stop-color="#0c1c2c"/></linearGradient>
+      <filter id="glowD" x="-40%" y="-60%" width="180%" height="220%"><feGaussianBlur stdDeviation="2.2"/></filter>`,
+   river:()=>`
+     <path d="${ribbon(T*0.33)}" fill="url(#gD)"/>
+     <path d="${centerPath(0,0,0)}" fill="none" stroke="#3fe0ff" stroke-width="6" stroke-opacity=".18" stroke-linecap="round" filter="url(#glowD)"/>
+     <path d="${centerPath(-T*0.08,T*0.04,0)}" fill="none" stroke="#6fefff" stroke-width="2.2" stroke-opacity=".85"
+       stroke-linecap="round" stroke-dasharray="16 30" style="animation:flow 3.4s linear infinite"/>
+     <path d="${centerPath(T*0.08,T*0.04,2)}" fill="none" stroke="#9df6ff" stroke-width="1.8" stroke-opacity=".6"
+       stroke-linecap="round" stroke-dasharray="10 34" style="animation:flow 4.6s linear infinite"/>`},
+];
+
+// ---- render ----
+const grid=document.getElementById('grid');
+variants.forEach(v=>{
+  const el=document.createElement('div');
+  el.className='cardv'+(v.tag==='Current'?' current':'');
+  el.innerHTML=`
+    <div class="cap"><span class="tag">${v.tag}</span>${v.badge?`<span class="badge">${v.badge}</span>`:''}</div>
+    <p class="note">${v.note}</p>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${v.tag} river">
+      <defs>${v.defs}</defs>
+      ${tiles()}
+      ${v.river()}
+      ${bridgeDecks()}
+      ${homeIcons()}
+    </svg>`;
+  grid.appendChild(el);
+});
+</script>
+</body>
+</html>
