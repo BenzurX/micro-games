@@ -3,6 +3,12 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.13 - 2026-07-11 - Desktop tile-control bar corner fix
+- **Tile-control bar**: the tug-of-war corner radius was clamped to a hard 0/7px switch keyed off
+  a 14px sliver threshold, so the narrower desktop rail crossed into the flat branch far more
+  often than mobile's full-width bar. Radius now scales to the segment width so corners stay
+  round at any size, matching mobile.
+
 ## v0.12 - 2026-07-11 - Total Victory, first-mover balance fix, PWA
 - **Total Victory**: capturing the enemy base while owning every non-river tile and having every
   held node upgraded now triggers a distinct win state - "Complete Foothold! / Round N" copy, a
