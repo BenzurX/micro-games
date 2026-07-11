@@ -770,14 +770,16 @@ export class GameScene extends Phaser.Scene {
     const g = this.tileBarG;
     g.clear();
     g.fillStyle(0x333952, 1).fillRoundedRect(x, y, w, h, 7); // neutral track
-    // Rounded only on the outer corners; skip the radius on slivers Phaser can't round.
+    // Rounded on the outer corners, radius scaled down on slivers too narrow for the full 7px
+    // (the desktop rail is narrower than mobile's full-width bar, so segments cross into
+    // sliver territory far more often - clamping keeps corners round instead of snapping flat).
     if (wy > 0) {
-      if (wy >= 14) g.fillStyle(0x3d6cff, 1).fillRoundedRect(x, y, wy, h, { tl: 7, bl: 7, tr: 0, br: 0 });
-      else g.fillStyle(0x3d6cff, 1).fillRect(x, y, wy, h);
+      const r = Math.min(7, wy / 2);
+      g.fillStyle(0x3d6cff, 1).fillRoundedRect(x, y, wy, h, { tl: r, bl: r, tr: 0, br: 0 });
     }
     if (we > 0) {
-      if (we >= 14) g.fillStyle(0xd04c5c, 1).fillRoundedRect(x + w - we, y, we, h, { tl: 0, bl: 0, tr: 7, br: 7 });
-      else g.fillStyle(0xd04c5c, 1).fillRect(x + w - we, y, we, h);
+      const r = Math.min(7, we / 2);
+      g.fillStyle(0xd04c5c, 1).fillRoundedRect(x + w - we, y, we, h, { tl: 0, bl: 0, tr: r, br: r });
     }
   }
 
