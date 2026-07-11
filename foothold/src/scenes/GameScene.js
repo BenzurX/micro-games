@@ -631,8 +631,7 @@ export class GameScene extends Phaser.Scene {
     const PANEL = 0x2a2e40;
 
     // --- Top row: three player resource counters + a gear (HUD direction B / Mockup 1) ---
-    // Each card = icon + big amount + green income delta. Emoji are placeholders for a TBD
-    // icon set (matches the mockup). Gear is a visual placeholder; settings not wired yet.
+    // Each card = tinted SVG icon + big amount + green income delta, plus the settings gear.
     // The resource row lives in the shared "rail" strip: full-width at the top in portrait,
     // the right-hand column in wide mode. Same code path, different coordinates.
     const { x: railX, w: railW, top } = this.rail;
@@ -762,8 +761,8 @@ export class GameScene extends Phaser.Scene {
     const font = 'system-ui, -apple-system, sans-serif';
 
     // --- Action color-key legend (HUD direction B), as paneled swatch rows in a 2x2 grid. ---
-    // Each row: swatch in the action's board-glow color + label + what it targets + its cost.
-    // So "what can I do, and which tiles" reads in one place. Emoji costs are icon placeholders.
+    // Each row: swatch in the action's board-glow color + label + what it targets + its cost
+    // (a tinted resource icon + number). So "what can I do, and which tiles" reads in one place.
     // Labels are kept short so they can be set BIGGER on mobile without overflowing the narrow
     // 2-column rows (the desc line under each carries the detail).
     const legend = [
@@ -1215,7 +1214,7 @@ export class GameScene extends Phaser.Scene {
 
     const empties = [];  // neutral EMPTY tiles adjacent to AI       (Claim, gold)
     const builds = [];   // neutral RESOURCE tiles adjacent to AI     (Build, wood)
-    const sieges = [];   // enemy tiles adjacent to AI                (Siege, gold; 3x if walled)
+    const sieges = [];   // enemy tiles adjacent to AI                (Siege, gold; +wood for nodes)
     for (let r = 0; r < GRID_H; r++) {
       for (let c = 0; c < GRID_W; c++) {
         const t = this.tiles[r][c];
@@ -1323,7 +1322,16 @@ export class GameScene extends Phaser.Scene {
       done = true;
       if (you > ai) { result = 'you'; msg = `You Win on Round ${winRound}!`; }
       else if (ai > you) { result = 'ai'; msg = 'Enemy wins'; }
-      else { result = 'draw'; msg = 'Draw'; }
+      else {
+        // Tile tie: the stronger economy wins (total per-turn income across all three
+        // resources). Only a full economic tie is a true draw.
+        const yi = this.computeIncome(1), ei = this.computeIncome(2);
+        const ySum = yi.wood + yi.gold + yi.stone;
+        const eSum = ei.wood + ei.gold + ei.stone;
+        if (ySum > eSum) { result = 'you'; msg = `You Win on Round ${winRound}!`; sub = `Tiles tied ${you}-${ai} - your income is higher`; }
+        else if (eSum > ySum) { result = 'ai'; msg = 'Enemy wins'; sub = `Tiles tied ${you}-${ai} - enemy income is higher`; }
+        else { result = 'draw'; msg = 'Draw'; sub = `Tied on tiles and income`; }
+      }
     }
 
     if (!done) return false;

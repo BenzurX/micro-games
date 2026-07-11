@@ -3,7 +3,8 @@
 A small, turn-based territory-control game: you vs one AI on a procedural portrait board.
 Expand onto empty ground, build on resource nodes, upgrade them to double their output, and
 siege the enemy - win by capturing their home base or holding the most tiles when the rounds
-run out. Game 1 of the Micro Games pipeline.
+run out (a tile tie is broken by total income; only a full tie is a draw). Game 1 of the
+Micro Games pipeline.
 
 - **Engine:** Phaser 3 (vendored locally under `vendor/`, no CDN)
 - **Stack:** plain ES modules, no build step

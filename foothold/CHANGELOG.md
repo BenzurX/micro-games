@@ -3,6 +3,17 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## Unreleased - 2026-07-09 - Income tiebreaker, doc sync (fold into the next snapshot)
+- **Time-up tiebreaker**: a tile tie at round 12 is now broken by total per-turn income
+  (all three resources summed); only a full economic tie is a true draw. The result
+  screen says which side's income decided it.
+- **DESIGN.md re-synced to the game as built** (6x9 grid, river + bridges as core, Upgrade
+  replacing Fortify, current costs/incomes/cap) and reframed as a living doc - numbers are
+  tuned by playtest, not a pre-build contract. Fortify moved to the backlog as a possible
+  future second stone sink.
+- Swept stale code comments in GameScene.js (old "3x if walled" siege note, emoji/gear
+  placeholder notes for HUD elements that are now real).
+
 ## v0.11 - 2026-07-08 - Bigger mobile board, HUD spacing balance
 - **The board fills the phone**: portrait now grows the tiles to the largest square that fits both
   the canvas width (20px side margins) and the HUD-to-legend region - from the classic 82px up to

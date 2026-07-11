@@ -1,4 +1,4 @@
-# CLAUDE.md — Micro Games Pipeline
+# CLAUDE.md - Micro Games Pipeline
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ Solo developer (Benzur) building a series of small, polished micro games for mob
 
 Before pushing any game's repo, complete these first (skip nothing):
 
-1. Update that game's `CHANGELOG.md` — a new dated entry under the version being shipped.
+1. Update that game's `CHANGELOG.md` - a new dated entry under the version being shipped.
 2. Update that game's `README.md` if behavior, layout, or run steps changed.
 3. Bump the version marker: add/refresh the matching frozen snapshot under `snapshots/`
    (and its `snapshots/index.html` card). No web service-worker/cache string exists yet;
@@ -20,13 +20,13 @@ Before pushing any game's repo, complete these first (skip nothing):
 4. Confirm `assets/CREDITS.md` covers every third-party asset in the build.
 5. Remove any "em dashes" (—) and use regular dashes (-) instead.
 
-Only after all four: commit, then push.
+Only after all five: commit, then push.
 
 ## Tech Stack
 
 - **Engine:** Phaser 3 (JavaScript)
 - **Mobile wrapper:** Capacitor (iOS + Android)
-- **Desktop wrapper (Steam, later):** Electron or Tauri — decide per game, do not build now
+- **Desktop wrapper (Steam, later):** Electron or Tauri - decide per game, do not build now
 - **Editor:** VS Code
 - **Version control:** Git + GitHub. Commit at every working milestone with clear messages.
 - **Web builds:** itch.io first for every game (zero-cost market test before store fees)
@@ -97,7 +97,7 @@ past milestone and actually play it, and see how far the game came from its firs
 - Each game has a `/snapshots` folder. Inside it, one subfolder per saved version named
   `vX.YY` (e.g. `v0.01`, `v0.02`), matching the flat decimal version scheme.
 - Every snapshot is a **fully self-contained, playable copy** (its own HTML/CSS/JS plus
-  a vendored copy of Phaser under `vendor/` — never a CDN link, never a symlink). It must
+  a vendored copy of Phaser under `vendor/` - never a CDN link, never a symlink). It must
   run standalone even if the live game is later rewritten.
 - `snapshots/index.html` is a timeline gallery: newest at top marked CURRENT, one card
   per version with date, a short bullet list of what changed, and an Open link to that

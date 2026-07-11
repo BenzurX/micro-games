@@ -19,18 +19,19 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 
 ## Today's Target
 *(One line. Set it each morning before opening Claude Code.)*
-- **Date:** 2026-07-06
-- **Target:** Lock in v0.05, then title screen / settings / tutorial polish pass.
-- **Status:** DONE and pushed. v0.05 (upgrade economy, CRT filter, mobile-first layout) and v0.06 (TitleScene splash, Settings + How to Play overlays in `ui.js`, persisted settings in `settings.js`, Claim→Expand rename, HUD/modal polish) both committed, snapshotted, and pushed to origin/main. Responsive update deferred to next session (usage budget).
+- **Date:** 2026-07-11
+- **Target:** Reconcile the uncommitted 2026-07-09 income-tiebreaker/doc-sync work, then build the AI-vs-AI balance harness (Next Session item 1).
+- **Status:** In progress.
 
 ## Next Session
 *(Canonical resume queue — the single source of truth for "ready to continue?". Set at
 session close via the Session End Ritual; restated verbatim and worked from item 1 on
 resume. A newer plan replaces this whole section. See global CLAUDE.md → Session handoff.)*
-1. **Custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
-2. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
-3. **60fps device test** — run on a real mid-range mobile before ship (quality-bar requirement).
-4. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
+1. **AI-vs-AI balance harness** (added 2026-07-09): extract Foothold's pure rules (board gen, actionFor/applyMove/computeIncome/checkWin) and the greedy AI into /src/lib with no Phaser dependency, then a small Node script runs thousands of AI-vs-AI games and reports win rates, average game length, and win-condition frequency. Run it before the next balance pass.
+2. **Custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
+3. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
+4. **60fps device test** — run on a real mid-range mobile before ship (quality-bar requirement).
+5. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
 
 Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layout shipped v0.07) and New Game button next to End Turn.
 
@@ -63,8 +64,14 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 
 ### 2026-07-06
 - Done: Locked in the economy rework as **v0.05** (playtest confirmed; DESIGN.md/Decision Log/CHANGELOG/README updated, snapshot saved, pushed). Then built **v0.06**: TitleScene splash (watchtower hero + glow, fanfare, breathing Start), shared overlays in `src/lib/ui.js` (How to Play + Settings), persisted settings store (`src/lib/settings.js`: sound/volume/CRT, single VERSION source), Claim→Expand rename, modal click-through fix, HUD restyle. Snapshot v0.06 + full pre-push gate, pushed to origin/main.
-- Blocked: None. Responsive update assessed (3 tiers, see memory `foothold-responsive-plan`) but deferred — usage budget too low to start the refactor safely.
+- Blocked: None. Responsive update assessed (3 tiers, see memory `foothold-responsive-plan`) but deferred - usage budget too low to start the refactor safely.
 - Tomorrow (next session): Responsive update Tier 1 (item 1 of Next Session queue).
+
+### 2026-07-09
+- Done: Responsive update landed as v0.07-v0.11 (wide/desktop layout, DLSS gag, mobile legibility pass, display serif, round timeline/tile-control bar, bigger mobile board), each pushed with its own changelog/snapshot per the pre-push gate.
+- Done: Time-up tiebreaker - a tile tie at round 12 is now broken by total per-turn income across all three resources; only a full economic tie is a true draw. DESIGN.md re-synced to the game as built (6x9 grid, river/bridges, Upgrade economy) and reframed as a living doc; Fortify moved to backlog. Swept stale code comments in GameScene.js. README updated to mention the tiebreaker.
+- Blocked: None. Caveat: this reconciliation work was done live but never logged or committed that day - reconciled and committed 2026-07-11.
+- Tomorrow (next session): AI-vs-AI balance harness (item 1 of Next Session queue).
 
 ## Scope Backlog (v1.1 ideas — NOT for v1)
 *(Claude: when Benzur suggests an out-of-scope feature, it goes here.)*
