@@ -21,22 +21,29 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 *(One line. Set it each morning before opening Claude Code.)*
 - **Date:** 2026-07-11
 - **Target:** Reconcile the uncommitted 2026-07-09 income-tiebreaker/doc-sync work, then build the AI-vs-AI balance harness (Next Session item 1).
-- **Status:** In progress.
+- **Status:** DONE. Reconciled the 2026-07-09 work (committed) and built the balance harness (`src/lib/rules.js` + `scripts/balance-harness.mjs`). Ran it: found a 66.8%/33.1% first-mover win-rate imbalance - new top Next Session item.
 
 ## Next Session
-*(Canonical resume queue — the single source of truth for "ready to continue?". Set at
+*(Canonical resume queue - the single source of truth for "ready to continue?". Set at
 session close via the Session End Ritual; restated verbatim and worked from item 1 on
-resume. A newer plan replaces this whole section. See global CLAUDE.md → Session handoff.)*
-1. **AI-vs-AI balance harness** (added 2026-07-09): extract Foothold's pure rules (board gen, actionFor/applyMove/computeIncome/checkWin) and the greedy AI into /src/lib with no Phaser dependency, then a small Node script runs thousands of AI-vs-AI games and reports win rates, average game length, and win-condition frequency. Run it before the next balance pass.
-2. **Custom app icon** — Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
+resume. A newer plan replaces this whole section. See global CLAUDE.md - Session handoff.)*
+1. **Balance pass: first-mover imbalance** (added 2026-07-11, from the new balance harness): player 1 (bottom-right, always moves first each round) wins 66.8% vs player 2's 33.1% over 5000 AI-vs-AI games. Decide a fix (stagger starting resources, alternate who moves first, adjust costs) and re-run `node scripts/balance-harness.mjs` to confirm it closes the gap.
+2. **Custom app icon** - Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
 3. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
-4. **60fps device test** — run on a real mid-range mobile before ship (quality-bar requirement).
-5. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder — needed before Game 2. (Keep this last.)
+4. **60fps device test** - run on a real mid-range mobile before ship (quality-bar requirement).
+5. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder - needed before Game 2. (Keep this last.)
+
+Done (cleared from this queue 2026-07-11): AI-vs-AI balance harness (`src/lib/rules.js` + `scripts/balance-harness.mjs`).
 
 Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layout shipped v0.07) and New Game button next to End Turn.
 
 ## Daily Log
 *(Append one entry per work day. Three lines max.)*
+
+### 2026-07-11
+- Done: Reconciled the uncommitted 2026-07-09 income-tiebreaker/DESIGN.md-sync work (committed). Built the AI-vs-AI balance harness: extracted pure rules into `src/lib/rules.js` (Phaser-free) and a headless simulator (`scripts/balance-harness.mjs`).
+- Done: Ran the harness (5000 games) - found a 66.8% (player 1) vs 33.1% (player 2) win rate, i.e. a strong first-mover advantage. Not something casual playtesting had surfaced. Logged as the new top Next Session item.
+- Blocked: None. Tomorrow (next session): decide and apply a fix for the first-mover imbalance, re-run the harness to confirm.
 
 ### 2026-07-02
 - Done: Stood up 5 sub-agents + agent-audit + snapshot norm. Built playable browser prototype (8x8 turn-based territory control) = Foothold, saved as snapshot v0.01. Confirmed all core design pillars. Named the game **Foothold** (name-collision research). Renamed folder game-1 → foothold.
