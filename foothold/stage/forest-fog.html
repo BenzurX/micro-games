@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Forest level fog-of-war ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 22px;max-width:680px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:680px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  .controls{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.94);
+    backdrop-filter:blur(4px);padding:14px 16px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:14px;flex-wrap:wrap;}
+  .controls .grp{display:flex;flex-direction:column;gap:8px;min-width:190px;}
+  .controls .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  .controls .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:8px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--blue);}
+  button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .fire{background:var(--gold);border-color:var(--gold);color:#1b1e2b;font-weight:700;}
+  .fire:hover{filter:brightness(1.1);}
+
+  .stage{position:relative;width:min(100%,420px);aspect-ratio:2/3;margin:0 auto;
+    border-radius:14px;overflow:hidden;background:#141726;border:1px solid #262a3e;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:8px;}
+  .tile{position:relative;border-radius:3px;background:#2a3a6b;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .tile.river{background:#1c2f52;cursor:default;}
+  .tile.mine{background:var(--blue);}
+  .tile.enemy{background:var(--red);}
+  .tile.node::after{content:'';width:34%;height:34%;border-radius:50%;background:var(--gold);opacity:.85;}
+  .tile.home{outline:2px solid var(--gold);outline-offset:-2px;}
+
+  /* ONE continuous fog layer over the whole board (not per-tile) - blob/mist patterns are
+     drawn at board scale so they read as a single connected fog bank instead of a grid of
+     independently-patterned tiles. Holes are punched at visible-tile positions via an SVG
+     mask (#fogMask, built/updated in JS) so the fog itself never has to know about tiles -
+     it just has soft round windows cut into it. */
+  .board-fog{position:absolute;inset:8px;z-index:2;pointer-events:none;border-radius:2px;
+    overflow:hidden;-webkit-mask-image:url(#fogMask);mask-image:url(#fogMask);
+    transition:opacity .4s ease;}
+
+  /* ===== A: flat charcoal fog, with a slow subtle drift so it doesn't read as static paint ===== */
+  .board-fog.flat{background:#0c0e16;}
+  .board-fog.flat::after{content:'';position:absolute;inset:-30%;
+    background:radial-gradient(circle at 30% 35%, rgba(255,255,255,.05) 0 30%, transparent 55%),
+      radial-gradient(circle at 70% 65%, rgba(255,255,255,.04) 0 26%, transparent 50%);
+    animation:mist-drift-a 26s ease-in-out infinite;}
+
+  /* ===== B: soft vignette fog - dark at the edges, a touch lighter/thinner toward center,
+     plus the same drift, so it still feels alive rather than a flat painted vignette ===== */
+  .board-fog.vignette{background:
+    radial-gradient(circle at center, rgba(18,20,30,.85) 0%, #0c0e16 72%);}
+  .board-fog.vignette::after{content:'';position:absolute;inset:-30%;
+    background:radial-gradient(circle at 35% 30%, rgba(200,210,230,.10) 0 28%, transparent 52%),
+      radial-gradient(circle at 65% 70%, rgba(200,210,230,.08) 0 24%, transparent 48%);
+    animation:mist-drift-b 32s ease-in-out infinite;}
+
+  /* ===== C: foliage canopy + drifting mist - a dark forest floor under slow-moving fog banks,
+     drawn once across the whole board so the canopy blobs and mist banks are continuous from
+     tile to tile instead of each tile carrying its own isolated pattern. ===== */
+  .board-fog.foliage{background:
+    radial-gradient(circle at 14% 18%, rgba(20,40,26,.95) 0 20%, transparent 24%),
+    radial-gradient(circle at 42% 10%, rgba(24,46,30,.95) 0 16%, transparent 20%),
+    radial-gradient(circle at 70% 20%, rgba(18,36,24,.95) 0 19%, transparent 23%),
+    radial-gradient(circle at 90% 35%, rgba(22,44,28,.95) 0 15%, transparent 19%),
+    radial-gradient(circle at 10% 48%, rgba(20,40,26,.95) 0 17%, transparent 21%),
+    radial-gradient(circle at 34% 55%, rgba(24,46,30,.95) 0 20%, transparent 24%),
+    radial-gradient(circle at 62% 50%, rgba(18,36,24,.95) 0 16%, transparent 20%),
+    radial-gradient(circle at 86% 62%, rgba(22,44,28,.95) 0 18%, transparent 22%),
+    radial-gradient(circle at 20% 78%, rgba(20,40,26,.95) 0 19%, transparent 23%),
+    radial-gradient(circle at 50% 88%, rgba(24,46,30,.95) 0 17%, transparent 21%),
+    radial-gradient(circle at 78% 85%, rgba(18,36,24,.95) 0 20%, transparent 24%),
+    #10130f;}
+  .board-fog.foliage::before{content:'';position:absolute;inset:-20%;
+    background:repeating-linear-gradient(115deg, rgba(0,0,0,.12) 0 2px, transparent 2px 7px);
+    mix-blend-mode:multiply;}
+  /* two mist layers, offset speeds/directions so they don't read as one repeating tile */
+  .board-fog.foliage::after{content:'';position:absolute;inset:-40%;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(210,218,230,.28) 0 14%, transparent 32%),
+      radial-gradient(circle at 70% 65%, rgba(210,218,230,.22) 0 13%, transparent 30%),
+      radial-gradient(circle at 15% 80%, rgba(210,218,230,.20) 0 12%, transparent 28%),
+      radial-gradient(circle at 85% 20%, rgba(210,218,230,.24) 0 13%, transparent 30%),
+      radial-gradient(circle at 50% 15%, rgba(210,218,230,.18) 0 12%, transparent 28%);
+    filter:blur(9px);mix-blend-mode:screen;opacity:.85;
+    animation:mist-drift-a 24s ease-in-out infinite;}
+  .board-fog.foliage .mist2{position:absolute;inset:-40%;
+    background:
+      radial-gradient(circle at 60% 30%, rgba(210,218,230,.18) 0 15%, transparent 34%),
+      radial-gradient(circle at 20% 60%, rgba(210,218,230,.20) 0 14%, transparent 32%),
+      radial-gradient(circle at 80% 85%, rgba(210,218,230,.16) 0 13%, transparent 30%),
+      radial-gradient(circle at 45% 90%, rgba(210,218,230,.16) 0 12%, transparent 28%);
+    filter:blur(11px);mix-blend-mode:screen;opacity:.75;
+    animation:mist-drift-b 34s ease-in-out infinite;}
+  @keyframes mist-drift-a{
+    0%{transform:translate(-4%,-2%) scale(1);}
+    50%{transform:translate(4%,3%) scale(1.08);}
+    100%{transform:translate(-4%,-2%) scale(1);}}
+  @keyframes mist-drift-b{
+    0%{transform:translate(3%,-3%) scale(1.05);}
+    50%{transform:translate(-5%,2%) scale(1);}
+    100%{transform:translate(3%,-3%) scale(1.05);}}
+
+  .idea-label{position:absolute;top:10px;left:10px;z-index:4;font-family:var(--head);
+    font-weight:700;font-size:14px;color:var(--gold);background:rgba(0,0,0,.4);
+    padding:3px 10px;border-radius:20px;}
+
+  .hint{max-width:420px;margin:14px auto 0;font-size:13px;color:var(--subtle);text-align:center;}
+  .hint b{color:var(--ink);}
+
+  .legend{max-width:420px;margin:14px auto 0;display:flex;gap:16px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+
+  .copy{max-width:680px;margin:30px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+</style>
+</head>
+<body>
+  <h1>Forest level — fog-of-war ideas</h1>
+  <p class="lede">Future-idea stage only (Todo.md "Future Ideas", not v1 scope) — a design sketch
+    for what a fog-of-war terrain gimmick could look like, no game logic wired in.
+    Concept: enemy tiles/nodes outside your vision radius are hidden until one of your tiles is
+    adjacent to them. Pick a fog treatment (A/B/C), then click any lit tile adjacent to your
+    territory to "claim" it and watch fog peel back around your new vision.</p>
+  <p class="note">This is a rough visual sketch, not the real board (no river/bridges modeled
+    here). Real implementation would also need AI vision logic, not just new art — see the
+    Future Ideas note in Todo.md.</p>
+
+  <div class="controls row">
+    <div class="grp">
+      <div class="k">Fog treatment</div>
+      <div class="opts" id="fogPicker">
+        <button data-fog="flat" class="active">A — Flat dark</button>
+        <button data-fog="vignette">B — Soft vignette</button>
+        <button data-fog="foliage">C — Foliage canopy</button>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="k">Vision radius</div>
+      <div class="opts" id="radiusPicker">
+        <button data-r="1" class="active">1 tile</button>
+        <button data-r="2">2 tiles</button>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="k">Demo</div>
+      <div class="opts">
+        <button class="fire" id="resetBtn">↺ Reset fog</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="idea-label" id="fogLabel">A — Flat dark</div>
+    <div class="board" id="board"></div>
+    <div class="board-fog flat" id="boardFog"><div class="mist2"></div></div>
+  </div>
+  <p class="hint">Click a lit tile touching your blue territory to claim it and push the fog
+    back. <b>Gold dot</b> = resource node (hidden until revealed — a scouting payoff).</p>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--blue)"></i> You</span>
+    <span><i class="sw" style="background:var(--red)"></i> Enemy (hidden until scouted)</span>
+    <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, in vision</span>
+    <span><i class="sw" style="background:#10130f"></i> Fogged</span>
+  </div>
+
+  <!-- SVG mask, referenced by .board-fog's mask-image. #fogHoles is rebuilt in JS with one
+       soft-edged (blurred) circle per currently-visible tile; white base = fog shows, black
+       holes = fog hidden there. userSpaceOnUse + a viewBox matched to the fog layer's real
+       pixel size (set in JS) keeps the holes lined up with the actual tile grid. -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <filter id="fogSoft" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="5" />
+      </filter>
+      <mask id="fogMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1" height="1">
+        <rect id="fogMaskBase" x="0" y="0" width="1" height="1" fill="white" />
+        <g id="fogHoles" filter="url(#fogSoft)" fill="black"></g>
+      </mask>
+    </defs>
+  </svg>
+
+  <div class="copy">
+    <div class="k">Design notes</div>
+    <p><b>A — Flat dark:</b> cheapest, reads instantly as "unknown." Now a single connected sheet
+      (not per-tile) with a faint drift, so it no longer looks like a grid of separately-painted
+      squares.</p>
+    <p><b>B — Soft vignette:</b> darker toward the board edges, lighter toward the middle, with the
+      same slow drift — feels like the fog is thinner near where you're standing.</p>
+    <p><b>C — Foliage canopy:</b> a dark mossy base under two slow-drifting grey-white mist layers,
+      now painted once across the whole board so the canopy blobs and mist banks are continuous
+      from tile to tile instead of each tile carrying its own isolated pattern. Priciest of the
+      three to build well for real (would want a proper Aseprite/painted fog texture and sprite
+      animation instead of CSS gradients).</p>
+    <p>Reveal holes are soft-edged (blurred), not hard tile cutouts, so newly-scouted ground fades
+      in rather than snapping — reads more like sight than a spreadsheet toggle.</p>
+    <p>Not shown: fog re-covering a tile if you lose vision of it (e.g. the claiming tile is
+      recaptured) — worth deciding before implementation, since "once seen always seen" vs.
+      "fog returns" are very different tactical feels.</p>
+  </div>
+
+<script>
+  const COLS = 6, ROWS = 9;
+  const boardEl = document.getElementById('board');
+  const boardFogEl = document.getElementById('boardFog');
+  const fogLabel = document.getElementById('fogLabel');
+  const fogMaskBase = document.getElementById('fogMaskBase');
+  const fogHolesEl = document.getElementById('fogHoles');
+  let fogStyle = 'flat';
+  let radius = 1;
+
+  // Fixed layout for the sketch: your home bottom-right, enemy home top-left, a few nodes.
+  const HOME_ME = { c: 4, r: 7 };
+  const HOME_AI = { c: 1, r: 1 };
+  const NODES = [[1,3],[4,2],[2,6],[3,4],[0,5],[5,1]].map(([c,r]) => ({ c, r }));
+
+  let tiles = []; // { c, r, owner: 'me'|'ai'|null, node: bool, el }
+
+  function build() {
+    boardEl.innerHTML = '';
+    tiles = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const t = { c, r, owner: null, node: NODES.some(n => n.c === c && n.r === r) };
+        if (c === HOME_ME.c && r === HOME_ME.r) t.owner = 'me';
+        if (c === HOME_AI.c && r === HOME_AI.r) t.owner = 'ai';
+        const el = document.createElement('div');
+        el.className = 'tile';
+        if (t.node) el.classList.add('node');
+        if (c === HOME_ME.c && r === HOME_ME.r) el.classList.add('home', 'mine');
+        if (c === HOME_AI.c && r === HOME_AI.r) el.classList.add('home', 'enemy');
+        el.addEventListener('click', () => claim(t));
+        boardEl.appendChild(el);
+        t.el = el;
+        tiles.push(t);
+      }
+    }
+    recompute();
+  }
+
+  function claim(t) {
+    if (t.owner === 'me' || t.owner === 'ai') return;
+    const adjacentToMine = tiles.some(o => o.owner === 'me' &&
+      Math.abs(o.c - t.c) + Math.abs(o.r - t.r) === 1);
+    if (!adjacentToMine) return; // must expand from your own territory, like a real claim
+    if (visibility(t) !== 'visible') return; // can't claim what you can't see
+    t.owner = 'me';
+    recompute();
+  }
+
+  function visibility(t) {
+    const mine = tiles.filter(o => o.owner === 'me');
+    const inVision = mine.some(o => Math.abs(o.c - t.c) <= radius && Math.abs(o.r - t.r) <= radius);
+    return inVision ? 'visible' : 'fogged';
+  }
+
+  // Rebuilds the SVG mask (viewBox + one blurred hole per visible tile) so the fog's punched
+  // windows line up with the real, currently-rendered tile grid (accounts for the board's
+  // padding/gaps rather than assuming a perfectly uniform grid).
+  function updateMask() {
+    const fogRect = boardFogEl.getBoundingClientRect();
+    const W = fogRect.width, H = fogRect.height;
+    if (!W || !H) return;
+    document.getElementById('fogMask').setAttribute('width', W);
+    document.getElementById('fogMask').setAttribute('height', H);
+    fogMaskBase.setAttribute('width', W);
+    fogMaskBase.setAttribute('height', H);
+
+    const holeR = Math.max(fogRect.width / COLS, fogRect.height / ROWS) * 0.62;
+    let holes = '';
+    tiles.forEach((t) => {
+      if (visibility(t) !== 'visible') return;
+      const r = t.el.getBoundingClientRect();
+      const cx = r.left + r.width / 2 - fogRect.left;
+      const cy = r.top + r.height / 2 - fogRect.top;
+      holes += `<circle cx="${cx}" cy="${cy}" r="${holeR}" />`;
+    });
+    fogHolesEl.innerHTML = holes;
+  }
+
+  function recompute() {
+    tiles.forEach(t => {
+      const vis = visibility(t) === 'visible';
+      t.el.classList.remove('mine', 'enemy');
+      if (t.owner === 'me') t.el.classList.add('mine');
+      else if (t.owner === 'ai' && vis) t.el.classList.add('enemy');
+    });
+    updateMask();
+  }
+
+  document.getElementById('fogPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    fogStyle = btn.dataset.fog;
+    fogLabel.textContent = btn.textContent;
+    boardFogEl.className = 'board-fog ' + fogStyle; // the .mist2 child persists across class swaps
+  });
+
+  document.getElementById('radiusPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    radius = Number(btn.dataset.r);
+    recompute();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', build);
+  window.addEventListener('resize', updateMask);
+
+  build();
+  // Layout settles a frame after build(); re-measure once more so the initial mask lines up.
+  requestAnimationFrame(updateMask);
+</script>
+</body>
+</html>

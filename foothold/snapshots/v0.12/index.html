@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Foothold (prototype)</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icons/pwa-192.png" />
+  <link rel="apple-touch-icon" href="assets/icons/pwa-192.png" />
+  <meta name="theme-color" content="#1b1e2b" />
+  <!-- Phaser 3 vendored locally (self-contained: works offline, in snapshots, and in mobile builds). -->
+  <script src="vendor/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+  <script type="module" src="src/main.js"></script>
+  <script>
+    // PWA install + offline play. Registered here (not main.js) so it's independent of the
+    // Phaser boot sequence and works even if the game itself fails to load.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+    }
+  </script>
+</body>
+</html>

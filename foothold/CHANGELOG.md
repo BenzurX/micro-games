@@ -3,19 +3,27 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
-## Unreleased - 2026-07-11 - PWA support, AI-vs-AI balance harness
+## v0.12 - 2026-07-11 - Total Victory, first-mover balance fix, PWA
+- **Total Victory**: capturing the enemy base while owning every non-river tile and having every
+  held node upgraded now triggers a distinct win state - "Complete Foothold! / Round N" copy, a
+  gold sunburst (pulsing glow + 10 rotating rays sized to reach the screen edges), a camera
+  flash/shake, and a unique "Grand Finale" fanfare. Staged 10 fanfare and 3 flare candidates in
+  `stage/total-victory.html` before picking.
 - **PWA**: `manifest.webmanifest` + `sw.js` service worker (cache-first, network-first on
   navigation) so the web build installs to a home screen and plays offline. Icons are a
   temporary placeholder (upscaled `watchtower.png`) pending the real custom app icon task.
 - **AI-vs-AI balance harness**: pure rules (board gen, economy, moves, greedy AI, win check)
   extracted into `src/lib/rules.js` (no Phaser dependency), driven by a headless simulator
   (`scripts/balance-harness.mjs`). First run (5000 games) found a 66.8%/33.1% first-mover
-  win-rate imbalance - logged for the next balance pass, not yet fixed.
-
-## Unreleased - 2026-07-09 - Income tiebreaker, doc sync (fold into the next snapshot)
-- **Time-up tiebreaker**: a tile tie at round 12 is now broken by total per-turn income
-  (all three resources summed); only a full economic tie is a true draw. The result
-  screen says which side's income decided it.
+  win-rate imbalance.
+- **First-mover balance fix**: player 2 (always moves second each round) now starts with a
+  resource bump (`P2_START_BONUS`, wood +14/gold +14/stone +7) to offset the tempo
+  disadvantage, instead of changing turn order (alternating first-mover would read as the
+  enemy getting two turns in a row at the round boundary). Invisible in the UI, since the
+  AI's stockpile is never shown to the player. Re-ran the harness at 20,000 games: 50.7%/49.3%.
+- **Time-up tiebreaker** (carried over from 2026-07-09): a tile tie at round 12 is now broken by
+  total per-turn income (all three resources summed); only a full economic tie is a true draw.
+  The result screen says which side's income decided it.
 - **DESIGN.md re-synced to the game as built** (6x9 grid, river + bridges as core, Upgrade
   replacing Fortify, current costs/incomes/cap) and reframed as a living doc - numbers are
   tuned by playtest, not a pre-build contract. Fortify moved to the backlog as a possible

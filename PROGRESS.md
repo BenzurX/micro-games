@@ -27,13 +27,12 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 *(Canonical resume queue - the single source of truth for "ready to continue?". Set at
 session close via the Session End Ritual; restated verbatim and worked from item 1 on
 resume. A newer plan replaces this whole section. See global CLAUDE.md - Session handoff.)*
-1. **Balance pass: first-mover imbalance** (added 2026-07-11, from the new balance harness): player 1 (bottom-right, always moves first each round) wins 66.8% vs player 2's 33.1% over 5000 AI-vs-AI games. Decide a fix (stagger starting resources, alternate who moves first, adjust costs) and re-run `node scripts/balance-harness.mjs` to confirm it closes the gap.
-2. **Custom app icon** - Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item).
-3. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
-4. **60fps device test** - run on a real mid-range mobile before ship (quality-bar requirement).
-5. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder - needed before Game 2. (Keep this last.)
+1. **Custom app icon** - Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item). Also unblocks swapping the PWA's placeholder icons.
+2. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
+3. **60fps device test** - run on a real mid-range mobile before ship (quality-bar requirement).
+4. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder - needed before Game 2. (Keep this last.)
 
-Done (cleared from this queue 2026-07-11): AI-vs-AI balance harness (`src/lib/rules.js` + `scripts/balance-harness.mjs`).
+Done (cleared from this queue 2026-07-11): AI-vs-AI balance harness (`src/lib/rules.js` + `scripts/balance-harness.mjs`); first-mover imbalance fix (`P2_START_BONUS`, 66.8/33.1 -> 50.7/49.3 at 20k games).
 
 Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layout shipped v0.07) and New Game button next to End Turn.
 
@@ -44,7 +43,9 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 - Done: Reconciled the uncommitted 2026-07-09 income-tiebreaker/DESIGN.md-sync work (committed). Built the AI-vs-AI balance harness: extracted pure rules into `src/lib/rules.js` (Phaser-free) and a headless simulator (`scripts/balance-harness.mjs`).
 - Done: Ran the harness (5000 games) - found a 66.8% (player 1) vs 33.1% (player 2) win rate, i.e. a strong first-mover advantage. Not something casual playtesting had surfaced. Logged as the new top Next Session item.
 - Done: Built PWA support - `manifest.webmanifest` + `sw.js` service worker (cache-first, offline + installable), verified in-browser. Icons are a placeholder (upscaled `watchtower.png`) pending the custom app icon task. Added the `CACHE_VERSION` bump step to the pre-push gate in the root CLAUDE.md.
-- Blocked: None. Tomorrow (next session): decide and apply a fix for the first-mover imbalance, re-run the harness to confirm.
+- Done: Fixed the first-mover imbalance. Ruled out alternating who moves first (would read as the enemy getting two turns in a row at the round boundary); compensated player 2 with a starting-resource bump instead (`P2_START_BONUS`, wood +14/gold +14/stone +7, tuned against the harness, mirrored in `rules.js` and `GameScene.js`). Invisible in the UI - the AI's stockpile is never shown to the player. Re-ran at 20,000 games: 50.7%/49.3%.
+- Done: Built the Total Victory win state (base captured + every non-river tile owned + every held node upgraded): "Complete Foothold! / Round N" copy, a gold sunburst (pulsing glow + rotating rays, sized off the canvas diagonal), camera flash/shake, and a unique "Grand Finale" fanfare. Staged 10 fanfare + 3 flare candidates in `stage/total-victory.html`; Benzur picked Sunburst + Grand Finale. Tuned glow brightness down twice after playtest.
+- Blocked: None.
 
 ### 2026-07-02
 - Done: Stood up 5 sub-agents + agent-audit + snapshot norm. Built playable browser prototype (8x8 turn-based territory control) = Foothold, saved as snapshot v0.01. Confirmed all core design pillars. Named the game **Foothold** (name-collision research). Renamed folder game-1 → foothold.

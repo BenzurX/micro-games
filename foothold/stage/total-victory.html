@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Total Victory ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 26px;max-width:680px;}
+  .lede code{color:var(--gold);}
+  .row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .controls{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.94);
+    backdrop-filter:blur(4px);padding:14px 16px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;}
+  .controls .grp{display:flex;flex-direction:column;gap:8px;min-width:190px;}
+  .controls .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:8px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--blue);}
+  button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .fire{background:var(--gold);border-color:var(--gold);color:#1b1e2b;font-weight:700;}
+  .fire:hover{filter:brightness(1.1);}
+
+  /* ---- mock game board behind the overlay, just for context ---- */
+  .stage{position:relative;width:min(100%,420px);aspect-ratio:2/3;margin:0 auto;
+    border-radius:14px;overflow:hidden;background:#141726;border:1px solid #262a3e;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:8px;}
+  .board div{background:#2a3a6b;border-radius:2px;}
+  .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;text-align:center;opacity:0;pointer-events:none;}
+  .ov.on{opacity:1;}
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.72);opacity:0;transition:opacity .3s;}
+  .dim.on{opacity:1;}
+  .result{font-family:var(--head);font-weight:700;font-size:26px;color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.6);position:relative;z-index:3;padding:0 20px;
+    transform:scale(.6);transition:transform .5s cubic-bezier(.2,1.4,.4,1);}
+  .ov.on .result{transform:scale(1);}
+  .sub{font-family:var(--body);font-weight:600;font-size:14px;color:var(--gold);
+    margin-top:8px;position:relative;z-index:3;}
+
+  /* ===== A: golden sunburst rays ===== */
+  .rays{position:absolute;inset:-30%;background:conic-gradient(from 0deg,
+    rgba(242,193,78,0) 0deg, rgba(242,193,78,.35) 8deg, rgba(242,193,78,0) 16deg,
+    rgba(242,193,78,0) 40deg, rgba(242,193,78,.35) 48deg, rgba(242,193,78,0) 56deg,
+    rgba(242,193,78,0) 80deg, rgba(242,193,78,.35) 88deg, rgba(242,193,78,0) 96deg,
+    rgba(242,193,78,0) 120deg, rgba(242,193,78,.35) 128deg, rgba(242,193,78,0) 136deg,
+    rgba(242,193,78,0) 160deg, rgba(242,193,78,.35) 168deg, rgba(242,193,78,0) 176deg,
+    rgba(242,193,78,0) 200deg, rgba(242,193,78,.35) 208deg, rgba(242,193,78,0) 216deg,
+    rgba(242,193,78,0) 240deg, rgba(242,193,78,.35) 248deg, rgba(242,193,78,0) 256deg,
+    rgba(242,193,78,0) 280deg, rgba(242,193,78,.35) 288deg, rgba(242,193,78,0) 296deg,
+    rgba(242,193,78,0) 320deg, rgba(242,193,78,.35) 328deg, rgba(242,193,78,0) 336deg);
+    opacity:0; animation:none;}
+  .ov.on .rays{opacity:1;animation:spin 9s linear infinite, flash-in .5s ease-out;}
+  .glow{position:absolute;width:60%;aspect-ratio:1;border-radius:50%;
+    background:radial-gradient(circle,rgba(242,193,78,.55),rgba(242,193,78,0) 70%);
+    filter:blur(2px);opacity:0;}
+  .ov.on .glow{opacity:1;animation:pulse 1.8s ease-in-out infinite, flash-in .5s ease-out;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+  @keyframes flash-in{0%{filter:brightness(3);}100%{filter:brightness(1);}}
+
+  /* ===== B: gold + blue confetti rain ===== */
+  .confetti{position:absolute;inset:0;overflow:hidden;}
+  .confetti i{position:absolute;top:-10%;width:8px;height:14px;opacity:0;
+    animation:fall linear infinite;}
+  @keyframes fall{
+    0%{opacity:0;transform:translateY(0) rotate(0deg);}
+    8%{opacity:1;}
+    100%{opacity:.9;transform:translateY(130%) rotate(540deg);}
+  }
+
+  /* ===== C: expanding gold shockwave rings ===== */
+  .ring{position:absolute;left:50%;top:50%;border:3px solid rgba(242,193,78,.65);
+    border-radius:50%;width:10px;height:10px;transform:translate(-50%,-50%);opacity:0;}
+  .ov.on .ring{animation:ring-out 1.4s ease-out infinite;}
+  .ring.r2{animation-delay:.35s !important;}
+  .ring.r3{animation-delay:.7s !important;}
+  @keyframes ring-out{
+    0%{width:10px;height:10px;opacity:.9;border-width:4px;}
+    100%{width:480px;height:480px;opacity:0;border-width:1px;}
+  }
+  .flashbg{position:absolute;inset:0;background:radial-gradient(circle,rgba(242,193,78,.3),transparent 60%);
+    opacity:0;}
+  .ov.on .flashbg{opacity:1;animation:flash-in .6s ease-out;}
+
+  .idea-label{position:absolute;top:10px;left:10px;z-index:4;font-family:var(--head);
+    font-weight:700;font-size:14px;color:var(--gold);background:rgba(0,0,0,.4);
+    padding:3px 10px;border-radius:20px;}
+
+  .copy{max-width:680px;margin:26px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy label{display:flex;gap:8px;align-items:baseline;padding:6px 0;cursor:pointer;}
+  .copy label b{font-family:var(--head);font-size:17px;}
+  .copy label span{color:var(--subtle);font-size:13px;}
+</style>
+</head>
+<body>
+  <h1>Total Victory — staged ideas</h1>
+  <p class="lede">Fires when you capture the enemy base AND own every non-river tile AND every
+    resource node you hold is upgraded. Pick a flare (visual), a fanfare (sound), and a copy line —
+    mix and match, then say which combo to wire in. <code>Play Combo</code> on the stage below
+    triggers whichever flare/fanfare is currently selected.</p>
+
+  <div class="controls row">
+    <div class="grp">
+      <span class="k">Flare</span>
+      <div class="row" style="margin:0;">
+        <button data-flare="A" class="flare-btn active">A: Sunburst</button>
+        <button data-flare="B" class="flare-btn">B: Confetti</button>
+        <button data-flare="C" class="flare-btn">C: Shockwave</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="k">Fanfare (sound)</span>
+      <div class="row" style="margin:0;">
+        <button data-fanfare="A" class="fan-btn active">A: Horn call</button>
+        <button data-fanfare="J" class="fan-btn">J: Grand finale</button>
+        <button data-fanfare="K" class="fan-btn">K: Echoing horns</button>
+        <button data-fanfare="L" class="fan-btn">L: Rising power chord</button>
+        <button data-fanfare="M" class="fan-btn">M: Fireworks fanfare</button>
+        <button data-fanfare="N" class="fan-btn">N: Victory march</button>
+        <button data-fanfare="O" class="fan-btn">O: Single golden note</button>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="k">Trigger</span>
+      <div class="row" style="margin:0;">
+        <button class="fire" id="playCombo">▶ Play Combo</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="board" id="board"></div>
+    <div class="dim" id="dim"></div>
+    <div class="ov" id="ov">
+      <div class="idea-label" id="flareLabel">A: Sunburst</div>
+      <!-- flare A -->
+      <div class="glow" id="glowA"></div>
+      <div class="rays" id="raysA"></div>
+      <!-- flare B -->
+      <div class="confetti" id="confettiB"></div>
+      <!-- flare C -->
+      <div class="flashbg" id="flashC"></div>
+      <div class="ring r1" id="ringC1"></div>
+      <div class="ring r2" id="ringC2"></div>
+      <div class="ring r3" id="ringC3"></div>
+
+      <div class="result" id="resultText">Flawless Victory<br>Round 11</div>
+      <div class="sub" id="subText">The enemy has nothing left</div>
+    </div>
+  </div>
+
+  <div class="copy">
+    <div class="k">Copy line candidates (radio to preview on the stage)</div>
+    <label><input type="radio" name="copy" value="0">
+      <b>Total Victory on Round 11!</b><span>— Enemy completely conquered</span></label>
+    <label><input type="radio" name="copy" value="1">
+      <b>Total Conquest!</b><span>— Round 11 · every tile, every node, their base too</span></label>
+    <label><input type="radio" name="copy" value="2" checked>
+      <b>Flawless Victory — Round 11</b><span>— The enemy has nothing left</span></label>
+    <label><input type="radio" name="copy" value="3">
+      <b>Total Victory!!!</b><span>— Enemy Completely Conquered on Round 11</span></label>
+  </div>
+
+<script>
+  const ov = document.getElementById('ov');
+  const dim = document.getElementById('dim');
+  const board = document.getElementById('board');
+  const flareLabel = document.getElementById('flareLabel');
+  for (let i = 0; i < 54; i++) board.appendChild(document.createElement('div'));
+
+  let flare = 'A', fanfare = 'A';
+  document.querySelectorAll('.flare-btn').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.flare-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); flare = b.dataset.flare;
+    flareLabel.textContent = b.textContent;
+  });
+  document.querySelectorAll('.fan-btn').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.fan-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); fanfare = b.dataset.fanfare;
+  });
+
+  const copyLines = [
+    ['Total Victory<br>on Round 11!', 'Enemy completely conquered'],
+    ['Total Conquest!', 'Round 11 · every tile, every node, their base too'],
+    ['Flawless Victory<br>Round 11', 'The enemy has nothing left'],
+    ['Total Victory!!!', 'Enemy Completely Conquered on Round 11'],
+  ];
+  document.querySelectorAll('input[name=copy]').forEach(r => r.onchange = () => {
+    const [t, s] = copyLines[+r.value];
+    document.getElementById('resultText').innerHTML = t;
+    document.getElementById('subText').textContent = s;
+  });
+
+  // ---- confetti setup for flare B ----
+  const confettiB = document.getElementById('confettiB');
+  const colors = ['#f2c14e', '#3d6cff', '#fff'];
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('i');
+    s.style.left = Math.random() * 100 + '%';
+    s.style.background = colors[i % colors.length];
+    s.style.animationDuration = (1.6 + Math.random() * 1.2) + 's';
+    s.style.animationDelay = (Math.random() * 1.4) + 's';
+    s.style.transform = `rotate(${Math.random()*360}deg)`;
+    confettiB.appendChild(s);
+  }
+
+  function showFlare() {
+    document.querySelectorAll('.glow,.rays,.confetti,.flashbg,.ring').forEach(el => el.style.display = 'none');
+    if (flare === 'A') { document.getElementById('glowA').style.display = ''; document.getElementById('raysA').style.display = ''; }
+    if (flare === 'B') { confettiB.style.display = ''; }
+    if (flare === 'C') { document.getElementById('flashC').style.display = '';
+      document.querySelectorAll('.ring').forEach(r => r.style.display = ''); }
+  }
+
+  // ---- Web Audio fanfares (procedural, same technique as sfx.js's 'title' horn call) ----
+  let ctx;
+  function ensureCtx() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+  function tone(t0, freq, dur, type, gain, freqEnd) {
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t0);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.03);
+  }
+  function horn(t0, freq, delay, dur, gain) { tone(t0 + delay, freq, dur, 'sawtooth', gain || 0.34); }
+  function bell(t0, freq, delay, dur, gain) { tone(t0 + delay, freq, dur, 'triangle', gain || 0.28); }
+  function trumpet(t0, freq, delay, dur, gain) { tone(t0 + delay, freq, dur, 'square', gain || 0.24); }
+  function thud(t0, delay, dur, gain, cutoff) {
+    const t = t0 + delay;
+    const frames = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff || 400;
+    const g = ctx.createGain(); g.gain.value = gain || 0.3;
+    src.connect(lp); lp.connect(g); g.connect(ctx.destination);
+    src.start(t);
+  }
+
+  function playFanfare(which) {
+    ensureCtx();
+    const t0 = ctx.currentTime;
+    if (which === 'A') { // Horn call — a longer version of the title fanfare, more triumphant close
+      horn(t0, 392, 0.00, 0.16); horn(t0, 392, 0.15, 0.16);
+      horn(t0, 523, 0.30, 0.20); horn(t0, 659, 0.48, 0.18);
+      horn(t0, 784, 0.65, 0.16); horn(t0, 988, 0.80, 0.16);
+      horn(t0, 1047, 0.95, 0.9, 0.42); // held triumphant arrival
+      tone(t0 + 0.95, 523, 0.9, 'triangle', 0.18); // octave-down body under the held note
+      tone(t0, 131, 1.9, 'triangle', 0.16); tone(t0, 196, 1.9, 'triangle', 0.13); // drone
+    } else if (which === 'K') { // Echoing horns — the horn call answered by two decaying echoes
+      // (delayed, quieter, slightly lower repeats), like it's ringing off castle walls
+      const call = (t, g) => { horn(t0, 523, t, 0.16, g); horn(t0, 659, t + 0.14, 0.16, g); horn(t0, 784, t + 0.28, 0.4, g * 1.1); };
+      call(0.00, 0.4); call(0.55, 0.22); call(1.0, 0.11);
+      tone(t0, 131, 2.0, 'triangle', 0.14); tone(t0, 196, 2.0, 'triangle', 0.11);
+    } else if (which === 'L') { // Rising power chord — one long swelling chord that builds in over
+      // ~1.6s (movie-trailer style) rather than discrete horn notes; ends bright and huge
+      [131, 196, 262, 330, 392, 523].forEach((f, i) => {
+        const osc = ctx.createOscillator(), g = ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(f, t0);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.22 - i * 0.02, t0 + 1.2 + i * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.0);
+        osc.connect(g); g.connect(ctx.destination);
+        osc.start(t0); osc.stop(t0 + 2.05);
+      });
+    } else if (which === 'M') { // Fireworks fanfare — horn call punctuated by bright sparkle bursts
+      // (quick random high-note scatters), like fireworks popping after the horns
+      horn(t0, 392, 0.00, 0.16); horn(t0, 392, 0.15, 0.16); horn(t0, 659, 0.30, 0.5, 0.4);
+      const sparkle = (delay) => [0,1,2,3].forEach((i) => bell(t0, 1568 + Math.random() * 900, delay + i * 0.03, 0.18, 0.14));
+      sparkle(0.55); sparkle(0.85); sparkle(1.15);
+      tone(t0, 131, 1.4, 'triangle', 0.14);
+    } else if (which === 'N') { // Victory march — a short, steady marching rhythm (punchy notes on
+      // the beat) that builds into a closing horn flourish, reads as triumphant procession
+      const beat = [523, 523, 659, 523, 523, 659, 784, 784];
+      beat.forEach((f, i) => trumpet(t0, f, i * 0.16, 0.1, 0.3));
+      thud(t0, 0.0, 0.5, 0.15, 300); // faint marching-drum pulse under the whole thing
+      for (let i = 0; i < 8; i++) thud(t0, i * 0.16, 0.05, 0.12, 350);
+      horn(t0, 880, 1.32, 0.55, 0.42); horn(t0, 1047, 1.32, 0.55, 0.3);
+    } else if (which === 'J') { // Grand finale — the biggest one: horn call, rising flourish, then a
+      // sustained major chord with bells shimmering on top
+      horn(t0, 392, 0.00, 0.16); horn(t0, 392, 0.15, 0.16);
+      [523, 659, 784, 1047, 1319].forEach((f, i) => horn(t0, f, 0.32 + i * 0.08, 0.2, 0.36));
+      [523, 659, 784, 1047].forEach(f => tone(t0 + 0.85, f, 1.3, 'sawtooth', 0.22));
+      [1319, 1568, 2093].forEach((f, i) => bell(t0, f, 0.95 + i * 0.1, 0.9, 0.2));
+      tone(t0, 131, 2.4, 'triangle', 0.18); tone(t0, 196, 2.4, 'triangle', 0.14);
+    } else { // O: Single golden note — minimalist: one massive sustained horn note with rich
+      // stacked harmonics (more bell/horn hybrid than busy fanfare), restrained but epic
+      const base = 392;
+      [1, 2, 3, 4.02, 6, 8].forEach((r, i) => tone(t0, base * r, 2.2 - i * 0.15, 'triangle', 0.3 / (i + 1)));
+      tone(t0, base, 2.2, 'sawtooth', 0.18); // a little grit under the pure tone
+      tone(t0, base / 2, 2.4, 'triangle', 0.2); // sub octave weight
+    }
+  }
+
+  document.getElementById('playCombo').onclick = () => {
+    ov.classList.remove('on'); dim.classList.remove('on');
+    void ov.offsetWidth; // restart CSS animations
+    showFlare();
+    dim.classList.add('on');
+    setTimeout(() => ov.classList.add('on'), 120);
+    setTimeout(() => playFanfare(fanfare), 200);
+  };
+  document.getElementById('reset').onclick = () => {
+    ov.classList.remove('on'); dim.classList.remove('on');
+  };
+</script>
+</body>
+</html>
