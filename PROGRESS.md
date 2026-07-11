@@ -43,6 +43,7 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 ### 2026-07-11
 - Done: Reconciled the uncommitted 2026-07-09 income-tiebreaker/DESIGN.md-sync work (committed). Built the AI-vs-AI balance harness: extracted pure rules into `src/lib/rules.js` (Phaser-free) and a headless simulator (`scripts/balance-harness.mjs`).
 - Done: Ran the harness (5000 games) - found a 66.8% (player 1) vs 33.1% (player 2) win rate, i.e. a strong first-mover advantage. Not something casual playtesting had surfaced. Logged as the new top Next Session item.
+- Done: Built PWA support - `manifest.webmanifest` + `sw.js` service worker (cache-first, offline + installable), verified in-browser. Icons are a placeholder (upscaled `watchtower.png`) pending the custom app icon task. Added the `CACHE_VERSION` bump step to the pre-push gate in the root CLAUDE.md.
 - Blocked: None. Tomorrow (next session): decide and apply a fix for the first-mover imbalance, re-run the harness to confirm.
 
 ### 2026-07-02

@@ -9,6 +9,8 @@ Micro Games pipeline.
 - **Engine:** Phaser 3 (vendored locally under `vendor/`, no CDN)
 - **Stack:** plain ES modules, no build step
 - **Target:** mobile-first (Capacitor later), itch.io web build first
+- **PWA:** installable + offline-playable (`manifest.webmanifest` + `sw.js`); see the
+  pre-push gate in the root CLAUDE.md for bumping `sw.js`'s `CACHE_VERSION`
 
 ## Run it locally
 
@@ -33,6 +35,10 @@ assets/icons/          Kenney "Board Game Icons" (CC0), tinted per resource - se
 assets/fonts/          Grenze display serif (OFL), vendored woff2 for titles/headings/buttons
 snapshots/             Frozen, self-contained playable copies of past versions + gallery
 vendor/phaser.min.js   Vendored Phaser 3.80.1
+manifest.webmanifest   PWA manifest (name, icons, standalone display)
+sw.js                  Service worker: caches the whole game for offline play/install
+scripts/                Node-only dev tooling (not shipped in the web build)
+  balance-harness.mjs  Headless AI-vs-AI simulator (uses src/lib/rules.js)
 ```
 
 ## Versioning

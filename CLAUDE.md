@@ -15,8 +15,9 @@ Before pushing any game's repo, complete these first (skip nothing):
 1. Update that game's `CHANGELOG.md` - a new dated entry under the version being shipped.
 2. Update that game's `README.md` if behavior, layout, or run steps changed.
 3. Bump the version marker: add/refresh the matching frozen snapshot under `snapshots/`
-   (and its `snapshots/index.html` card). No web service-worker/cache string exists yet;
-   if one is added later, bump it here too.
+   (and its `snapshots/index.html` card). If the game has a service worker (Foothold does,
+   `sw.js`), also bump its `CACHE_VERSION` string - a stale one leaves players stuck on an
+   old cached build even after you ship a fix.
 4. Confirm `assets/CREDITS.md` covers every third-party asset in the build.
 5. Remove any "em dashes" (—) and use regular dashes (-) instead.
 

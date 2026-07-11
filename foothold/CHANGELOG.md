@@ -3,6 +3,15 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## Unreleased - 2026-07-11 - PWA support, AI-vs-AI balance harness
+- **PWA**: `manifest.webmanifest` + `sw.js` service worker (cache-first, network-first on
+  navigation) so the web build installs to a home screen and plays offline. Icons are a
+  temporary placeholder (upscaled `watchtower.png`) pending the real custom app icon task.
+- **AI-vs-AI balance harness**: pure rules (board gen, economy, moves, greedy AI, win check)
+  extracted into `src/lib/rules.js` (no Phaser dependency), driven by a headless simulator
+  (`scripts/balance-harness.mjs`). First run (5000 games) found a 66.8%/33.1% first-mover
+  win-rate imbalance - logged for the next balance pass, not yet fixed.
+
 ## Unreleased - 2026-07-09 - Income tiebreaker, doc sync (fold into the next snapshot)
 - **Time-up tiebreaker**: a tile tie at round 12 is now broken by total per-turn income
   (all three resources summed); only a full economic tie is a true draw. The result
