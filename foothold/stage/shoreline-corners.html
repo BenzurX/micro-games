@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Shoreline corner rounding - blended corners, 4 tunings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#274a9d; --red:#9d2f3a; --gold:#f2c14e;
+    --ocean:#1c5f7a; --shoal-high:#164a5f; --warn-stroke:#6fefff; --foam:#bfe9f0;
+    --land:#2b2f45; --sand:#d8c08a;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.45;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 12px;max-width:780px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:780px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  .controls{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.96);
+    backdrop-filter:blur(4px);padding:14px 16px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:10px;flex-wrap:wrap;}
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:9px 14px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--warn-stroke);}
+  button.active{background:var(--ocean);border-color:var(--warn-stroke);color:#fff;}
+
+  .panel{display:none;max-width:1000px;margin:0 auto;}
+  .panel.active{display:block;}
+
+  .idea-head h2{font-family:var(--head);font-weight:700;font-size:23px;margin:0 0 6px;color:var(--foam);}
+  .idea-head p{margin:0 0 6px;font-size:14px;color:var(--subtle);max-width:820px;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--gold);background:var(--card2);border:1px solid #3d425e;border-radius:6px;
+    padding:3px 8px;margin-bottom:8px;}
+
+  .board-wrap{display:flex;justify-content:center;margin:18px 0;}
+  .board-frame{position:relative;background:#0e1420;border:1px solid #23405076;
+    border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+
+  .grid-layer{display:grid;position:relative;}
+  .tile{position:relative;}
+
+  .legend{max-width:780px;margin:16px auto 0;display:flex;gap:16px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:16px;height:16px;border-radius:4px;display:inline-block;}
+
+  .copy{max-width:1000px;margin:24px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+  .copy p:last-child{margin-bottom:0;}
+  .copy b{color:var(--ink);}
+  .copy code{color:var(--gold);}
+</style>
+</head>
+<body>
+
+  <h1>Shoreline corner rounding - blended corners, 4 tunings</h1>
+  <p class="lede">Follow-up to the first round: the "blended concave + convex" direction is the
+    keeper, so these four are all variations on <b>that one</b> approach (round a water tile's
+    corner where it faces land, AND round the land tile's corner where water wraps around it on
+    two sides) - just tuned differently. Same 7&times;8 sample board as before, large tiles, with a
+    diagonal staircase edge, a concave inlet, an isolated single shoal tile, and a small tide
+    cluster elsewhere on the board, so every corner case shows up. All three tidal tile types share
+    the treatment: <b>ocean</b> (permanent deep water), <b>tide-warning</b> (fringe about to flood,
+    cyan ring), and <b>tide-takeover</b> (currently submerged, high tide).</p>
+  <p class="note">Rough visual sketch in HTML/CSS, not the real Phaser renderer - colors match
+    <code>GameScene.js</code>'s <code>OCEAN_COLOR</code> / <code>SHOAL_HIGH_COLOR</code> /
+    <code>SHOAL_WARN_COLOR</code> constants exactly. Nothing here is wired into the game yet.</p>
+
+  <div class="controls" id="tabBar">
+    <button data-tab="current" class="active">Current - square corners</button>
+    <button data-tab="c1">C1 - Baseline (12px)</button>
+    <button data-tab="c2">C2 - Bigger sweep (20px)</button>
+    <button data-tab="c3">C3 - + wet-sand transition ring</button>
+    <button data-tab="c4">C4 - Adaptive radius by exposure</button>
+  </div>
+
+  <!-- ===================== CURRENT (reference) ===================== -->
+  <div class="panel active" id="panel-current">
+    <div class="idea-head">
+      <span class="tag">Reference</span>
+      <h2>What ships today</h2>
+      <p>Every tile is a plain square, ocean and land alike - the boundary reads as a hard grid
+        line. Kept here for a direct before/after against the four tunings.</p>
+    </div>
+    <div class="board-wrap"><div class="board-frame"><div class="grid-layer" id="board-current"></div></div></div>
+    <div class="legend" id="legend-current"></div>
+  </div>
+
+  <!-- ===================== C1 ===================== -->
+  <div class="panel" id="panel-c1">
+    <div class="idea-head">
+      <span class="tag">C1</span>
+      <h2>Baseline blended radius (12px)</h2>
+      <p>The version from the first round, unchanged: a fixed 12px radius applied to both the
+        water tile's exposed corners (convex) and the land tile's wrapped corners (concave), so the
+        whole boundary - including the diagonal staircase and the inlet - reads as one continuous
+        curve. This is the anchor the other three tunings are measured against.</p>
+    </div>
+    <div class="board-wrap"><div class="board-frame"><div class="grid-layer" id="board-c1"></div></div></div>
+    <div class="legend" id="legend-c1"></div>
+  </div>
+
+  <!-- ===================== C2 ===================== -->
+  <div class="panel" id="panel-c2">
+    <div class="idea-head">
+      <span class="tag">C2</span>
+      <h2>Bigger sweep (20px)</h2>
+      <p>Same blended logic, radius pushed to 20px. The curve is much more obviously a coastline
+        rather than a rounded grid - but on a single tile that big a radius starts eating into
+        space a resource icon or income label would otherwise sit in, so this only really works if
+        the corner rounding stays a background/fill effect and never has to share a tile with
+        on-tile UI.</p>
+    </div>
+    <div class="board-wrap"><div class="board-frame"><div class="grid-layer" id="board-c2"></div></div></div>
+    <div class="legend" id="legend-c2"></div>
+  </div>
+
+  <!-- ===================== C3 ===================== -->
+  <div class="panel" id="panel-c3">
+    <div class="idea-head">
+      <span class="tag">C3</span>
+      <h2>+ wet-sand transition ring</h2>
+      <p>Same blended 14px corners as the baseline, plus a thin sand-colored line traced along the
+        exact boundary curve - both on the water tile's exposed sides and the land tile's wrapped
+        corners - so there's a visible "wet sand" transition band between land and water, not just
+        a color change with no in-between. Closest to a literal beach.</p>
+    </div>
+    <div class="board-wrap"><div class="board-frame"><div class="grid-layer" id="board-c3"></div></div></div>
+    <div class="legend" id="legend-c3"></div>
+  </div>
+
+  <!-- ===================== C4 ===================== -->
+  <div class="panel" id="panel-c4">
+    <div class="idea-head">
+      <span class="tag">C4</span>
+      <h2>Adaptive radius by exposure</h2>
+      <p>Still the same blended convex+concave rule, but the radius itself varies per tile based on
+        how many of its 4 orthogonal neighbors are also water: a tile surrounded on 3 sides (barely
+        poking out) gets a small, subtle nick (8px); a typical edge tile gets the baseline (13px);
+        an isolated tile or a sharp tip (0-1 water neighbors) gets a big, soft round (19px) so it
+        reads as a little rounded islet instead of a sharp square. The intent is a coastline that
+        looks hand-tuned - tight where the shore is dense, soft where it's a lone outcrop - without
+        hand-placing a single radius value.</p>
+    </div>
+    <div class="board-wrap"><div class="board-frame"><div class="grid-layer" id="board-c4"></div></div></div>
+    <div class="legend" id="legend-c4"></div>
+  </div>
+
+<script>
+  // ---- Shared sample board (same as the first round) ----
+  const L = 0, M = 1, E = 2, O = 3, W = 4, S = 5;
+  const GRID = [
+    [O, O, O, W, L, L, L],
+    [O, O, W, L, L, M, L],
+    [O, W, L, L, L, L, L],
+    [W, L, L, S, L, L, L],
+    [L, L, L, L, L, E, L],
+    [L, M, L, L, L, L, L],
+    [L, L, L, S, W, L, L],
+    [L, L, L, W, L, L, L],
+  ];
+  const ROWS = GRID.length, COLS = GRID[0].length;
+  const TILE = 76, GAP = 3;
+
+  const FILL = { [L]: '#2b2f45', [M]: '#274a9d', [E]: '#9d2f3a' };
+  const OCEAN = '#1c5f7a', SUBMERGED = '#164a5f', WARN_STROKE = '#6fefff';
+
+  function isWater(t){ return t === O || t === W || t === S; }
+
+  function neighborFlags(r, c){
+    const w = (rr, cc) => rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS && isWater(GRID[rr][cc]);
+    return { up: w(r - 1, c), down: w(r + 1, c), left: w(r, c - 1), right: w(r, c + 1) };
+  }
+
+  function waterNeighborCount(r, c){
+    const f = neighborFlags(r, c);
+    return [f.up, f.down, f.left, f.right].filter(Boolean).length;
+  }
+
+  // Convex (exposed) corner radius for a water tile: rounds only where neither orthogonal
+  // neighbor at that corner is also water - the corner genuinely faces land.
+  function waterCornerRadius(r, c, R){
+    if (!isWater(GRID[r][c])) return null;
+    const f = neighborFlags(r, c);
+    const tl = (!f.up && !f.left) ? R : 0;
+    const tr = (!f.up && !f.right) ? R : 0;
+    const br = (!f.down && !f.right) ? R : 0;
+    const bl = (!f.down && !f.left) ? R : 0;
+    if (!tl && !tr && !br && !bl) return null;
+    return { tl, tr, br, bl };
+  }
+
+  // Concave (inlet) corner radius for a LAND tile: rounds where water wraps around it on both
+  // orthogonal sides of that corner, so a peninsula tip curves instead of staying a hard notch.
+  function landCornerRadius(r, c, R){
+    if (isWater(GRID[r][c])) return null;
+    const f = neighborFlags(r, c);
+    const tl = (f.up && f.left) ? R : 0;
+    const tr = (f.up && f.right) ? R : 0;
+    const br = (f.down && f.right) ? R : 0;
+    const bl = (f.down && f.left) ? R : 0;
+    if (!tl && !tr && !br && !bl) return null;
+    return { tl, tr, br, bl };
+  }
+
+  function cornersToCss(cn){
+    if (!cn) return '0px';
+    return `${cn.tl}px ${cn.tr}px ${cn.br}px ${cn.bl}px`;
+  }
+
+  function makeTile(t){
+    const div = document.createElement('div');
+    div.className = 'tile';
+    div.style.width = TILE + 'px';
+    div.style.height = TILE + 'px';
+    div.style.boxSizing = 'border-box';
+    if (t === O) div.style.background = OCEAN;
+    else if (t === S) div.style.background = SUBMERGED;
+    else if (t === W) div.style.background = FILL[L];
+    else div.style.background = FILL[t];
+    return div;
+  }
+
+  function setupGrid(el){
+    el.style.display = 'grid';
+    el.style.gap = GAP + 'px';
+    el.style.gridTemplateColumns = `repeat(${COLS}, ${TILE}px)`;
+    el.style.gridTemplateRows = `repeat(${ROWS}, ${TILE}px)`;
+  }
+
+  // radiusFor(r, c, isWaterTile) -> px number for this tile's rounding pass
+  function renderBoard(id, opts){
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    setupGrid(el);
+    for (let r = 0; r < ROWS; r++){
+      for (let c = 0; c < COLS; c++){
+        const t = GRID[r][c];
+        const div = makeTile(t);
+        const R = opts.radiusFor ? opts.radiusFor(r, c) : opts.radius;
+
+        let corners = null;
+        if (R){
+          corners = waterCornerRadius(r, c, R) || (opts.concave !== false ? landCornerRadius(r, c, R) : null);
+        }
+        div.style.borderRadius = cornersToCss(corners);
+
+        if (t === W) div.style.boxShadow = `inset 0 0 0 3px ${WARN_STROKE}`;
+
+        if (opts.sandRing && corners){
+          const ring = document.createElement('div');
+          ring.style.position = 'absolute';
+          ring.style.inset = '0';
+          ring.style.borderRadius = cornersToCss(corners);
+          ring.style.boxShadow = `inset 0 0 0 2px rgba(216,192,138,.75)`;
+          ring.style.pointerEvents = 'none';
+          div.appendChild(ring);
+        }
+
+        el.appendChild(div);
+      }
+    }
+  }
+
+  renderBoard('board-current', { radius: 0 });
+  renderBoard('board-c1', { radius: 12 });
+  renderBoard('board-c2', { radius: 20 });
+  renderBoard('board-c3', { radius: 14, sandRing: true });
+  renderBoard('board-c4', {
+    radiusFor: (r, c) => {
+      const n = waterNeighborCount(r, c);
+      // Water tiles: fewer water neighbors = more exposed = softer/rounder.
+      // Land tiles (n counts water neighbors touching them) follow the same curve.
+      if (n <= 1) return 19;
+      if (n === 2) return 13;
+      return 8;
+    },
+  });
+
+  function renderLegend(id){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = `
+      <span><i class="sw" style="background:${FILL[L]}"></i> Unclaimed land</span>
+      <span><i class="sw" style="background:${FILL[M]}"></i> You</span>
+      <span><i class="sw" style="background:${FILL[E]}"></i> Enemy</span>
+      <span><i class="sw" style="background:${OCEAN}"></i> Permanent ocean</span>
+      <span><i class="sw" style="background:${FILL[L]};box-shadow:inset 0 0 0 2px ${WARN_STROKE}"></i> Tide warning (fringe)</span>
+      <span><i class="sw" style="background:${SUBMERGED}"></i> Tide takeover (submerged)</span>`;
+  }
+  ['legend-current', 'legend-c1', 'legend-c2', 'legend-c3', 'legend-c4'].forEach(renderLegend);
+
+  document.getElementById('tabBar').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const target = btn.dataset.tab;
+    [...e.currentTarget.children].forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach((p) => {
+      p.classList.toggle('active', p.id === 'panel-' + target);
+    });
+  });
+</script>
+
+  <div class="copy">
+    <div class="k">Implementation notes</div>
+    <p><b>All four are the same Phaser cost</b> - every tuning still boils down to
+      <code>fillRoundedRect(x, y, w, h, {tl, tr, bl, br})</code> per tile (already used in
+      <code>GameScene.js</code>'s tile-control bar), just with different radius values or an extra
+      thin stroke. Nothing here needs a new rendering system.</p>
+    <p><b>C4's adaptive radius</b> is a few extra lines (count water neighbors, pick a radius
+      bucket) but no new concept - reuses the same neighbor-flag check the corner logic already
+      does.</p>
+    <p><b>C3's sand ring</b> is a second <code>strokeRoundedRect</code> pass at the same corner
+      radii, so it stays perfectly aligned to the curve with no extra math.</p>
+  </div>
+</body>
+</html>

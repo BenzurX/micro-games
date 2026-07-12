@@ -3,6 +3,39 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.17 - 2026-07-12 - Shoreline rounding, tide wipe animation, level select
+- **Level select screen**: new `LevelSelectScene.js` between Title and the match, with a
+  vertical list of level cards (thumbnail, title, description); River and Shoreline are
+  playable, Forest and Volcano show as locked "Coming soon". Title font bumped 23px to 28px.
+- **Shoreline corner rounding**: ocean/shoal tiles round the corners facing land, land tiles
+  round the corners water wraps around, radius adaptive to how exposed the tile is (a lone tip
+  reads soft and round, a buried mid-shore tile gets a subtle nick) - reads as a real coastline
+  instead of a hard grid edge. Applied consistently to the tide-warning ring and the actionable-
+  tile (claim/build/siege) highlight box too, so a selection or warning at the shoreline follows
+  the curve instead of cutting a sharp rectangle across a rounded tile.
+- **Dry shoreline sand tint**: unclaimed shoal tiles render in a dark sand color instead of the
+  neutral land color, so the tide's future reach is visible before the cyan warning ring shows
+  up. A subtle "twinkle pulse" of white specks fades in/out on dry sand tiles.
+- **Tide takeover wipe animation**: instead of the whole shoreline ring flipping to submerged in
+  one instant frame, the flood/recede now sweeps tile-by-tile. Each of the two shoreline clusters
+  (near the top-right and bottom-left corners) sweeps from its own corner; the bottom-left
+  cluster leads and the top-right cluster joins partway through, so the two sweeps overlap into
+  one continuous wave rather than syncing in lockstep or running fully back-to-back. Recede
+  reverses the same way, back toward the ocean.
+- **Ripple/foam clipped to the shoreline curve**: the flooded-fringe ripple and warning foam
+  textures are now masked to each tile's own rounded-corner shape, so the animated water no
+  longer pokes past the established border radius once the tide is fully in.
+- **Tide bell sfx**: a new `tideHigh` sound (metallic double-strike ship's bell with a ringing
+  decay and a couple of quiet echo repeats) plays when the tide takes the shoreline - only on
+  the flood-in, not the recede.
+- **Fixed**: rounded corners and the tide-warning ring reverted to sharp on a second "New Game" -
+  Phaser reuses the same scene object on restart rather than constructing a fresh one, so the
+  corner-carve overlay held a stale reference to a Graphics object the previous scene's shutdown
+  had already destroyed. Now destroyed and recreated unconditionally on every board build.
+- **Fixed**: day/night tracker and tide tracker HUD rows were touching with no visible gap - the
+  sun/moon icon's decorative rays extend further down than the pip row they sit on, which the
+  original spacing math didn't account for.
+
 ## v0.16 - 2026-07-11 - Mobile tooltip actually persists now
 - **Mobile tooltip (real fix)**: v0.14's tap-to-select/confirm still broke on a real device -
   Phaser fires `pointerover` on touchstart and `pointerout` on release, since touch has no

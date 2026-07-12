@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foothold - Per-tile ocean swell timing</title>
+<style>
+  :root{
+    --bg:#1b1e2b; --card:#22263a; --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --land:#2a3a6b; --water:#1c5f7a; --foam:#bfe9f0; --gold:#f2c14e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;
+    padding:28px 18px 60px;}
+  h1{font-size:24px;text-align:center;margin-bottom:6px;}
+  .sub{text-align:center;color:var(--muted);font-size:14px;max-width:640px;margin:0 auto 26px;}
+  .sub b{color:var(--foam);}
+
+  .grid{max-width:1040px;margin:0 auto;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;}
+  .card{background:var(--card);border:1px solid #333850;border-radius:14px;padding:18px;}
+  .card .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--gold);}
+  .card h2{font-size:19px;margin:4px 0 10px;color:var(--foam);}
+  .card p{font-size:13px;color:var(--subtle);margin-top:10px;line-height:1.45;}
+
+  .board{width:100%;aspect-ratio:1/1;display:grid;
+    grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:3px;
+    background:#101322;border-radius:10px;padding:6px;}
+  .tile{background:var(--land);border-radius:3px;}
+
+  /* The wave graphic itself - identical in all four variants: the two crossing foam-light
+     bands from the in-game swell (18deg brighter / -14deg fainter), scoped to ONE tile.
+     Only the per-tile animation-delay / duration (set inline by JS) differ per variant. */
+  .tile.ocean{background:var(--water);position:relative;overflow:hidden;}
+  .tile.ocean::before,.tile.ocean::after{content:'';position:absolute;inset:-40% -80%;}
+  .tile.ocean::before{
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.24) 48%, rgba(191,233,240,.34) 50%,
+      rgba(191,233,240,.24) 52%, transparent 70%);
+    animation:swell-roll var(--t1,5.5s) ease-in-out var(--d1,0s) infinite alternate;}
+  .tile.ocean::after{
+    background:linear-gradient(122deg,
+      transparent 34%, rgba(191,233,240,.14) 49%, rgba(191,233,240,.2) 50%,
+      rgba(191,233,240,.14) 51%, transparent 66%);
+    animation:swell-roll-b var(--t2,8.2s) ease-in-out var(--d2,0s) infinite alternate;}
+  @keyframes swell-roll{from{transform:translateX(-26%);} to{transform:translateX(14%);}}
+  @keyframes swell-roll-b{from{transform:translateX(14%);} to{transform:translateX(-22%);}}
+</style>
+</head>
+<body>
+  <h1>Per-tile ocean swell - timing variants</h1>
+  <p class="sub">All four boards use the <b>exact same wave graphic</b> (the two crossing
+    foam bands you liked), applied to <b>each ocean tile individually</b> - no board-wide
+    mask, nothing animates in unison. The only thing that changes between variants is HOW
+    each tile's start time and speed relate to its neighbours. Negative delays start every
+    tile mid-cycle, so no variant ever "boots up" together.</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="tag">1</span>
+      <h2>Diagonal cascade</h2>
+      <div class="board" data-variant="1"></div>
+      <p>Each tile lags its up/left neighbour by a fixed beat (offset by row+column), with a
+        small per-tile speed wobble. The swell reads as one wave marching diagonally across
+        the water, tile by tile - coordinated, but never simultaneous.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">2</span>
+      <h2>Loose chop</h2>
+      <div class="board" data-variant="2"></div>
+      <p>Every tile gets a fully random start point and its own random speed for each band.
+        No two tiles ever agree - the most natural "open water" feel, at the cost of any
+        visible wave direction.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">3</span>
+      <h2>Traveling swell</h2>
+      <div class="board" data-variant="3"></div>
+      <p>Uniform speed everywhere, but the start time slides with the tile's column (plus a
+        touch of row). One crest visibly sweeps across the whole ocean left to right - the
+        closest to the old board-wide sweep, rebuilt from individual tiles.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">4</span>
+      <h2>Counter-swell</h2>
+      <div class="board" data-variant="4"></div>
+      <p>The bright band cascades down one diagonal while the faint band cascades the
+        opposite way, each with its own jitter - two wave trains crossing through each
+        other, so the water churns without ever syncing.</p>
+    </div>
+  </div>
+
+<script>
+  // The same corner-wrap ocean blob on every board (mirrors the game's top-right +
+  // bottom-left generation shape) so only the timing differs between cards.
+  const SIZE = 8;
+  const OCEAN = new Set([
+    '0,3','0,4','0,5','0,6','0,7','1,7','2,7','3,7','1,6',       // top-right wrap + bump
+    '4,0','5,0','6,0','7,0','7,1','7,2','7,3','6,1',             // bottom-left wrap + bump
+  ]);
+
+  const rnd = (lo, hi) => lo + Math.random() * (hi - lo);
+
+  // Per-variant timing: given (r, c), return {d1, t1, d2, t2} in seconds.
+  // Delays are negative so each tile starts mid-cycle, never from a shared zero.
+  const TIMING = {
+    1: (r, c) => ({
+      d1: -((r + c) * 0.45), t1: 5.5 + ((r * 7 + c * 13) % 5) * 0.3,
+      d2: -((r + c) * 0.45), t2: 8.2 + ((r * 11 + c * 5) % 5) * 0.4,
+    }),
+    2: (r, c) => ({
+      d1: -rnd(0, 8), t1: rnd(4.2, 7.5),
+      d2: -rnd(0, 10), t2: rnd(6.5, 10.5),
+    }),
+    3: (r, c) => ({
+      d1: -(c * 0.55 + r * 0.12), t1: 5.5,
+      d2: -(c * 0.55 + r * 0.12), t2: 8.2,
+    }),
+    4: (r, c) => ({
+      d1: -((r + c) * 0.5 + rnd(0, 0.3)), t1: 5.5 + ((r * 7 + c * 13) % 5) * 0.3,
+      d2: -(((SIZE - 1 - r) + c) * 0.6 + rnd(0, 0.4)), t2: 8.2 + ((r * 11 + c * 5) % 5) * 0.4,
+    }),
+  };
+
+  document.querySelectorAll('.board').forEach((board) => {
+    const timing = TIMING[board.dataset.variant];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const el = document.createElement('div');
+        el.className = 'tile';
+        if (OCEAN.has(r + ',' + c)) {
+          el.classList.add('ocean');
+          const t = timing(r, c);
+          el.style.setProperty('--d1', t.d1.toFixed(2) + 's');
+          el.style.setProperty('--t1', t.t1.toFixed(2) + 's');
+          el.style.setProperty('--d2', t.d2.toFixed(2) + 's');
+          el.style.setProperty('--t2', t.t2.toFixed(2) + 's');
+        }
+        board.appendChild(el);
+      }
+    }
+  });
+</script>
+</body>
+</html>

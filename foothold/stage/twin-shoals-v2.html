@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Twin Shoals — coastline fix + tide indicator ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    --water:#1c5f7a; --wet:#2f8fae; --foam:#bfe9f0;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 12px;max-width:680px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:680px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  .controls{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.94);
+    backdrop-filter:blur(4px);padding:14px 16px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:14px;flex-wrap:wrap;}
+  .controls .grp{display:flex;flex-direction:column;gap:8px;min-width:190px;}
+  .controls .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  .controls .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:8px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--wet);}
+  button.active{background:var(--wet);border-color:var(--wet);color:#fff;}
+  button:disabled{opacity:.55;cursor:default;}
+  .fire{background:var(--gold);border-color:var(--gold);color:#1b1e2b;font-weight:700;}
+  .fire:hover{filter:brightness(1.1);}
+  .ghost{background:transparent;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .idea-head{max-width:760px;margin:0 auto 14px;}
+  .idea-head h2{font-family:var(--head);font-weight:700;font-size:22px;margin:0 0 4px;color:var(--foam);}
+  .idea-head p{margin:0;font-size:13px;color:var(--subtle);}
+
+  .demo-row{max-width:420px;margin:0 auto 12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .tide-status{max-width:420px;margin:0 auto 10px;text-align:center;font-size:12px;
+    font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wet);
+    min-height:16px;}
+
+  .stage{position:relative;width:min(100%,420px);aspect-ratio:2/3;margin:0 auto;
+    border-radius:14px;overflow:hidden;background:#101a22;border:1px solid #23405076;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:8px;}
+
+  .tile{position:relative;border-radius:3px;background:#2a3a6b;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    transition:background-color .35s ease;}
+  .tile.mine{background:var(--blue);}
+  .tile.enemy{background:var(--red);}
+  .tile.node::after{content:'';width:34%;height:34%;border-radius:50%;background:var(--gold);
+    opacity:.85;transition:opacity .35s ease;z-index:2;}
+  .tile.home{outline:2px solid var(--gold);outline-offset:-2px;}
+
+  .tile.warn-rising, .tile.warn-falling{box-shadow:inset 0 0 0 2px var(--foam);}
+  .tile.warn-rising::before, .tile.warn-falling::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(115deg, rgba(191,233,240,.35) 0 3px, transparent 3px 9px);
+    animation:foam-pulse 1.1s ease-in-out infinite; z-index:1;}
+  .tile.warn-falling::before{animation-name:foam-pulse-out;}
+  @keyframes foam-pulse{0%{opacity:.25;} 50%{opacity:.75;} 100%{opacity:.25;}}
+  @keyframes foam-pulse-out{0%{opacity:.75;} 50%{opacity:.3;} 100%{opacity:.75;}}
+
+  .tile.deep-ocean{background:var(--water) !important;box-shadow:inset 0 0 0 1px #0e3547;}
+  .tile.deep-ocean::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(100deg, rgba(191,233,240,.08) 0 4px, transparent 4px 12px);
+    z-index:1;}
+  /* deep-ocean shimmer variants swap this ::after in per-variant via classes below */
+  .tile.deep-ocean.shim-drift::after{content:'';position:absolute;inset:0;z-index:1;
+    background:repeating-linear-gradient(100deg, rgba(191,233,240,.16) 0 3px, transparent 3px 14px);
+    animation:water-shimmer 6s linear infinite;}
+  .tile.deep-ocean.shim-sparkle::after{content:'';position:absolute;inset:0;z-index:1;
+    background-image:
+      radial-gradient(circle, rgba(191,233,240,.9) 0 1px, transparent 1.6px),
+      radial-gradient(circle, rgba(191,233,240,.7) 0 1px, transparent 1.6px),
+      radial-gradient(circle, rgba(191,233,240,.8) 0 1px, transparent 1.6px);
+    background-size:37px 41px, 53px 47px, 29px 61px;
+    background-position:4px 6px, 22px 30px, 12px 44px;
+    animation:sparkle-twinkle 2.4s ease-in-out infinite;}
+  .tile.deep-ocean.shim-crest::after{content:'';position:absolute;left:0;right:0;height:2px;
+    top:30%;z-index:1;background:linear-gradient(90deg, transparent, rgba(191,233,240,.8), transparent);
+    animation:crest-sweep 3.2s ease-in-out infinite;}
+  @keyframes water-shimmer{0%{transform:translateX(-8%);} 100%{transform:translateX(8%);}}
+  @keyframes sparkle-twinkle{0%,100%{opacity:.35;} 50%{opacity:1;}}
+  @keyframes crest-sweep{0%{top:15%; opacity:0;} 15%{opacity:.9;} 85%{opacity:.9;} 100%{top:85%; opacity:0;}}
+
+  /* Chosen treatment - Layered Swell (option 6 in ocean-shimmer.html): two crossing bands at
+     different angles/speeds so the water reads as multiple swells passing through, not one
+     uniform sheet. */
+  .tile.deep-ocean.shim-6::before,.tile.deep-ocean.shim-6::after{content:'';position:absolute;inset:-30% -60%;z-index:1;}
+  .tile.deep-ocean.shim-6::before{
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.24) 48%, rgba(191,233,240,.34) 50%,
+      rgba(191,233,240,.24) 52%, transparent 70%);
+    animation:swell-roll 5.5s ease-in-out infinite;}
+  .tile.deep-ocean.shim-6::after{
+    background:linear-gradient(122deg,
+      transparent 34%, rgba(191,233,240,.14) 49%, rgba(191,233,240,.2) 50%,
+      rgba(191,233,240,.14) 51%, transparent 66%);
+    animation:swell-roll-b 8.2s ease-in-out infinite;}
+  @keyframes swell-roll{
+    0%{transform:translateX(-30%);}
+    50%{transform:translateX(10%);}
+    100%{transform:translateX(-30%);}}
+  @keyframes swell-roll-b{
+    0%{transform:translateX(12%);}
+    50%{transform:translateX(-26%);}
+    100%{transform:translateX(12%);}}
+
+  .tile.submerged{background:var(--water) !important;}
+  .tile.submerged::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(100deg, rgba(191,233,240,.14) 0 4px, transparent 4px 12px);
+    animation:water-shimmer 5s linear infinite; z-index:1;}
+  .tile.submerged.node::after{opacity:.2;}
+
+  .tile.flash{animation:submerge-flash .5s ease-out;}
+  @keyframes submerge-flash{
+    0%{box-shadow:inset 0 0 0 6px var(--foam);}
+    100%{box-shadow:inset 0 0 0 0 rgba(191,233,240,0);}}
+
+  .hint{max-width:420px;margin:14px auto 0;font-size:13px;color:var(--subtle);text-align:center;}
+  .hint b{color:var(--ink);}
+
+  .legend{max-width:420px;margin:14px auto 0;display:flex;gap:14px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+  .sw.warn{background:var(--wet);box-shadow:inset 0 0 0 2px var(--foam);}
+
+  .copy{max-width:680px;margin:30px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+  .copy p:last-child{margin-bottom:0;}
+
+  /* ---- Tab 1 extras: corner-pool diagram + stat readout + side-by-side compare ---- */
+  .stat-row{max-width:420px;margin:0 auto 10px;display:flex;justify-content:center;gap:18px;
+    font-size:13px;color:var(--subtle);flex-wrap:wrap;}
+  .stat-row b{color:var(--foam);}
+  .corner-pool{max-width:420px;margin:0 auto 14px;position:relative;
+    aspect-ratio:2/1.3;border:1px dashed #3d425e;border-radius:10px;background:var(--card2);}
+  .corner-dot{position:absolute;width:34px;height:34px;border-radius:50%;
+    background:var(--panel);border:2px solid #3d425e;display:flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:700;color:var(--muted);
+    transition:all .3s ease;}
+  .corner-dot.hit{background:var(--wet);border-color:var(--foam);color:#fff;
+    box-shadow:0 0 14px rgba(47,143,174,.7);transform:scale(1.15);}
+  .corner-dot.tl{top:10px;left:10px;} .corner-dot.tr{top:10px;right:10px;}
+  .corner-dot.bl{bottom:10px;left:10px;} .corner-dot.br{bottom:10px;right:10px;}
+  .corner-pool .cx{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:11px;color:var(--muted);text-align:center;max-width:140px;}
+
+  .compare-row{max-width:680px;margin:0 auto 6px;display:flex;gap:20px;justify-content:center;
+    flex-wrap:wrap;}
+  .compare-col{flex:0 0 auto;text-align:center;}
+  .compare-col .cap{font-size:12px;font-weight:700;color:var(--subtle);margin-bottom:6px;}
+  .compare-col .cap.bad{color:var(--red);}
+  .compare-col .cap.good{color:var(--green);}
+  .mini-stage{width:180px;aspect-ratio:2/3;border-radius:10px;overflow:hidden;
+    background:#101a22;border:1px solid #23405076;}
+  .mini-board{width:100%;height:100%;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:1px;padding:5px;}
+  .mini-board .tile{border-radius:1px;}
+
+  /* ---- Tab 2 extras: HUD widget mockups ---- */
+  .widget-grid{max-width:920px;margin:0 auto 10px;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;}
+  .widget-card{background:var(--card);border:1px solid #333850;border-radius:12px;padding:18px;
+    display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .widget-card h3{font-family:var(--head);font-size:17px;margin:0;color:var(--foam);}
+  .widget-card .pitch{font-size:12px;color:var(--subtle);text-align:center;margin:0;}
+  .widget-card .tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--gold);}
+
+  /* Widget A: tide ring */
+  .tide-ring{position:relative;width:96px;height:96px;}
+  .tide-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .tide-ring .seg{fill:none;stroke-width:9;}
+  .tide-ring .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;font-size:10px;color:var(--subtle);text-align:center;}
+  .tide-ring .lbl b{font-size:15px;color:var(--foam);display:block;}
+
+  /* Widget B: water gauge */
+  .gauge-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .gauge{width:160px;height:34px;border-radius:8px;background:#101a22;border:1px solid #23405076;
+    position:relative;overflow:hidden;}
+  .gauge .fill{position:absolute;left:0;bottom:0;top:auto;width:100%;background:var(--wet);
+    transition:height .5s ease;}
+  .gauge .fill::before{content:'';position:absolute;left:0;right:0;top:-3px;height:6px;
+    background:repeating-linear-gradient(90deg, var(--foam) 0 8px, transparent 8px 16px);
+    opacity:.7;animation:wave-crawl 1.6s linear infinite;}
+  @keyframes wave-crawl{0%{transform:translateX(0);} 100%{transform:translateX(16px);}}
+  .gauge-text{font-size:12px;color:var(--subtle);text-align:center;}
+  .gauge-text b{color:var(--foam);}
+
+  /* Widget C: moon/wave phase strip */
+  .phase-strip{display:flex;gap:6px;}
+  .phase-strip .step{width:30px;height:30px;border-radius:8px;background:var(--card2);
+    border:1px solid #3d425e;display:flex;align-items:center;justify-content:center;
+    font-size:14px;opacity:.5;transition:all .3s ease;}
+  .phase-strip .step.now{opacity:1;background:var(--wet);border-color:var(--foam);
+    box-shadow:0 0 10px rgba(47,143,174,.6);transform:scale(1.12);}
+
+  /* Widget D: ambient board pulse (uses actual tile swatches) */
+  .ambient-demo{display:flex;gap:4px;}
+  .ambient-demo .tile{width:34px;height:44px;border-radius:4px;}
+
+  .btn-row{display:flex;gap:8px;}
+</style>
+</head>
+<body>
+  <h1>Twin Shoals — round 2: coastline fix + tide indicator</h1>
+  <p class="lede">Follow-up to <code>ocean-tides.html</code> after playing the built version
+    (<code>GameScene.js</code>). Two problems to sketch fixes for: <b>(1)</b> the wedges only ever
+    grew from the fixed top-right/bottom-left corners, and an unlucky independent 5+5 roll could
+    tile 15+15 of the board's 54 tiles - choking the whole map. Your drawing showed the shore
+    coming from any side, sometimes just one side, balanced across left/right and top/bottom.
+    <b>(2)</b> there's no dedicated tide indicator yet, just the light-blue tile highlight and a
+    HUD text line - here are a few other ways to telegraph "the water is coming."</p>
+  <p class="note">Rough visual sketch, no real game engine - canned/random demo state only. Nothing
+    here is built into <code>GameScene.js</code> yet.</p>
+
+  <div class="controls" id="tabBar">
+    <div class="grp" style="min-width:100%;">
+      <div class="k">Section</div>
+      <div class="opts" id="tabPicker">
+        <button data-tab="coastline" class="active">1 — Balanced coastline (corners)</button>
+        <button data-tab="organic">2 — Organic blob coastline (your drawing)</button>
+        <button data-tab="indicator">3 — Tide indicator ideas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 1 — BALANCED COASTLINE ============================= -->
+  <div class="panel active" id="panel-coastline">
+    <div class="idea-head">
+      <h2>1 — Shared coastline budget</h2>
+      <p>The shore always grows from the <b>top-right and bottom-left corners</b> - same two
+        corners as the shipped level, always opposite the two home bases, so a shoreline can
+        never swallow a starting zone. What changes is how the two wedges are sized: instead of
+        rolling each corner's depth independently, they now split a single <b>combined tile
+        budget</b>, so one greedy roll can never balloon past what the other corner leaves room
+        for - which is exactly what caused the reported 6+15 tile bug.</p>
+      <p class="note" style="margin:8px 0 0;">The wedge shape below is only here to illustrate the
+        budget-cap fix - the actual proposed shoreline shape (irregular, not diagonal) lives in
+        <b>tab 2</b>.</p>
+    </div>
+
+    <div class="corner-pool" id="cornerPool">
+      <div class="corner-dot tl">TL</div>
+      <div class="corner-dot tr">TR</div>
+      <div class="corner-dot bl">BL</div>
+      <div class="corner-dot br">BR</div>
+      <div class="cx">TR + BL always grow<br>(fixed, matches homes)</div>
+    </div>
+
+    <div class="demo-row">
+      <button class="fire" id="reroll-coastline">🎲 Reroll coastline</button>
+    </div>
+    <div class="stat-row">
+      <span>Corners this game: <b id="stat-corners">-</b></span>
+      <span>Ocean+shoal tiles: <b id="stat-tiles">-</b> / 54 (<b id="stat-pct">-</b>)</span>
+    </div>
+    <div class="stage"><div class="board" id="board-coastline"></div></div>
+    <p class="hint">Hit reroll a few times - the two corners never move (always TR + BL, so a
+      home base is never at risk), but the size split between them keeps shifting, and the tile
+      percentage stays in a controlled band every single roll instead of occasionally spiking.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Shoreline (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Permanent open ocean</span>
+    </div>
+
+    <div class="idea-head" style="margin-top:34px;">
+      <h2 style="font-size:18px;">What the old bug actually looked like</h2>
+      <p>The exact case you flagged, reconstructed: independent <code>Between(2,5)</code> rolls
+        per corner meant depth 2 (3 tiles) at one corner and depth 5 (15 tiles) at the other was a
+        perfectly legal, semi-common outcome. Side by side with a shared-budget roll of similar
+        "unlucky" asymmetry:</p>
+    </div>
+    <div class="compare-row">
+      <div class="compare-col">
+        <div class="cap bad">Old: independent rolls (the bug)</div>
+        <div class="mini-stage"><div class="mini-board" id="board-bad"></div></div>
+        <div class="cap" style="margin-top:6px;">6 + 15 = 21 tiles (39% of board)</div>
+      </div>
+      <div class="compare-col">
+        <div class="cap good">New: shared budget, same "unlucky" asymmetry</div>
+        <div class="mini-stage"><div class="mini-board" id="board-good"></div></div>
+        <div class="cap" style="margin-top:6px;">4 + 9 = 13 tiles (24% of board)</div>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Corners are fixed, not pooled:</b> top-right and bottom-left, every game, same as the
+        shipped level - the corner-pool idea (drawing 2 of 4 at random) is dropped since it could
+        occasionally pair two corners adjacent to the same home, or even land a wedge on a home's
+        own corner. Locking to TR/BL keeps both starting zones guaranteed dry no matter what the
+        budget split rolls. Tab 2 covers the "shore doesn't have to fit a clean diagonal" part of
+        your note - the shape filling each of these two fixed regions can still vary.</p>
+      <p><b>Shared budget, not independent rolls:</b> roll one combined tile-count budget for the
+        whole game (e.g. 8-14 tiles total, ~15-26% of the 54-tile board), then split it unevenly
+        between the two chosen corners (30-70% to one side) so asymmetry is preserved - one corner
+        can still be noticeably bigger, just never both-big at once. Each corner's tile budget
+        converts to the nearest ring depth (2 -> 3 tiles, 3 -> 6, 4 -> 10, 5 -> 15, same triangular
+        table as today), clamped to depth 2-5 like before.</p>
+      <p><b>Net effect:</b> the coastline is still different and asymmetric every game - the whole
+        point of the original sketch - but the map can no longer get choked by an unlucky
+        double-high roll, and the shoreline's identity (which side of the board it's on) now
+        varies game to game instead of always reading as "the two corners opposite home."</p>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 2 — ORGANIC EDGE COASTLINE ============================= -->
+  <div class="panel" id="panel-organic">
+    <div class="idea-head">
+      <h2>2 — Organic blob coastline</h2>
+      <p>Your notebook sketch isn't a clean 45&deg; wedge growing out of a corner point, and it's
+        not a smooth edge run either - it's a genuinely irregular blotch, thicker in some spots,
+        thinner or absent in others, with no straight boundary anywhere. The previous version of
+        this tab still generated shapes from a <i>depth-per-row/column profile</i>, which is
+        mathematically a smoothed diagonal no matter how much jitter gets added - that's why it
+        kept reading as "still a wedge" even after the bias tweaks. This version drops profiles
+        entirely and grows each shoreline as a <b>random blob</b>: one tile seeds near the corner,
+        then it spreads outward one random neighboring tile at a time until it hits its budget.
+        There's no formula for the boundary at all, so it can't come out diagonal or symmetric -
+        every reroll is a genuinely different, lumpy shape. One blob is always guaranteed in the
+        top-right region and one in the bottom-left region (same corners the shipped level uses),
+        but neither is forced to touch the exact corner tile or hug an edge.</p>
+    </div>
+
+    <div class="demo-row">
+      <button class="fire" id="reroll-organic">🎲 Reroll coastline</button>
+    </div>
+    <div class="stat-row">
+      <span>Shapes this game: <b id="stat-shapes">-</b></span>
+      <span>Ocean+shoal tiles: <b id="stat-tiles2">-</b> / 54 (<b id="stat-pct2">-</b>)</span>
+    </div>
+    <div class="stage"><div class="board" id="board-organic"></div></div>
+    <p class="hint">Reroll a handful of times. Both the top-right and bottom-left regions always
+      have <i>something</i>, but the blob's outline is genuinely random each time - lumpy,
+      off-center, sometimes barely touching the actual corner tile - never a straight or even
+      boundary.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Shoreline (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Permanent open ocean</span>
+    </div>
+
+    <div class="idea-head" style="margin-top:30px;">
+      <h2 style="font-size:18px;">Your drawing, redrawn on the same 6x9 grid</h2>
+      <p>A hand-traced approximation of the sketch's actual shading, for a direct side-by-side
+        against the generator above:</p>
+    </div>
+    <div class="compare-row">
+      <div class="compare-col">
+        <div class="cap">Your sketch (traced)</div>
+        <div class="mini-stage" style="width:160px;"><div class="mini-board" id="board-sketch"></div></div>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Random blob growth, not a formula:</b> pick one random seed tile inside a loose box
+        near the target corner (not the corner tile itself - it can land a few tiles off). Then
+        repeat: list every board tile adjacent to the current blob that isn't already in it and
+        isn't a home tile, pick <i>one at random</i>, add it. Keep going until the region's tile
+        budget is used up. Because the next tile is always a random pick from whatever's touching
+        the current shape, the result is a lumpy blot with no consistent edge or angle - there is
+        no depth/profile/wedge math involved anywhere, so it structurally cannot come out as a
+        diagonal line or an even curve.</p>
+      <p><b>Fringe = the blob's actual boundary:</b> any blob tile that touches at least one
+        non-blob tile on the board (dry land, or a home) becomes the tidal fringe; every other
+        blob tile is permanent open ocean. Since the blob's shape is irregular, the fringe ring
+        is irregular too - it traces whatever ragged boundary the growth happened to produce,
+        instead of a clean outer ring like the old wedge model.</p>
+      <p><b>Guaranteed regions, shared budget:</b> every game grows exactly one blob near the
+        top-right region and one near the bottom-left region (never zero, never both piled onto
+        one side), and the two blobs still split a single combined tile budget (10-17 tiles,
+        30-70% split) so neither can balloon past what the other leaves room for - same fix as
+        tab 1, just applied to a shape that isn't a wedge anymore.</p>
+      <p><b>Why this actually solves it:</b> the earlier "biased edge run" was still a depth
+        value per row or column, smoothed - that's a diagonal by construction, jitter or not.
+        Swapping to tile-by-tile random growth removes the underlying math that kept producing
+        wedges, rather than trying to disguise it with more randomness on top.</p>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 3 — TIDE INDICATOR IDEAS ============================= -->
+  <div class="panel" id="panel-indicator">
+    <div class="idea-head">
+      <h2>3 — Tide indicator + water shimmer ideas</h2>
+      <p>Today the only tide "read" is the tile highlight (cyan pulsing outline on the fringe
+        during rising/falling) plus a plain HUD text line. Four other ways to telegraph the clock,
+        plus a few water-shimmer treatments for the permanent ocean tiles themselves (currently a
+        flat fill).</p>
+    </div>
+
+    <div class="widget-grid">
+      <div class="widget-card">
+        <span class="tag">A - Tide Ring</span>
+        <div class="tide-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="seg" cx="50" cy="50" r="42" stroke="#2a2e40" stroke-width="9"/>
+            <circle class="seg" id="ringProgress" cx="50" cy="50" r="42" stroke="var(--wet)"
+              stroke-dasharray="264" stroke-dashoffset="264" stroke-linecap="round"/>
+          </svg>
+          <div class="lbl"><b id="ringPhaseLbl">Low</b>held</div>
+        </div>
+        <h3>Circular 5-segment clock</h3>
+        <p class="pitch">A small ring icon in the HUD corner (near the round timeline). The filled
+          arc position IS the phase - rising fills clockwise, high tide is a full ring, falling
+          drains back down. Glance-readable without reading text.</p>
+        <div class="btn-row"><button id="ringStep">Next phase ▸</button></div>
+      </div>
+
+      <div class="widget-card">
+        <span class="tag">B - Water Gauge</span>
+        <div class="gauge-wrap">
+          <div class="gauge"><div class="fill" id="gaugeFill" style="height:20%;"></div></div>
+          <div class="gauge-text" id="gaugeText">Low tide - <b>2 turns</b> until it rises</div>
+        </div>
+        <h3>Literal water-level meter</h3>
+        <p class="pitch">A small vertical tank next to the HUD, water line rising/draining with a
+          crawling wave-crest texture on top. Doubles as a countdown ("2 turns until it rises")
+          without extra text parsing - the fill height already says how close.</p>
+        <div class="btn-row"><button id="gaugeStep">Next phase ▸</button></div>
+      </div>
+
+      <div class="widget-card">
+        <span class="tag">C - Phase Strip</span>
+        <div class="phase-strip" id="phaseStrip">
+          <div class="step" data-i="0">↑</div>
+          <div class="step" data-i="1">▲</div>
+          <div class="step" data-i="2">↓</div>
+          <div class="step" data-i="3">·</div>
+          <div class="step" data-i="4">·</div>
+        </div>
+        <h3>5-step mini calendar</h3>
+        <p class="pitch">Five small icons laid out left-to-right, one per turn of the fixed
+          5-turn clock, current one lit up. Reads like a tiny calendar strip - shows not just
+          "what's happening now" but "how many dry turns are left before it moves again."</p>
+        <div class="btn-row"><button id="stripStep">Next phase ▸</button></div>
+      </div>
+
+      <div class="widget-card">
+        <span class="tag">D - Ambient board-only</span>
+        <div class="ambient-demo" id="ambientDemo">
+          <div class="tile" style="background:#2a3a6b;"></div>
+          <div class="tile" style="background:#2a3a6b;"></div>
+          <div class="tile" style="background:#2a3a6b;"></div>
+        </div>
+        <h3>No HUD chrome at all</h3>
+        <p class="pitch">Skip a dedicated widget entirely - let the fringe tiles' own outline
+          brighten a little more each turn as the flood approaches (dim pulse -> bright pulse ->
+          submerged), so the warning lives on the board itself instead of pulling the eye to a
+          corner icon. Pairs with a single small text line for players who want the exact count.</p>
+        <div class="btn-row"><button id="ambientStep">Next phase ▸</button></div>
+      </div>
+    </div>
+
+    <div class="idea-head" style="margin-top:30px;">
+      <h2 style="font-size:18px;">Ocean tile shimmer treatments</h2>
+      <p>The permanent deep-ocean fill is flat right now. Three lightweight animated textures for
+        it (cheap - no sprite sheet, just CSS gradient/animation, same trick as the existing
+        submerged shimmer):</p>
+    </div>
+    <div class="compare-row">
+      <div class="compare-col">
+        <div class="cap">Drifting bands</div>
+        <div class="mini-stage" style="width:120px;"><div class="mini-board" id="board-shimA"></div></div>
+        <div class="cap" style="margin-top:6px;">Diagonal light bands slowly drift sideways</div>
+      </div>
+      <div class="compare-col">
+        <div class="cap">Twinkle sparkle</div>
+        <div class="mini-stage" style="width:120px;"><div class="mini-board" id="board-shimB"></div></div>
+        <div class="cap" style="margin-top:6px;">Scattered points fade in/out like sun glints</div>
+      </div>
+      <div class="compare-col">
+        <div class="cap">Wave crest sweep</div>
+        <div class="mini-stage" style="width:120px;"><div class="mini-board" id="board-shimC"></div></div>
+        <div class="cap" style="margin-top:6px;">A single bright line sweeps top to bottom</div>
+      </div>
+    </div>
+
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>A - Tide Ring:</b> most compact, fits next to the existing round-timeline HUD element
+        without competing for space. Weakest at conveying "how many turns until it moves" at a
+        glance - needs the label text to carry that part.</p>
+      <p><b>B - Water Gauge:</b> best at answering "how long do I have" since the fill height and
+        the turn-count text reinforce each other. Takes the most HUD real estate of the four.</p>
+      <p><b>C - Phase Strip:</b> closest to how the round timeline already reads (a strip of
+        discrete steps), so it would feel like a natural sibling widget rather than a new visual
+        language. Good candidate if HUD consistency matters more than compactness.</p>
+      <p><b>D - Ambient board-only:</b> zero new HUD chrome, cheapest to build, and keeps the
+        player's eye on the board instead of a corner widget - but is the easiest to miss on a
+        first playthrough, and offers no explicit turn-countdown at all without a text line.</p>
+      <p><b>Decided:</b> going with D (Ambient board-only) - no new HUD widget, the fringe tile
+        highlight and HUD text line carry the tide read. Ocean-tile shimmer is also decided -
+        <b>Layered Swell</b> (two crossing bands, from the round-2 iterations in
+        <code>stage/ocean-shimmer.html</code>) - it's already wired into the tab 1 and tab 2 demo
+        boards above (<code>shim-6</code> class).</p>
+    </div>
+  </div>
+
+<script>
+  const COLS = 6, ROWS = 9;
+  const HOME_ME = { c: 4, r: 7 };
+  const HOME_AI = { c: 1, r: 1 };
+  const NODES = [[1,3],[4,2],[2,6],[3,4],[0,5],[5,1]].map(([c,r]) => ({ c, r }));
+
+  function isHome(c, r){
+    return (c === HOME_ME.c && r === HOME_ME.r) || (c === HOME_AI.c && r === HOME_AI.r);
+  }
+
+  // ============================================================
+  // Tab 1 — Shared coastline budget
+  // ============================================================
+  (function () {
+    const boardEl = document.getElementById('board-coastline');
+    const rerollBtn = document.getElementById('reroll-coastline');
+    const statCorners = document.getElementById('stat-corners');
+    const statTiles = document.getElementById('stat-tiles');
+    const statPct = document.getElementById('stat-pct');
+    let tiles = [];
+    let deep = [], fringe = [];
+
+    const CORNERS = {
+      tl: { name: 'Top-left', dot: '.tl', antidiag: (c, r) => c + r },
+      tr: { name: 'Top-right', dot: '.tr', antidiag: (c, r) => (COLS - 1 - c) + r },
+      bl: { name: 'Bottom-left', dot: '.bl', antidiag: (c, r) => c + (ROWS - 1 - r) },
+      br: { name: 'Bottom-right', dot: '.br', antidiag: (c, r) => (COLS - 1 - c) + (ROWS - 1 - r) },
+    };
+    const RING_TILES = { 2: 3, 3: 6, 4: 10, 5: 15 };
+
+    function depthForBudget(budget){
+      let d = 5;
+      for (const dd of [2, 3, 4, 5]) { if (RING_TILES[dd] >= budget) { d = dd; break; } }
+      return d;
+    }
+
+    function buildWedge(antidiagFn, depth){
+      const wedgeDeep = [], wedgeFringe = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (isHome(c, r)) continue;
+          const d = antidiagFn(c, r);
+          if (d < depth) wedgeDeep.push({ c, r });
+          else if (d === depth) wedgeFringe.push({ c, r });
+        }
+      }
+      return { wedgeDeep, wedgeFringe };
+    }
+
+    function pickTwoCorners(){
+      // Fixed, not pooled: always top-right + bottom-left, opposite the two home bases, so a
+      // reroll can never park a wedge on (or next to) a player's starting corner.
+      return ['tr', 'bl'];
+    }
+
+    function rollCoastline(){
+      document.querySelectorAll('#cornerPool .corner-dot').forEach(d => d.classList.remove('hit'));
+      const [ka, kb] = pickTwoCorners();
+      document.querySelector('#cornerPool ' + CORNERS[ka].dot).classList.add('hit');
+      document.querySelector('#cornerPool ' + CORNERS[kb].dot).classList.add('hit');
+
+      const totalBudget = 8 + Math.floor(Math.random() * 7); // 8-14 tiles combined
+      const split = 0.3 + Math.random() * 0.4; // 30-70% to corner A
+      const budgetA = Math.max(3, Math.round(totalBudget * split));
+      const budgetB = Math.max(3, totalBudget - budgetA);
+      const depthA = depthForBudget(budgetA);
+      const depthB = depthForBudget(budgetB);
+
+      const wa = buildWedge(CORNERS[ka].antidiag, depthA);
+      const wb = buildWedge(CORNERS[kb].antidiag, depthB);
+      deep = [...wa.wedgeDeep, ...wb.wedgeDeep];
+      fringe = [...wa.wedgeFringe, ...wb.wedgeFringe];
+
+      statCorners.textContent = `${CORNERS[ka].name} + ${CORNERS[kb].name}`;
+      const used = deep.length + fringe.length;
+      statTiles.textContent = used;
+      statPct.textContent = Math.round((used / (COLS * ROWS)) * 100) + '%';
+    }
+
+    function isDeep(c, r){ return deep.some(t => t.c === c && t.r === r); }
+    function isFringe(c, r){ return fringe.some(t => t.c === c && t.r === r); }
+
+    function seedOwnership(c, r){
+      if (isDeep(c, r) || isFringe(c, r)) return null;
+      if (c === HOME_ME.c && r === HOME_ME.r) return 'me';
+      if (c === HOME_AI.c && r === HOME_AI.r) return 'ai';
+      if (Math.max(Math.abs(c - HOME_ME.c), Math.abs(r - HOME_ME.r)) <= 1) return 'me';
+      if (Math.max(Math.abs(c - HOME_AI.c), Math.abs(r - HOME_AI.r)) <= 1) return 'ai';
+      return null;
+    }
+
+    function build(){
+      rollCoastline();
+      boardEl.innerHTML = '';
+      tiles = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const node = NODES.some(n => n.c === c && n.r === r);
+          const owner = seedOwnership(c, r);
+          const el = document.createElement('div');
+          el.className = 'tile';
+          if (node) el.classList.add('node');
+          if (isDeep(c, r)) el.classList.add('deep-ocean', 'shim-6');
+          if (isFringe(c, r)) el.classList.add('warn-rising');
+          if (owner === 'me') el.classList.add('mine');
+          if (owner === 'ai') el.classList.add('enemy');
+          if (isHome(c, r)) el.classList.add('home');
+          boardEl.appendChild(el);
+          tiles.push(el);
+        }
+      }
+    }
+
+    rerollBtn.addEventListener('click', build);
+    build();
+  })();
+
+  // ============================================================
+  // Tab 1 — static before/after compare boards (hardcoded, not random)
+  // ============================================================
+  (function () {
+    function renderMini(elId, deepSet){
+      const el = document.getElementById(elId);
+      el.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const div = document.createElement('div');
+          div.className = 'tile';
+          const key = c + ',' + r;
+          if (deepSet.has(key)) div.classList.add('deep-ocean', 'shim-6');
+          else if (isHome(c, r)) { div.classList.add('home'); div.style.background = c === HOME_ME.c ? 'var(--blue)' : 'var(--red)'; }
+          el.appendChild(div);
+        }
+      }
+    }
+    function wedgeSet(antidiagFn, depth){
+      const s = new Set();
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (isHome(c, r)) continue;
+        if (antidiagFn(c, r) <= depth) s.add(c + ',' + r);
+      }
+      return s;
+    }
+    const antidiagTR = (c, r) => (COLS - 1 - c) + r;
+    const antidiagBL = (c, r) => c + (ROWS - 1 - r);
+    // Bad: depth 3 (6 tiles) at TR, depth 5 (15 tiles) at BL = 21 tiles.
+    const bad = new Set([...wedgeSet(antidiagTR, 2), ...wedgeSet(antidiagBL, 4)]);
+    renderMini('board-bad', bad);
+    // Good: shared-budget equivalent asymmetry, capped total (4 + 9 = 13 tiles).
+    const good = new Set([...wedgeSet(antidiagTR, 1), ...wedgeSet(antidiagBL, 3)]);
+    renderMini('board-good', good);
+  })();
+
+  // ============================================================
+  // Tab 2 — Organic blob coastline (random tile-by-tile growth, no
+  // depth/profile math at all, so it structurally can't come out diagonal)
+  // ============================================================
+  (function () {
+    const boardEl = document.getElementById('board-organic');
+    const rerollBtn = document.getElementById('reroll-organic');
+    const statShapes = document.getElementById('stat-shapes');
+    const statTiles = document.getElementById('stat-tiles2');
+    const statPct = document.getElementById('stat-pct2');
+
+    // Loose seed boxes near each target corner - the seed tile is a random pick inside the box,
+    // not the corner tile itself, so the blob doesn't even necessarily touch the exact corner.
+    const SEED_BOXES = {
+      tr: { cMin: 3, cMax: 5, rMin: 0, rMax: 3 },
+      bl: { cMin: 0, cMax: 2, rMin: 5, rMax: 8 },
+    };
+
+    function randInt(lo, hi){ return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+    function key(c, r){ return c + ',' + r; }
+
+    // Grows a blob one random adjacent tile at a time - no formula for the boundary, so the
+    // resulting outline is always lumpy and irregular, never a straight or even edge.
+    function growBlob(box, budget){
+      let sc = randInt(box.cMin, box.cMax), sr = randInt(box.rMin, box.rMax);
+      if (isHome(sc, sr)) { sc = clampC(sc + 1); sr = clampR(sr); }
+      const blob = new Set([key(sc, sr)]);
+      while (blob.size < budget) {
+        const frontier = [];
+        blob.forEach(k => {
+          const [c, r] = k.split(',').map(Number);
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dc, dr]) => {
+            const nc = c + dc, nr = r + dr;
+            if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) return;
+            if (isHome(nc, nr)) return;
+            const nk = key(nc, nr);
+            if (!blob.has(nk)) frontier.push(nk);
+          });
+        });
+        if (!frontier.length) break;
+        blob.add(frontier[Math.floor(Math.random() * frontier.length)]);
+      }
+      return blob;
+    }
+    function clampC(c){ return Math.max(0, Math.min(COLS - 1, c)); }
+    function clampR(r){ return Math.max(0, Math.min(ROWS - 1, r)); }
+
+    // Fringe is whatever blob tiles actually border dry land (or a home) - since the blob's
+    // shape is random, this boundary is ragged too, not a clean outer ring.
+    function splitDeepFringe(blob){
+      const deep = [], fringe = [];
+      blob.forEach(k => {
+        const [c, r] = k.split(',').map(Number);
+        const touchesLand = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dc, dr]) => {
+          const nc = c + dc, nr = r + dr;
+          if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) return false;
+          return !blob.has(key(nc, nr));
+        });
+        (touchesLand ? fringe : deep).push({ c, r });
+      });
+      return { deep, fringe };
+    }
+
+    const REGION_LABELS = { tr: 'Blob (TR)', bl: 'Blob (BL)' };
+
+    function seedOwnership(c, r, isDeep, isFringe){
+      if (isDeep || isFringe) return null;
+      if (c === HOME_ME.c && r === HOME_ME.r) return 'me';
+      if (c === HOME_AI.c && r === HOME_AI.r) return 'ai';
+      if (Math.max(Math.abs(c - HOME_ME.c), Math.abs(r - HOME_ME.r)) <= 1) return 'me';
+      if (Math.max(Math.abs(c - HOME_AI.c), Math.abs(r - HOME_AI.r)) <= 1) return 'ai';
+      return null;
+    }
+
+    function build(){
+      const totalBudget = 10 + Math.floor(Math.random() * 8); // 10-17 tiles combined
+      const split = 0.3 + Math.random() * 0.4; // 30-70% to TR
+      const budgetTR = Math.max(3, Math.round(totalBudget * split));
+      const budgetBL = Math.max(3, totalBudget - budgetTR);
+
+      const blobTR = growBlob(SEED_BOXES.tr, budgetTR);
+      const blobBL = growBlob(SEED_BOXES.bl, budgetBL);
+      const { deep: deepTR, fringe: fringeTR } = splitDeepFringe(blobTR);
+      const { deep: deepBL, fringe: fringeBL } = splitDeepFringe(blobBL);
+
+      const deepSet = new Set(), fringeSet = new Set();
+      [...deepTR, ...deepBL].forEach(t => deepSet.add(key(t.c, t.r)));
+      [...fringeTR, ...fringeBL].forEach(t => fringeSet.add(key(t.c, t.r)));
+
+      statShapes.textContent = `${REGION_LABELS.tr} (${blobTR.size}) + ${REGION_LABELS.bl} (${blobBL.size})`;
+      const used = deepSet.size + fringeSet.size;
+      statTiles.textContent = used;
+      statPct.textContent = Math.round((used / (COLS * ROWS)) * 100) + '%';
+
+      boardEl.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const k = key(c, r);
+          const isDeep = deepSet.has(k), isFringe = fringeSet.has(k);
+          const node = NODES.some(n => n.c === c && n.r === r);
+          const owner = seedOwnership(c, r, isDeep, isFringe);
+          const el = document.createElement('div');
+          el.className = 'tile';
+          if (node) el.classList.add('node');
+          if (isDeep) el.classList.add('deep-ocean', 'shim-6');
+          if (isFringe) el.classList.add('warn-rising');
+          if (owner === 'me') el.classList.add('mine');
+          if (owner === 'ai') el.classList.add('enemy');
+          if (isHome(c, r)) el.classList.add('home');
+          boardEl.appendChild(el);
+        }
+      }
+    }
+
+    rerollBtn.addEventListener('click', build);
+    build();
+  })();
+
+  // ============================================================
+  // Tab 2 — hand-traced version of the actual notebook sketch, for direct comparison
+  // ============================================================
+  (function () {
+    const el = document.getElementById('board-sketch');
+    if (!el) return;
+    // Row-by-row, col-by-col reading of the drawing (0 = clear, 1 = light hatch, 2 = dark hatch).
+    // Note: the sketch draws homes top-left/bottom-right, not this file's usual HOME_ME(4,7)/
+    // HOME_AI(1,1) - hardcoded here to trace the drawing faithfully, not to propose swapping homes.
+    const SKETCH_HOME_A = { c: 0, r: 0 };
+    const SKETCH_HOME_B = { c: 5, r: 8 };
+    const GRID = [
+      [0,0,0,0,1,2],
+      [0,0,0,0,2,2],
+      [1,0,0,0,1,2],
+      [2,0,0,0,0,2],
+      [2,0,0,0,0,0],
+      [2,2,0,0,0,0],
+      [2,2,2,1,0,0],
+      [1,0,0,0,0,0],
+      [0,0,0,0,0,0],
+    ];
+    el.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const div = document.createElement('div');
+        div.className = 'tile';
+        const v = GRID[r][c];
+        const isSketchHome = (c === SKETCH_HOME_A.c && r === SKETCH_HOME_A.r) || (c === SKETCH_HOME_B.c && r === SKETCH_HOME_B.r);
+        if (v === 2) div.classList.add('deep-ocean', 'shim-6');
+        else if (v === 1) div.classList.add('warn-rising');
+        else if (isSketchHome) { div.style.background = (c === SKETCH_HOME_A.c && r === SKETCH_HOME_A.r) ? 'var(--red)' : 'var(--blue)'; div.classList.add('home'); }
+        el.appendChild(div);
+      }
+    }
+  })();
+
+  // ============================================================
+  // Tab 3 — shimmer swatches (static 6x9 mini boards, all-ocean, one shimmer class each)
+  // ============================================================
+  (function () {
+    function fillAllOcean(elId, shimClass){
+      const el = document.getElementById(elId);
+      el.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        const div = document.createElement('div');
+        div.className = 'tile deep-ocean ' + shimClass;
+        el.appendChild(div);
+      }
+    }
+    fillAllOcean('board-shimA', 'shim-drift');
+    fillAllOcean('board-shimB', 'shim-sparkle');
+    fillAllOcean('board-shimC', 'shim-crest');
+  })();
+
+  // ============================================================
+  // Tab 2 — HUD widget demos (A/B/C/D), all sharing one 5-phase step index
+  // ============================================================
+  const PHASES = [
+    { key: 'rising', label: 'Rising', arc: 66 },   // dashoffset out of 264 (full ring circumference)
+    { key: 'high', label: 'High', arc: 0 },
+    { key: 'falling', label: 'Falling', arc: 132 },
+    { key: 'low', label: 'Low', arc: 264 },
+    { key: 'low', label: 'Low', arc: 264 },
+  ];
+
+  // A — Tide Ring
+  (function () {
+    const ring = document.getElementById('ringProgress');
+    const lbl = document.getElementById('ringPhaseLbl');
+    const btn = document.getElementById('ringStep');
+    let i = 3;
+    function render(){
+      const p = PHASES[i];
+      ring.style.stroke = p.key === 'high' ? 'var(--red)' : 'var(--wet)';
+      ring.style.strokeDashoffset = p.arc;
+      lbl.textContent = p.label;
+    }
+    btn.addEventListener('click', () => { i = (i + 1) % PHASES.length; render(); });
+    render();
+  })();
+
+  // B — Water Gauge
+  (function () {
+    const fill = document.getElementById('gaugeFill');
+    const text = document.getElementById('gaugeText');
+    const btn = document.getElementById('gaugeStep');
+    const HEIGHTS = [55, 100, 45, 15, 20];
+    const TEXTS = [
+      'Tide rising - flooding this turn',
+      'High tide - shoreline submerged',
+      'Tide falling - draining this turn',
+      'Low tide - <b>1 turn</b> until it rises',
+      'Low tide - <b>2 turns</b> until it rises',
+    ];
+    let i = 3;
+    function render(){
+      fill.style.height = HEIGHTS[i] + '%';
+      text.innerHTML = TEXTS[i];
+    }
+    btn.addEventListener('click', () => { i = (i + 1) % PHASES.length; render(); });
+    render();
+  })();
+
+  // C — Phase Strip
+  (function () {
+    const steps = [...document.querySelectorAll('#phaseStrip .step')];
+    const btn = document.getElementById('stripStep');
+    let i = 3;
+    function render(){
+      steps.forEach((s, idx) => s.classList.toggle('now', idx === i));
+    }
+    btn.addEventListener('click', () => { i = (i + 1) % PHASES.length; render(); });
+    render();
+  })();
+
+  // D — Ambient board-only
+  (function () {
+    const els = [...document.querySelectorAll('#ambientDemo .tile')];
+    const btn = document.getElementById('ambientStep');
+    let i = 3;
+    function render(){
+      els.forEach(el => el.className = 'tile');
+      const p = PHASES[i];
+      if (p.key === 'rising') els.forEach(el => { el.style.background = '#2a3a6b'; el.classList.add('warn-rising'); });
+      else if (p.key === 'high') els.forEach(el => { el.style.background = 'var(--water)'; el.classList.add('submerged'); });
+      else if (p.key === 'falling') els.forEach(el => { el.style.background = '#2a3a6b'; el.classList.add('warn-falling'); });
+      else els.forEach(el => { el.style.background = '#2a3a6b'; });
+    }
+    btn.addEventListener('click', () => { i = (i + 1) % PHASES.length; render(); });
+    render();
+  })();
+
+  // ---- tab switcher ----
+  document.getElementById('tabPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const target = btn.dataset.tab;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'panel-' + target);
+    });
+  });
+</script>
+</body>
+</html>

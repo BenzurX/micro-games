@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Ocean level tide ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    /* water palette - extends the shared variable set, same naming convention as --blue/--gold */
+    --water:#1c5f7a; --wet:#2f8fae; --foam:#bfe9f0;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 12px;max-width:680px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:680px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  /* ===== tab switcher, styled like forest-fog's sticky controls bar ===== */
+  .controls{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.94);
+    backdrop-filter:blur(4px);padding:14px 16px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:14px;flex-wrap:wrap;}
+  .controls .grp{display:flex;flex-direction:column;gap:8px;min-width:190px;}
+  .controls .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  .controls .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:8px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--wet);}
+  button.active{background:var(--wet);border-color:var(--wet);color:#fff;}
+  button:disabled{opacity:.55;cursor:default;}
+  .fire{background:var(--gold);border-color:var(--gold);color:#1b1e2b;font-weight:700;}
+  .fire:hover{filter:brightness(1.1);}
+  .ghost{background:transparent;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .idea-head{max-width:680px;margin:0 auto 14px;}
+  .idea-head h2{font-family:var(--head);font-weight:700;font-size:22px;margin:0 0 4px;color:var(--foam);}
+  .idea-head p{margin:0;font-size:13px;color:var(--subtle);}
+
+  .demo-row{max-width:420px;margin:0 auto 12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .tide-status{max-width:420px;margin:0 auto 10px;text-align:center;font-size:12px;
+    font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wet);
+    min-height:16px;}
+
+  .stage{position:relative;width:min(100%,420px);aspect-ratio:2/3;margin:0 auto;
+    border-radius:14px;overflow:hidden;background:#101a22;border:1px solid #23405076;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:8px;}
+
+  /* ---- tile base + ownership (same convention as forest-fog.html) ---- */
+  .tile{position:relative;border-radius:3px;background:#2a3a6b;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    transition:background-color .35s ease;}
+  .tile.mine{background:var(--blue);}
+  .tile.enemy{background:var(--red);}
+  .tile.node::after{content:'';width:34%;height:34%;border-radius:50%;background:var(--gold);
+    opacity:.85;transition:opacity .35s ease;z-index:2;}
+  .tile.home{outline:2px solid var(--gold);outline-offset:-2px;}
+
+  /* ---- tide states layered on top of ownership ---- */
+  /* warn = "about to change": foam ring pulses over whatever colour is currently underneath,
+     so both "the wave is about to take this" (rising) and "the wave just gave this back"
+     (falling) read as one clear moment of change, not a hard binary swap. */
+  .tile.warn-rising, .tile.warn-falling{box-shadow:inset 0 0 0 2px var(--foam);}
+  .tile.warn-rising::before, .tile.warn-falling::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(115deg, rgba(191,233,240,.35) 0 3px, transparent 3px 9px);
+    animation:foam-pulse 1.1s ease-in-out infinite; z-index:1;}
+  .tile.warn-falling::before{animation-name:foam-pulse-out;}
+  @keyframes foam-pulse{
+    0%{opacity:.25;} 50%{opacity:.75;} 100%{opacity:.25;}}
+  @keyframes foam-pulse-out{
+    0%{opacity:.75;} 50%{opacity:.3;} 100%{opacity:.75;}}
+
+  /* Variant 5 only: a permanent, never-playable open-ocean tile (the fixed deep-water corner
+     from the hand sketch) - distinct from .submerged, which is a tile that TEMPORARILY floods
+     each cycle. Deep ocean never animates and never carries an owner. */
+  .tile.deep-ocean{background:var(--water) !important;box-shadow:inset 0 0 0 1px #0e3547;}
+  .tile.deep-ocean::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(100deg, rgba(191,233,240,.08) 0 4px, transparent 4px 12px);
+    z-index:1;}
+
+  .tile.submerged{background:var(--water) !important;}
+  .tile.submerged::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(100deg, rgba(191,233,240,.14) 0 4px, transparent 4px 12px);
+    animation:water-shimmer 5s linear infinite; z-index:1;}
+  .tile.submerged.node::after{opacity:.2;}
+  @keyframes water-shimmer{
+    0%{transform:translateX(-6%);} 100%{transform:translateX(6%);}}
+
+  /* brief bright flash the instant an owned tile is drowned - makes the "you just lost this
+     tile" moment readable instead of a silent colour swap */
+  .tile.flash::after{ }
+  .tile.flash{animation:submerge-flash .5s ease-out;}
+  @keyframes submerge-flash{
+    0%{box-shadow:inset 0 0 0 6px var(--foam);}
+    100%{box-shadow:inset 0 0 0 0 rgba(191,233,240,0);}}
+
+  .hint{max-width:420px;margin:14px auto 0;font-size:13px;color:var(--subtle);text-align:center;}
+  .hint b{color:var(--ink);}
+
+  .legend{max-width:420px;margin:14px auto 0;display:flex;gap:14px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+  .sw.warn{background:var(--wet);box-shadow:inset 0 0 0 2px var(--foam);}
+
+  .copy{max-width:680px;margin:30px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+  .copy p:last-child{margin-bottom:0;}
+</style>
+</head>
+<body>
+  <h1>Ocean level — tide ideas</h1>
+  <p class="lede">Future-idea stage only (Todo.md "Future Ideas" -> Ocean level, not v1 scope) - a
+    design sketch for what a rising/falling tide terrain gimmick could look like. Distinct from
+    the shipped river: the river is a static wall with two fixed bridge crossings, and the tide is
+    now the same kind of feature - a small, fixed shoreline zone placed once on the map. Only the
+    1-2 tiles right at that zone's edge move in or out each cycle and <b>clear ownership</b> when
+    they submerge; everything outside the zone sits as normal dry ground the whole time.</p>
+  <p class="note">Rough visual sketch, no real game engine or persistence - canned demo cycles
+    only. Four variants below show different shapes and placements for the fixed shoreline zone;
+    each has its own small illustrative board (not full rules) and a "Run tide cycle" button that
+    plays one full rise-and-recede pass. Home tiles are exempt from flooding in all four (a base
+    drowning would be a strange way to lose - worth a deliberate decision, not an accident of this
+    sketch).</p>
+
+  <div class="controls" id="tabBar">
+    <div class="grp" style="min-width:100%;">
+      <div class="k">Tide variant</div>
+      <div class="opts" id="tabPicker">
+        <button data-tab="rolling" class="active">1 — Rolling Shoreline</button>
+        <button data-tab="cove">2 — Cove Sweep</button>
+        <button data-tab="pools">3 — Tide Pools</button>
+        <button data-tab="pincer">4 — Pincer Tide</button>
+        <button data-tab="shoals">5 — Twin Shoals (your sketch)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 1 — ROLLING SHORELINE ============================= -->
+  <div class="panel active" id="panel-rolling">
+    <div class="idea-head">
+      <h2>1 — Rolling Shoreline</h2>
+      <p>A fixed shoreline zone sits in the board's bottom-left corner (4 tiles wide, 3 deep).
+        Everywhere else on the board is dry, untouched ground - only that corner ever gets wet.</p>
+    </div>
+    <div class="demo-row">
+      <button class="fire" id="run-rolling">▶ Run tide cycle</button>
+      <button class="ghost" id="reset-rolling">↺ Reset board</button>
+    </div>
+    <div class="tide-status" id="status-rolling">Low tide - dry</div>
+    <div class="stage"><div class="board" id="board-rolling"></div></div>
+    <p class="hint">Only the bottom-left corner zone ever changes. Inside it, the waterline rolls
+      in and out by one row per cycle; every tile outside the zone stays dry the whole time.
+      <b>Blue</b>/<b>red</b> tiles caught under the moving row lose their owner the instant they
+      submerge.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Wave crossing (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Submerged</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Mechanic:</b> a shoreline zone is placed once, at map-build time, in the board's
+        bottom-left corner (4 cols x 3 rows). Nothing outside that rectangle is ever touched by
+        the tide - no flood amount is even computed for those tiles. Inside the zone, the row
+        closest to the board edge is the "sea" and stays wettest, the innermost row is the "high
+        ground" and stays driest; only the middle row actually flips between dry and submerged
+        each cycle, so the visible change is always just that one row.</p>
+      <p><b>Tactical implication:</b> the shoreline becomes a specific, learnable piece of the map
+        - players can see it, plan around it, and fight over the one row that actually moves,
+        instead of the tide being an ambient board-wide tax nobody can route around. The tradeoff:
+        with the zone fixed in one corner, it will naturally matter more to whichever home sits
+        closer to it, so the corner should be picked (or mirrored) deliberately per board rather
+        than left to whichever half the level generator favors.</p>
+      <p>Cheapest of the four to build and by far the easiest for a new player to read at a glance
+        - a good baseline/default even if a fancier variant ships as the "real" ocean level.</p>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 2 — COVE SWEEP ============================= -->
+  <div class="panel" id="panel-cove">
+    <div class="idea-head">
+      <h2>2 — Cove Sweep</h2>
+      <p>A small L-shaped wedge of 6 tiles is tucked into the top-right corner, like a little cove
+        cut into the map. Nothing outside that wedge ever floods.</p>
+    </div>
+    <div class="demo-row">
+      <button class="fire" id="run-cove">▶ Run tide cycle</button>
+      <button class="ghost" id="reset-cove">↺ Reset board</button>
+    </div>
+    <div class="tide-status" id="status-cove">Low tide - dry</div>
+    <div class="stage"><div class="board" id="board-cove"></div></div>
+    <p class="hint">Only the top-right wedge ever changes. The corner tile floods first, the
+      wedge's outer edge (1-2 tiles) floods and drains each cycle, and everything else on the
+      board stays dry.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Wave crossing (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Submerged</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Mechanic:</b> six tiles form a small L/wedge cluster fixed in the top-right corner
+        (the corner tile itself plus two short arms running along the top and right edges).
+        Diagonal distance from the corner tile ranks the wedge into three depth layers; only the
+        outermost layer (1-2 tiles) is ever mid-transition at a given moment, so the wedge reads
+        as a compact cove, not an expanding board-wide wavefront. Every tile outside the wedge
+        returns zero flood, always.</p>
+      <p><b>Tactical implication:</b> because the wedge is small and diagonally shaped rather than
+        a flat band, it creates one distinctly-shaped contested pocket that plays differently from
+        variant 1's straight edge - good for making the two variants feel geographically distinct
+        if both ever show up on different maps. Tradeoff: a 6-tile wedge tucked in one corner is a
+        much smaller stake than a full edge zone, so it will read as a minor local skirmish rather
+        than a defining board feature unless the corner is placed somewhere both players actually
+        care about.</p>
+      <p>Reads as more organic/dynamic than the rolling shoreline's straight edge, while staying
+        just as bounded and learnable once a player has seen the wedge once.</p>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 3 — TIDE POOLS ============================= -->
+  <div class="panel" id="panel-pools">
+    <div class="idea-head">
+      <h2>3 — Tide Pools</h2>
+      <p>Three tiny fixed pools, each capped at a 3x3 footprint, flood outward from their own
+        centre tile and recede on their own clock. Nothing outside those three small footprints
+        ever gets wet.</p>
+    </div>
+    <div class="demo-row">
+      <button class="fire" id="run-pools">▶ Run tide cycle</button>
+      <button class="ghost" id="reset-pools">↺ Reset board</button>
+    </div>
+    <div class="tide-status" id="status-pools">Low tide - dry</div>
+    <div class="stage"><div class="board" id="board-pools"></div></div>
+    <p class="hint">Watch the three pools - they don't rise and fall in sync, so at any moment one
+      might be flooding while another is already dry again. Each pool's rim only ever moves 1-2
+      tiles per cycle; the centre tile and everything beyond the 3x3 footprint never change.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Wave crossing (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Submerged</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Mechanic:</b> three fixed epicenters are placed once, scattered around the board (away
+        from both homes). Each pool's flood radius is capped so its footprint never exceeds a 3x3
+        block of tiles - the centre floods deepest and stays wet longest, the rim (1-2 tiles) is
+        the only part that actually flips between dry and submerged each cycle, and anything past
+        that radius reads zero flood regardless of tide level. Each pool also runs on its own
+        offset timer, so the three are never in the same phase at once.</p>
+      <p><b>Tactical implication:</b> this was already the closest of the four to what a bounded
+        shoreline should feel like, just needed a tighter footprint - now each pool reads as a
+        specific, memorizable 3x3 spot worth fighting over (grab the rim right before it drowns,
+        or rush back the moment it dries) instead of a diffuse zone with a fuzzy edge. Tradeoff:
+        three independent small clocks are more to track than one shared waterline, so each pool
+        still needs its own clear tell (distinct ripple/sound) so players aren't stuck staring at
+        the whole board to catch the moment.</p>
+      <p>Most complex of the four to read at a glance since the three pools aren't synchronized,
+        but now that each is small and capped it's a manageable kind of complex rather than an
+        overwhelming one.</p>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 4 — PINCER TIDE ============================= -->
+  <div class="panel" id="panel-pincer">
+    <div class="idea-head">
+      <h2>4 — Pincer Tide</h2>
+      <p>Two small fixed shoreline strips, one tucked by each player's home flank (not the
+        board's centre), rise and fall a single tile at a time. Everywhere else - including the
+        whole middle of the board - is never touched.</p>
+    </div>
+    <div class="demo-row">
+      <button class="fire" id="run-pincer">▶ Run tide cycle</button>
+      <button class="ghost" id="reset-pincer">↺ Reset board</button>
+    </div>
+    <div class="tide-status" id="status-pincer">Low tide - dry</div>
+    <div class="stage"><div class="board" id="board-pincer"></div></div>
+    <p class="hint">Two 1-tile-wide strips, one by each home's flank, move in and out together by
+      a single tile each cycle. The rest of the board, including the whole middle strip, stays
+      dry the whole time.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Wave crossing (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Submerged</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Mechanic:</b> instead of both board edges squeezing the entire vertical span, two
+        1-tile-wide, 2-tile-deep strips are fixed near each player's home flank (the side column
+        next to their home, not the board's centre). Each strip's outer tile (closest to the board
+        edge) is the one that actually flips between dry and submerged; the inner tile and
+        everything beyond the strip never changes. Both strips move together, in sync, so the
+        pressure lands on both players at the same moment.</p>
+      <p><b>Tactical implication:</b> each player now defends one small, specific tile next to
+        their own home instead of watching a board-wide squeeze eat the whole middle - the tide
+        becomes a home-flank skirmish both sides can plan around, not an event that erases the
+        board's playable area. It stays symmetric by construction (both strips move on the same
+        clock), so neither player is structurally favored. Tradeoff: at this small a scale the
+        tide barely affects overall board control - it's a minor, local pressure point near each
+        home rather than a map-shaping "crunch" beat, so it may need pairing with something else
+        if the design still wants a bigger structural squeeze somewhere.</p>
+    </div>
+  </div>
+
+  <!-- ============================= TAB 5 — TWIN SHOALS (your sketch) ============================= -->
+  <div class="panel" id="panel-shoals">
+    <div class="idea-head">
+      <h2>5 — Twin Shoals</h2>
+      <p>Built from your notebook sketch: a permanent open-ocean wedge sits in the two corners
+        opposite each home (top-right and bottom-left), and exactly <b>one</b> ring of shoreline
+        tiles hugging that ocean tides in and out. Each corner's size is randomized independently
+        every game - like the river's crossing points - so one corner is often much bigger than
+        the other, and which side is bigger changes game to game.</p>
+    </div>
+    <div class="demo-row">
+      <button class="fire" id="turn-shoals">▶ Next Turn</button>
+      <button class="ghost" id="reroll-shoals">🎲 Reroll coastline</button>
+    </div>
+    <div class="tide-status" id="status-shoals">Turn 4 of 5 - Low tide (held)</div>
+    <div class="stage"><div class="board" id="board-shoals"></div></div>
+    <p class="hint">Tide runs on a fixed 5-turn clock: floods in over <b>1 turn</b>, holds high
+      for <b>1 turn</b>, drains out over <b>1 turn</b>, then holds low for <b>2 turns</b> before
+      repeating. Click "Next Turn" to step through it. "Reroll coastline" regenerates both
+      corners' size and shape from scratch, the way a fresh game would.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, dry</span>
+      <span><i class="sw warn"></i> Shoreline crossing (about to change)</span>
+      <span><i class="sw" style="background:var(--water)"></i> Shoreline, submerged</span>
+      <span><i class="sw" style="background:var(--water);box-shadow:inset 0 0 0 1px #0e3547"></i> Permanent open ocean</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>Asymmetric, randomized coastline:</b> each corner's wedge is grown diagonally from its
+        corner tile by a random depth (2-5 diagonal rings), chosen independently per corner per
+        game - same idea as the river's crossing points never landing in the same place twice.
+        Some games the top-right corner is a small 3-tile nub while the bottom-left sprawls into a
+        15-tile bay; other games it's reversed, or both are modest. Exactly one diagonal ring
+        bordering whatever wedge got rolled is the tidal fringe - the only tiles that ever change
+        state, regardless of how big the wedge is that game. Resources use the board's normal
+        spread for both players; whichever ones happen to land inside a given game's wedge or
+        fringe are simply the ones at risk that game, not a hand-picked "always drowned" tile.</p>
+      <p><b>Turn timing:</b> the tide runs on a fixed 5-turn clock rather than a continuous
+        animation - floods in over 1 turn, holds high for 1 turn, drains out over 1 turn, holds
+        low for 2 turns, repeat. That gives players a full 2-turn dry window to plan and execute a
+        claim near the shoreline before it starts moving again, with the in/out turns themselves
+        reading as a clear single-turn "this is happening now" event rather than a background
+        gradient.</p>
+      <p><b>Tactical implication:</b> because the wedges sit in the corners away from both homes,
+        the shoreline isn't a home-flank skirmish (that's variant 4's job) - it's contested,
+        lower-priority edge territory that rewards whoever's willing to path out there and time a
+        claim around the flip. Randomized asymmetry means players can't memorize "the ocean level
+        always plays like this" - each match's coastline has to be scouted and read fresh.</p>
+    </div>
+  </div>
+
+<script>
+  const COLS = 6, ROWS = 9;
+  const HOME_ME = { c: 4, r: 7 };
+  const HOME_AI = { c: 1, r: 1 };
+  const NODES = [[1,3],[4,2],[2,6],[3,4],[0,5],[5,1]].map(([c,r]) => ({ c, r }));
+  const DURATION_MS = 6000; // one full rise + recede pass
+
+  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+  function smoothstep(edge0, edge1, x){
+    const t = clamp01((x - edge0) / (edge1 - edge0));
+    return t * t * (3 - 2 * t);
+  }
+  function isHome(c, r){
+    return (c === HOME_ME.c && r === HOME_ME.r) || (c === HOME_AI.c && r === HOME_AI.r);
+  }
+
+  // ---- flood-shape functions: each returns a 0..1 "how flooded is this tile right now" amount.
+  // Every variant below is bounded to a small, FIXED shoreline zone placed once when the board
+  // builds. A tile outside its variant's zone always returns 0, no matter what the tide is doing -
+  // it never even reads as "warn", it just sits as normal dry/claimed ground. Inside the zone, the
+  // tide only ever moves 1-2 tiles at the zone's leading edge per cycle; deeper zone tiles stay
+  // fully wet or fully dry as a fixed baseline. This replaces the old board-wide sweep, which
+  // computed a flood amount for every tile on the board regardless of distance from any shoreline.
+  // tideLevel is a 0->1->0 triangle-ish wave shared by variants 1/2/4 (driven by sin(pi*u)).
+  // Tide Pools (variant 3) instead uses raw elapsed fraction u so each epicenter can run its own
+  // offset phase, which is the whole point of that variant (independent, not synchronized).
+  const BAND = 0.22;
+
+  // Variant 1: a 4-wide x 3-deep rectangle tucked into the bottom-left corner.
+  const ROLLING_ZONE = { c0: 0, c1: 3, r0: 6, r1: 8 }; // inclusive col/row ranges
+  function floodRolling(c, r, tideLevel){
+    if (isHome(c, r)) return 0;
+    if (c < ROLLING_ZONE.c0 || c > ROLLING_ZONE.c1 || r < ROLLING_ZONE.r0 || r > ROLLING_ZONE.r1) return 0;
+    const depth = ROLLING_ZONE.r1 - ROLLING_ZONE.r0; // 2: rows in the zone besides the sea edge
+    const edgeDistFrac = (ROLLING_ZONE.r1 - r) / depth; // sea-edge row -> 0 (floods first), inland row -> 1
+    const threshold = 0.06 + edgeDistFrac * 0.78;
+    return smoothstep(threshold - BAND / 2, threshold + BAND / 2, tideLevel);
+  }
+
+  // Variant 2: a 6-tile L/wedge cluster tucked into the top-right corner (the corner tile plus
+  // two short arms running along the top edge and the right edge).
+  const COVE_ZONE = [
+    { c: 5, r: 0, diag: 0 }, { c: 5, r: 1, diag: 1 }, { c: 5, r: 2, diag: 2 },
+    { c: 4, r: 0, diag: 1 }, { c: 4, r: 1, diag: 2 }, { c: 3, r: 0, diag: 2 },
+  ];
+  function floodCove(c, r, tideLevel){
+    if (isHome(c, r)) return 0;
+    const tile = COVE_ZONE.find(z => z.c === c && z.r === r);
+    if (!tile) return 0;
+    const threshold = 0.06 + (tile.diag / 2) * 0.78; // corner tile floods first, outer arms last
+    return smoothstep(threshold - BAND / 2, threshold + BAND / 2, tideLevel);
+  }
+
+  // Variant 4: two 1-tile-wide, 2-tile-deep strips, one by each player's home flank (the column
+  // next to their home, not the board centre). Both move together, in sync, one tile at a time.
+  const PINCER_ZONES = [
+    { c0: 5, c1: 5, r0: 7, r1: 8, edgeRow: 8 }, // ME's flank: beside HOME_ME (4,7), bottom of board
+    { c0: 0, c1: 0, r0: 0, r1: 1, edgeRow: 0 }, // AI's flank: beside HOME_AI (1,1), top of board
+  ];
+  function floodPincer(c, r, tideLevel){
+    if (isHome(c, r)) return 0;
+    const zone = PINCER_ZONES.find(z => c >= z.c0 && c <= z.c1 && r >= z.r0 && r <= z.r1);
+    if (!zone) return 0;
+    const depth = zone.r1 - zone.r0;
+    const nearBoardEdge = Math.abs(r - zone.edgeRow); // 0 at the board's outer edge, up to depth inland
+    const edgeDistFrac = nearBoardEdge / depth; // outer tile -> 0 (floods first), inner tile -> 1
+    const threshold = 0.06 + edgeDistFrac * 0.78;
+    return smoothstep(threshold - BAND / 2, threshold + BAND / 2, tideLevel);
+  }
+
+  // Variant 3: three fixed epicenters, each capped so its footprint never exceeds a 3x3 block
+  // (maxR ~1.5 covers straight and diagonal neighbours, not a wide board-spanning radius).
+  const POOL_EPICENTERS = [
+    { c: 4, r: 3, offset: 0.00, maxR: 1.5 },
+    { c: 1, r: 5, offset: 0.34, maxR: 1.5 },
+    { c: 3, r: 7 === HOME_ME.r ? 8 : 7, offset: 0.66, maxR: 1.5 }, // nudged off HOME_ME's row
+  ];
+  const POOL_BAND = 0.3;
+  function floodPools(c, r, u){
+    if (isHome(c, r)) return 0;
+    let flood = 0;
+    for (const e of POOL_EPICENTERS) {
+      const dist = Math.hypot(c - e.c, r - e.r);
+      if (dist > e.maxR) continue; // outside this pool's 3x3 footprint - never floods
+      const localU = (u + e.offset) % 1;
+      const localLevel = Math.sin(Math.PI * localU); // this pool's own 0->1->0 wave
+      const distFrac = clamp01(dist / e.maxR);
+      const amt = smoothstep(distFrac - POOL_BAND / 2, distFrac + POOL_BAND / 2, localLevel);
+      flood = Math.max(flood, amt);
+    }
+    return flood;
+  }
+
+  // ---- one reusable board engine, parameterized per tab ----
+  function initTab(id, floodFn, usesElapsedFraction){
+    const boardEl = document.getElementById('board-' + id);
+    const statusEl = document.getElementById('status-' + id);
+    const runBtn = document.getElementById('run-' + id);
+    const resetBtn = document.getElementById('reset-' + id);
+    let tiles = [];
+    let rafId = null;
+
+    function seedOwnership(t){
+      if (t.deepOcean) return null; // permanent open ocean is never claimable
+      if (t.c === HOME_ME.c && t.r === HOME_ME.r) return 'me';
+      if (t.c === HOME_AI.c && t.r === HOME_AI.r) return 'ai';
+      // small established-territory clusters around each home (Chebyshev distance <= 1)
+      if (Math.max(Math.abs(t.c - HOME_ME.c), Math.abs(t.r - HOME_ME.r)) <= 1) return 'me';
+      if (Math.max(Math.abs(t.c - HOME_AI.c), Math.abs(t.r - HOME_AI.r)) <= 1) return 'ai';
+      return null;
+    }
+
+    function build(){
+      boardEl.innerHTML = '';
+      tiles = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const t = { c, r, node: NODES.some(n => n.c === c && n.r === r), state: 'dry' };
+          t.owner = seedOwnership(t);
+          const el = document.createElement('div');
+          el.className = 'tile';
+          if (t.node) el.classList.add('node');
+          if (t.deepOcean) el.classList.add('deep-ocean');
+          if (t.owner === 'me') el.classList.add('mine');
+          if (t.owner === 'ai') el.classList.add('enemy');
+          if (isHome(c, r)) el.classList.add('home');
+          boardEl.appendChild(el);
+          t.el = el;
+          tiles.push(t);
+        }
+      }
+      statusEl.textContent = 'Low tide - dry';
+    }
+
+    function applyState(t, newState){
+      if (t.state === newState) return;
+      const wasOwnedAboveWater = t.state !== 'submerged' && (t.owner === 'me' || t.owner === 'ai');
+      t.el.classList.remove('warn-rising', 'warn-falling', 'submerged', 'flash');
+      if (newState === 'submerged') {
+        if (wasOwnedAboveWater) {
+          t.owner = null; // tide clears ownership the instant a held tile goes under
+          t.el.classList.remove('mine', 'enemy');
+          t.el.classList.add('flash');
+          setTimeout(() => t.el.classList.remove('flash'), 500);
+        }
+        t.el.classList.add('submerged');
+      } else if (newState === 'warn-rising' || newState === 'warn-falling') {
+        t.el.classList.add(newState);
+      }
+      t.state = newState;
+    }
+
+    function render(tideLevel, direction, u){
+      tiles.forEach(t => {
+        if (t.deepOcean) return; // permanent ocean, never cycles through dry/warn/submerged
+        const amt = floodFn(t.c, t.r, usesElapsedFraction ? u : tideLevel);
+        let newState;
+        if (amt < 0.15) newState = 'dry';
+        else if (amt < 0.85) newState = direction === 'in' ? 'warn-rising' : 'warn-falling';
+        else newState = 'submerged';
+        applyState(t, newState);
+      });
+    }
+
+    function statusText(tideLevel, direction){
+      if (tideLevel < 0.1) return 'Low tide - dry';
+      if (tideLevel > 0.9) return 'High tide - flooded';
+      return direction === 'in' ? 'Tide rising...' : 'Tide falling...';
+    }
+
+    function run(){
+      if (rafId) return;
+      runBtn.disabled = true;
+      const start = performance.now();
+      function frame(now){
+        const u = clamp01((now - start) / DURATION_MS);
+        const tideLevel = Math.sin(Math.PI * u); // 0 -> 1 -> 0 over the full pass
+        const direction = u < 0.5 ? 'in' : 'out';
+        render(tideLevel, direction, u);
+        statusEl.textContent = statusText(tideLevel, direction);
+        if (u < 1) {
+          rafId = requestAnimationFrame(frame);
+        } else {
+          render(0, 'out', 1);
+          statusEl.textContent = 'Low tide - dry';
+          rafId = null;
+          runBtn.disabled = false;
+        }
+      }
+      rafId = requestAnimationFrame(frame);
+    }
+
+    runBtn.addEventListener('click', run);
+    resetBtn.addEventListener('click', () => {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; runBtn.disabled = false; }
+      build();
+    });
+
+    build();
+  }
+
+  initTab('rolling', floodRolling, false);
+  initTab('cove', floodCove, false);
+  initTab('pools', floodPools, true);
+  initTab('pincer', floodPincer, false);
+
+  // ============================================================
+  // Tab 5 — Twin Shoals: unlike tabs 1-4, this one has its own engine rather than plugging
+  // into initTab(), because it needs two things none of the others do: (1) a coastline shape
+  // that's randomized per corner per "game" (like the river's crossing points), not a fixed
+  // hand-placed zone, and (2) a discrete 5-turn tide clock instead of a continuous animation.
+  // ============================================================
+  (function () {
+    const boardEl = document.getElementById('board-shoals');
+    const statusEl = document.getElementById('status-shoals');
+    const turnBtn = document.getElementById('turn-shoals');
+    const rerollBtn = document.getElementById('reroll-shoals');
+    let tiles = [];
+    let deep = [];   // permanent open ocean this "game" - never playable, never floods/drains
+    let fringe = []; // the one diagonal ring bordering `deep` - the only tiles that ever change
+    let turnIndex = 3; // start on "low tide, held" (index 3 of the 5-turn cycle) so the board opens dry
+
+    // Diagonal "rings out from the corner" distance. Growing a wedge by ring depth D gives a
+    // triangular-number tile count (D=2 -> 3 tiles, D=3 -> 6, D=4 -> 10, D=5 -> 15) - the same
+    // shape family regardless of size, so bigger rolls still read as "more of the same coast"
+    // rather than a differently-shaped landmass.
+    function antidiagTopRight(c, r){ return (COLS - 1 - c) + r; }
+    function antidiagBottomLeft(c, r){ return c + (ROWS - 1 - r); }
+
+    function buildWedge(antidiagFn, depth){
+      const wedgeDeep = [], wedgeFringe = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (isHome(c, r)) continue;
+          const d = antidiagFn(c, r);
+          if (d < depth) wedgeDeep.push({ c, r });
+          else if (d === depth) wedgeFringe.push({ c, r });
+        }
+      }
+      return { wedgeDeep, wedgeFringe };
+    }
+
+    // Independent random depth per corner (2-5 rings) - this is the "varies like the river"
+    // roll: most games one corner ends up noticeably bigger than the other, and which corner
+    // wins that roll changes every time.
+    function rollCoastline(){
+      const depthTR = 2 + Math.floor(Math.random() * 4);
+      const depthBL = 2 + Math.floor(Math.random() * 4);
+      const tr = buildWedge(antidiagTopRight, depthTR);
+      const bl = buildWedge(antidiagBottomLeft, depthBL);
+      deep = [...tr.wedgeDeep, ...bl.wedgeDeep];
+      fringe = [...tr.wedgeFringe, ...bl.wedgeFringe];
+    }
+
+    function isDeep(c, r){ return deep.some(t => t.c === c && t.r === r); }
+    function isFringe(c, r){ return fringe.some(t => t.c === c && t.r === r); }
+
+    function seedOwnership(t){
+      if (isDeep(t.c, t.r) || isFringe(t.c, t.r)) return null; // ocean/shoreline start unclaimed
+      if (t.c === HOME_ME.c && t.r === HOME_ME.r) return 'me';
+      if (t.c === HOME_AI.c && t.r === HOME_AI.r) return 'ai';
+      if (Math.max(Math.abs(t.c - HOME_ME.c), Math.abs(t.r - HOME_ME.r)) <= 1) return 'me';
+      if (Math.max(Math.abs(t.c - HOME_AI.c), Math.abs(t.r - HOME_AI.r)) <= 1) return 'ai';
+      return null;
+    }
+
+    function build(){
+      rollCoastline();
+      turnIndex = 3;
+      boardEl.innerHTML = '';
+      tiles = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const t = { c, r, node: NODES.some(n => n.c === c && n.r === r),
+            deepOcean: isDeep(c, r), state: 'dry' };
+          t.owner = seedOwnership(t);
+          const el = document.createElement('div');
+          el.className = 'tile';
+          if (t.node) el.classList.add('node');
+          if (t.deepOcean) el.classList.add('deep-ocean');
+          if (t.owner === 'me') el.classList.add('mine');
+          if (t.owner === 'ai') el.classList.add('enemy');
+          if (isHome(c, r)) el.classList.add('home');
+          boardEl.appendChild(el);
+          t.el = el;
+          tiles.push(t);
+        }
+      }
+      render();
+    }
+
+    // 5-turn tide clock: in (1 turn) -> high, held (1) -> out (1 turn) -> low, held (2 turns).
+    const TURN_PHASES = [
+      { label: 'Tide rising (shoreline flooding)', tileState: 'warn-rising' },
+      { label: 'High tide (held)', tileState: 'submerged' },
+      { label: 'Tide falling (shoreline draining)', tileState: 'warn-falling' },
+      { label: 'Low tide (held)', tileState: 'dry' },
+      { label: 'Low tide (held)', tileState: 'dry' },
+    ];
+
+    function applyState(t, newState){
+      if (t.state === newState) return;
+      const wasOwnedAboveWater = t.state !== 'submerged' && (t.owner === 'me' || t.owner === 'ai');
+      t.el.classList.remove('warn-rising', 'warn-falling', 'submerged', 'flash');
+      if (newState === 'submerged') {
+        if (wasOwnedAboveWater) {
+          t.owner = null; // tide clears ownership the instant a held tile goes under
+          t.el.classList.remove('mine', 'enemy');
+          t.el.classList.add('flash');
+          setTimeout(() => t.el.classList.remove('flash'), 500);
+        }
+        t.el.classList.add('submerged');
+      } else if (newState === 'warn-rising' || newState === 'warn-falling') {
+        t.el.classList.add(newState);
+      }
+      t.state = newState;
+    }
+
+    function render(){
+      const phase = TURN_PHASES[turnIndex];
+      tiles.forEach(t => {
+        if (t.deepOcean) return; // permanent ocean, outside the turn clock entirely
+        applyState(t, isFringe(t.c, t.r) ? phase.tileState : 'dry');
+      });
+      statusEl.textContent = `Turn ${turnIndex + 1} of 5 - ${phase.label}`;
+    }
+
+    turnBtn.addEventListener('click', () => {
+      turnIndex = (turnIndex + 1) % TURN_PHASES.length;
+      render();
+    });
+    rerollBtn.addEventListener('click', build);
+
+    build();
+  })();
+
+  // ---- tab switcher ----
+  document.getElementById('tabPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const target = btn.dataset.tab;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'panel-' + target);
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<title>Sand Glitter - Shoreline Speckle Options</title>
+<style>
+  :root {
+    --bg: #14161f;
+    --panel: #1b1e2b;
+    --card: #22263a;
+    --card-border: #333952;
+    --ink: #e7e9f0;
+    --subtle: #aeb4c6;
+    --sand: #3d3018;
+    --water: #1c5f7a;
+    --shoal-warn: #6fefff;
+    --accent: #3d6cff;
+    --font: system-ui, -apple-system, sans-serif;
+    --head: 'Grenze', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px; background: var(--bg); color: var(--ink);
+    font-family: var(--font);
+  }
+  h1 { font-family: var(--head); font-size: 28px; margin: 0 0 4px; }
+  .sub { color: var(--subtle); font-size: 15px; margin: 0 0 24px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; position: sticky; top: 0; background: var(--bg); padding: 12px 0; z-index: 10; }
+  .tab {
+    padding: 10px 18px; border-radius: 10px; background: var(--card); border: 1px solid var(--card-border);
+    cursor: pointer; font-size: 14px; font-weight: 600; color: var(--subtle);
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .copy {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 20px; font-size: 14px; color: var(--subtle); line-height: 1.5; max-width: 720px;
+  }
+  .copy b { color: var(--ink); }
+
+  .stage {
+    display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;
+  }
+  .board {
+    display: grid; grid-template-columns: repeat(3, 160px); grid-auto-rows: 160px; gap: 4px;
+    background: var(--panel); padding: 10px; border-radius: 8px;
+  }
+  .tile {
+    position: relative; border-radius: 14px; overflow: hidden; background: var(--sand);
+  }
+  .tile.warn { box-shadow: inset 0 0 0 3px var(--shoal-warn); }
+  .tile canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .label {
+    position: absolute; bottom: 6px; left: 8px; font-size: 11px; color: rgba(255,255,255,.55);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+
+  .legend { max-width: 300px; font-size: 13px; color: var(--subtle); line-height: 1.6; }
+  .legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .legend .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+</style>
+
+<h1>Sand Glitter - Shoreline Speckle Options</h1>
+<p class="sub">Four subtle treatments for "shining sand" on dry, unclaimed shoal tiles (<code>SAND_COLOR</code> #3d3018). Each tile is shown at 160×160 for readability; the real board renders these much smaller, so keep density/contrast in mind. One tile per row shows the tide-warning ring (cyan) so you can judge how glitter reads underneath it.</p>
+
+<div class="tabs">
+  <div class="tab active" data-tab="a">A - Static scatter</div>
+  <div class="tab" data-tab="b">B - Twinkle pulse</div>
+  <div class="tab" data-tab="c">C - Sparse glints</div>
+  <div class="tab" data-tab="d">D - Grain streaks</div>
+</div>
+
+<div class="panel active" id="panel-a">
+  <div class="copy"><b>A - Static scatter.</b> A fixed field of tiny white dots at low opacity, generated once per tile and never animated. Cheapest possible (zero draw calls after the first paint, no tween overhead), reads as "sand has some sparkle in it" without drawing the eye. Risk: static specks can start to look like dust/noise rather than shine once you've stared at the board a while.</div>
+  <div class="stage">
+    <div class="board" id="board-a"></div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:var(--sand)"></span> Sand fill, unchanged</div>
+      <div class="row"><span class="swatch" style="background:#fff"></span> ~40 dots/tile, opacity 0.12-0.35, 1-2px radius</div>
+      <div class="row">No animation - pure CSS/canvas paint, reused every refresh() via a cached texture.</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-b">
+  <div class="copy"><b>B - Twinkle pulse.</b> Same scattered dot field as A, but each speck fades in/out on its own staggered cycle (2-4s, random phase) so only a handful are "lit" at any instant. Reads as gentle shimmer, like sun catching wet grains. Costs a tween per speck (or one shared shader-style time uniform) - fine at board scale (a few dozen shoal tiles max), needs care if the board ever gets much bigger.</div>
+  <div class="stage">
+    <div class="board" id="board-b"></div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:#fff"></span> Same dot field as A</div>
+      <div class="row">Each dot: opacity 0 → 0.5 → 0, 2.5-4s duration, random delay</div>
+      <div class="row">In Phaser: a tween per dot, or one Graphics redraw per frame reading a shared sine clock (matches the existing river-flow / foam-pulse pattern already in GameScene.js).</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-c">
+  <div class="copy"><b>C - Sparse glints.</b> Far fewer points (4-6/tile) but each is a soft radial-gradient glow instead of a hard dot, occasionally flaring brighter. Reads as "a few grains catching direct light" rather than an even dusting - more restrained than A/B, closer to a jewel-like sparkle than a texture. Best if you want glitter to feel like an accent, not a base texture change.</div>
+  <div class="stage">
+    <div class="board" id="board-c"></div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:radial-gradient(circle,#fff,transparent 70%)"></span> 4-6 soft glow points/tile, 3-5px radius</div>
+      <div class="row">Each glint: base opacity 0.2, flares to 0.6 for ~300ms every 3-6s (independent random timers)</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-d">
+  <div class="copy"><b>D - Grain streaks.</b> Instead of round dots, tiny 1px-wide diagonal light streaks (like individual sand grains catching a low sun angle), all sharing one direction for a coherent "light source." No animation needed - the directionality alone reads as shine without motion. Cheapest of the four, and the most distinct from "just noise/dust" since the streaks are legible as light glinting rather than random specks.</div>
+  <div class="stage">
+    <div class="board" id="board-d"></div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:#fff"></span> ~25 streaks/tile, 1×4px, all at ~35° angle</div>
+      <div class="row">Opacity 0.15-0.4, varied per streak; no animation (or a very slow 8-10s drift if you want a hint of motion)</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  }));
+
+  // Deterministic pseudo-random so every reload looks the same (easier to compare/screenshot).
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function makeTile(boardId, warn, seedBase) {
+    const board = document.getElementById(boardId);
+    const tile = document.createElement('div');
+    tile.className = 'tile' + (warn ? ' warn' : '');
+    const canvas = document.createElement('canvas');
+    canvas.width = 160; canvas.height = 160;
+    tile.appendChild(canvas);
+    if (warn) {
+      const lbl = document.createElement('div');
+      lbl.className = 'label'; lbl.textContent = 'tide warning';
+      tile.appendChild(lbl);
+    }
+    board.appendChild(tile);
+    return canvas.getContext('2d');
+  }
+
+  function buildBoard(boardId, drawFn) {
+    for (let i = 0; i < 6; i++) drawFn(makeTile(boardId, i === 2, i), i);
+  }
+
+  // A - static scatter
+  buildBoard('board-a', (ctx, i) => {
+    const rnd = mulberry32(1000 + i);
+    for (let n = 0; n < 40; n++) {
+      const x = rnd() * 160, y = rnd() * 160, r = 0.8 + rnd() * 1.2, a = 0.12 + rnd() * 0.23;
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+  });
+
+  // B - twinkle pulse (canvas animation loop per tile)
+  const twinkleTiles = [];
+  buildBoard('board-b', (ctx, i) => {
+    const rnd = mulberry32(2000 + i);
+    const dots = Array.from({ length: 36 }, () => ({
+      x: rnd() * 160, y: rnd() * 160, r: 0.8 + rnd() * 1.2,
+      period: 2500 + rnd() * 1500, phase: rnd() * 6283,
+    }));
+    twinkleTiles.push({ ctx, dots });
+  });
+  function tickTwinkle(t) {
+    twinkleTiles.forEach(({ ctx, dots }) => {
+      ctx.clearRect(0, 0, 160, 160);
+      dots.forEach(d => {
+        const s = (Math.sin((t / d.period) * Math.PI * 2 + d.phase) + 1) / 2; // 0..1
+        const a = 0.5 * s;
+        if (a < 0.02) return;
+        ctx.fillStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+    requestAnimationFrame(tickTwinkle);
+  }
+  requestAnimationFrame(tickTwinkle);
+
+  // C - sparse glints
+  const glintTiles = [];
+  buildBoard('board-c', (ctx, i) => {
+    const rnd = mulberry32(3000 + i);
+    const glints = Array.from({ length: 5 }, () => ({
+      x: rnd() * 160, y: rnd() * 160, r: 3 + rnd() * 2,
+      flareEvery: 3000 + rnd() * 3000, flareAt: rnd() * 6000,
+    }));
+    glintTiles.push({ ctx, glints });
+  });
+  function tickGlint(t) {
+    glintTiles.forEach(({ ctx, glints }) => {
+      ctx.clearRect(0, 0, 160, 160);
+      glints.forEach(g => {
+        const cyclePos = (t + g.flareAt) % g.flareEvery;
+        const flare = cyclePos < 300 ? 1 - Math.abs(cyclePos - 150) / 150 : 0;
+        const a = 0.2 + flare * 0.4;
+        const grad = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.r);
+        grad.addColorStop(0, `rgba(255,255,255,${a.toFixed(2)})`);
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2); ctx.fill();
+      });
+    });
+    requestAnimationFrame(tickGlint);
+  }
+  requestAnimationFrame(tickGlint);
+
+  // D - grain streaks (static, directional)
+  buildBoard('board-d', (ctx, i) => {
+    const rnd = mulberry32(4000 + i);
+    const angle = 35 * Math.PI / 180;
+    for (let n = 0; n < 25; n++) {
+      const x = rnd() * 160, y = rnd() * 160, len = 3 + rnd() * 3, a = 0.15 + rnd() * 0.25;
+      const dx = Math.cos(angle) * len, dy = Math.sin(angle) * len;
+      ctx.strokeStyle = `rgba(255,255,255,${a.toFixed(2)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx, y + dy); ctx.stroke();
+    }
+  });
+</script>

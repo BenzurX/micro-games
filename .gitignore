@@ -13,5 +13,8 @@ node_modules/
 # Claude Code machine-local settings (permissions allowlist) — not shared
 .claude/settings.local.json
 
+# Personal research/case-study notes — not part of the shipped project
+case-studies/
+
 # Committed on purpose (do NOT ignore): .claude/agents/, each game's vendor/phaser.min.js,
 # and snapshots/ — the games must stay self-contained and the snapshot history is the project.

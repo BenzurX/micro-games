@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Level select ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 8px;max-width:680px;}
+  .note{max-width:680px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  .screen{position:relative;width:min(100%,440px);margin:0 auto;
+    border-radius:18px;overflow:hidden;background:#141726;border:1px solid #262a3e;
+    padding:22px 16px 20px;}
+  .screen h2{font-family:var(--head);font-weight:700;font-size:24px;margin:0 0 2px;text-align:center;}
+  .screen .sub{font-size:13px;color:var(--muted);text-align:center;margin:0 0 18px;}
+
+  .list{display:flex;flex-direction:column;gap:10px;}
+  .lvl{display:flex;align-items:stretch;gap:12px;background:var(--card);
+    border:2px solid #333850;border-radius:12px;padding:10px;cursor:pointer;
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;}
+  .lvl:hover{border-color:#4a5175;}
+  .lvl.selected{border-color:var(--gold);background:#282c42;}
+  .lvl.selected .thumb{box-shadow:0 0 0 2px var(--gold);}
+  .lvl.locked{opacity:.72;}
+  .lvl.locked:hover{border-color:#333850;}
+
+  .thumb{flex:0 0 74px;width:74px;height:74px;border-radius:10px;position:relative;
+    overflow:hidden;background:#0e1018;}
+  .thumb-badge{position:absolute;bottom:4px;right:4px;font-size:10px;font-weight:700;
+    letter-spacing:.02em;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.55);
+    color:var(--subtle);}
+  .thumb-badge.new{background:var(--gold);color:#1b1e2b;}
+
+  .lvl-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;}
+  .lvl-title-row{display:flex;align-items:center;gap:8px;}
+  .lvl-title{font-family:var(--head);font-weight:700;font-size:18px;color:var(--ink);}
+  .lvl-tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);border:1px solid #3d425e;border-radius:20px;padding:2px 8px;}
+  .lvl-tag.ready{color:#1b1e2b;background:var(--green);border-color:var(--green);}
+  .lvl-desc{font-size:12.5px;color:var(--subtle);margin:0;}
+
+  .lock-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:20px;background:rgba(10,11,18,.35);}
+
+  .cta{margin-top:20px;display:flex;justify-content:center;}
+  button.play{font-family:var(--head);font-weight:700;font-size:20px;color:#fff;
+    background:var(--blue);border:none;border-radius:40px;padding:14px 48px;cursor:pointer;
+    box-shadow:0 4px 0 #2a4fc7;}
+  button.play:active{transform:translateY(2px);box-shadow:0 2px 0 #2a4fc7;}
+  button.play:disabled{background:#3a3f57;box-shadow:0 4px 0 #2a2e40;cursor:not-allowed;color:var(--muted);}
+
+  /* ===== thumbnail art, CSS-only, one mechanic-reading illustration per level ===== */
+
+  /* River (v1, shipped): meandering blue channel through green/brown land, two bridge notches */
+  .thumb.river{background:linear-gradient(135deg,#3a5a34,#2e4728);}
+  .thumb.river::before{content:'';position:absolute;inset:0;
+    background:
+      linear-gradient(100deg, transparent 38%, #1c2f52 42%, #24406e 50%, #1c2f52 58%, transparent 62%);}
+  .thumb.river::after{content:'';position:absolute;left:44%;top:30%;width:12%;height:8%;
+    background:#b08a52;border-radius:2px;box-shadow:0 26px 0 0 #b08a52;}
+
+  /* Forest: dark mossy canopy blobs under a pale drifting mist band */
+  .thumb.forest{background:#10130f;}
+  .thumb.forest::before{content:'';position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 22% 25%, #1e3a24 0 26%, transparent 30%),
+      radial-gradient(circle at 60% 15%, #244528 0 22%, transparent 26%),
+      radial-gradient(circle at 80% 45%, #1c3620 0 24%, transparent 28%),
+      radial-gradient(circle at 30% 65%, #244528 0 26%, transparent 30%),
+      radial-gradient(circle at 68% 78%, #1e3a24 0 24%, transparent 28%);}
+  .thumb.forest::after{content:'';position:absolute;inset:-10% -30%;
+    background:radial-gradient(ellipse at 50% 55%, rgba(210,218,230,.30) 0 20%, transparent 55%);
+    filter:blur(3px);}
+
+  /* Ocean: teal water gradient with a foam tideline arcing across */
+  .thumb.ocean{background:linear-gradient(180deg,#123a4a 0%,#0d2836 60%,#0a1f2b 100%);}
+  .thumb.ocean::before{content:'';position:absolute;left:-10%;right:-10%;top:38%;height:10%;
+    background:linear-gradient(90deg, transparent, rgba(210,235,240,.55) 30%, rgba(210,235,240,.55) 70%, transparent);
+    border-radius:50%;filter:blur(1px);}
+  .thumb.ocean::after{content:'';position:absolute;left:-10%;right:-10%;top:60%;height:6%;
+    background:linear-gradient(90deg, transparent, rgba(210,235,240,.30) 35%, rgba(210,235,240,.30) 65%, transparent);
+    border-radius:50%;}
+
+  /* Fire: volcano cone silhouette with a glowing mouth and ember sky */
+  .thumb.fire{background:linear-gradient(180deg,#2a1210 0%,#170a09 70%);}
+  .thumb.fire::before{content:'';position:absolute;left:20%;right:20%;bottom:0;height:60%;
+    background:#241412;clip-path:polygon(50% 0%, 100% 100%, 0% 100%);}
+  .thumb.fire::after{content:'';position:absolute;left:44%;right:44%;bottom:38%;height:14%;
+    background:radial-gradient(circle, #ffb347 0%, #e0546a 55%, transparent 75%);
+    box-shadow:0 0 14px 4px rgba(224,84,106,.6);border-radius:50%;}
+
+  /* Mountains: jagged grey-stone peaks, no gaps, reading as a solid wall */
+  .thumb.mountain{background:linear-gradient(180deg,#2c3040 0%,#1a1d29 100%);}
+  .thumb.mountain::before{content:'';position:absolute;left:-5%;right:-5%;bottom:0;height:65%;
+    background:#4a5170;
+    clip-path:polygon(0% 100%, 8% 40%, 18% 70%, 30% 20%, 42% 55%, 54% 10%, 66% 50%, 78% 25%, 90% 60%, 100% 30%, 100% 100%);}
+  .thumb.mountain::after{content:'';position:absolute;left:-5%;right:-5%;bottom:0;height:38%;
+    background:#363c54;
+    clip-path:polygon(0% 100%, 12% 55%, 24% 85%, 36% 45%, 50% 80%, 64% 40%, 76% 75%, 88% 50%, 100% 78%, 100% 100%);}
+
+  .legend{max-width:440px;margin:20px auto 0;font-size:12px;color:var(--muted);text-align:center;}
+
+  .copy{max-width:680px;margin:30px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+</style>
+</head>
+<body>
+  <h1>Level select — new game screen</h1>
+  <p class="lede">Design-staging sketch for the screen shown after tapping <b>Start</b>: pick a
+    battleground before the match generates. One mechanic thumbnail on the left, title + one-line
+    description on the right, per level.</p>
+  <p class="note">Sketch only, no game logic wired in. <b>River</b> is the real, shipped v1 map —
+    the other four are concept placeholders for the terrain ideas staged in
+    <code>forest-fog.html</code>, <code>ocean-tides.html</code>, <code>lava-fire.html</code>, and
+    <code>mountain-pass.html</code>, marked "Coming soon" and locked here since none are built yet.
+    Clicking an unlocked level selects it (gold border); Play enables once one is selected.</p>
+
+  <div class="screen">
+    <h2>Choose Your Foothold</h2>
+    <p class="sub">Pick a battleground</p>
+    <div class="list" id="list">
+      <div class="lvl" data-level="river">
+        <div class="thumb river"></div>
+        <div class="lvl-body">
+          <div class="lvl-title-row"><span class="lvl-title">River</span><span class="lvl-tag ready">Ready</span></div>
+          <p class="lvl-desc">A meandering river splits the board — only two bridges cross it, so
+            every fight funnels through them.</p>
+        </div>
+      </div>
+
+      <div class="lvl locked" data-level="forest">
+        <div class="thumb forest"><div class="lock-icon">🔒</div><span class="thumb-badge new">Idea</span></div>
+        <div class="lvl-body">
+          <div class="lvl-title-row"><span class="lvl-title">Forest</span><span class="lvl-tag">Coming soon</span></div>
+          <p class="lvl-desc">Fog blankets unscouted ground — enemy tiles stay hidden until you
+            scout close enough to see them.</p>
+        </div>
+      </div>
+
+      <div class="lvl locked" data-level="ocean">
+        <div class="thumb ocean"><div class="lock-icon">🔒</div><span class="thumb-badge new">Idea</span></div>
+        <div class="lvl-body">
+          <div class="lvl-title-row"><span class="lvl-title">Ocean</span><span class="lvl-tag">Coming soon</span></div>
+          <p class="lvl-desc">Tides sweep in and clear ownership of low ground, then recede and
+            leave it open to reclaim.</p>
+        </div>
+      </div>
+
+      <div class="lvl locked" data-level="fire">
+        <div class="thumb fire"><div class="lock-icon">🔒</div><span class="thumb-badge new">Idea</span></div>
+        <div class="lvl-body">
+          <div class="lvl-title-row"><span class="lvl-title">Fire</span><span class="lvl-tag">Coming soon</span></div>
+          <p class="lvl-desc">Volcanic hazards tax whoever holds them — rich ground that
+            occasionally burns your stockpile.</p>
+        </div>
+      </div>
+
+      <div class="lvl locked" data-level="mountain">
+        <div class="thumb mountain"><div class="lock-icon">🔒</div><span class="thumb-badge new">Idea</span></div>
+        <div class="lvl-body">
+          <div class="lvl-title-row"><span class="lvl-title">Mountains</span><span class="lvl-tag">Coming soon</span></div>
+          <p class="lvl-desc">Solid stone walls carve the board into sealed pockets — crossings
+            are rare, won, or nonexistent.</p>
+        </div>
+      </div>
+    </div>
+    <div class="cta"><button class="play" id="playBtn" disabled>Play</button></div>
+  </div>
+  <p class="legend">Tap a level card to select it. Locked levels are shown for scale/layout only.</p>
+
+  <div class="copy">
+    <div class="k">Design notes</div>
+    <p>Vertical list over a grid so it stays readable at phone width and the description sentence
+      has room to breathe — a grid of square tiles would force the description into a tooltip or
+      a second tap, which is worse for a one-time pre-match choice.</p>
+    <p>Locked/"Coming soon" levels are shown rather than hidden so the roadmap reads honestly —
+      players can see there's more coming without it looking unfinished (no placeholder text,
+      just a real one-line pitch and a lock icon).</p>
+    <p>Selecting a level highlights its card with a gold border (matches the game's existing gold
+      accent for "your" state) and enables the Play button — mirrors the pattern of picking before
+      committing, same spirit as the tile tooltip-before-commit flow in the main game.</p>
+    <p>Not decided yet: whether this screen replaces the current single "Start" button on
+      TitleScene outright, or only appears once a second level ships (v1 stays a one-tap Start
+      into River until there's an actual choice to make).</p>
+  </div>
+
+<script>
+  const list = document.getElementById('list');
+  const playBtn = document.getElementById('playBtn');
+  list.addEventListener('click', (e) => {
+    const card = e.target.closest('.lvl');
+    if (!card || card.classList.contains('locked')) return;
+    [...list.children].forEach((c) => c.classList.remove('selected'));
+    card.classList.add('selected');
+    playBtn.disabled = false;
+    playBtn.textContent = `Play — ${card.querySelector('.lvl-title').textContent}`;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Coastline shape — 4 structured versions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    --water:#1c5f7a; --wet:#2f8fae; --foam:#bfe9f0;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 12px;max-width:720px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:720px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;}
+  .card{background:var(--card);border:1px solid #333850;border-radius:16px;padding:18px;
+    display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .card h2{font-family:var(--head);font-size:19px;margin:0;color:var(--foam);text-align:center;}
+  .card .pitch{font-size:13px;color:var(--subtle);text-align:center;margin:0;max-width:280px;}
+  .card .stat{font-size:12px;color:var(--muted);text-align:center;}
+  .card .stat b{color:var(--foam);}
+
+  button{font-family:var(--body);font-size:13px;font-weight:600;padding:7px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--panel);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--wet);}
+  .fire{background:var(--gold);border-color:var(--gold);color:#1b1e2b;font-weight:700;}
+  .fire:hover{filter:brightness(1.1);}
+
+  .stage{position:relative;width:100%;max-width:230px;aspect-ratio:2/3;margin:0 auto;
+    border-radius:12px;overflow:hidden;background:#101a22;border:1px solid #23405076;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:6px;}
+
+  .tile{position:relative;border-radius:3px;background:#2a3a6b;overflow:hidden;}
+  .tile.home{outline:2px solid var(--gold);outline-offset:-2px;}
+  .tile.home.me{background:var(--blue);}
+  .tile.home.ai{background:var(--red);}
+
+  .tile.shore{background:var(--water) !important;box-shadow:inset 0 0 0 1px #0e3547;}
+  .tile.shore::before,.tile.shore::after{content:'';position:absolute;inset:-30% -60%;z-index:1;}
+  .tile.shore::before{
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.24) 48%, rgba(191,233,240,.34) 50%,
+      rgba(191,233,240,.24) 52%, transparent 70%);
+    animation:swell-roll 5.5s ease-in-out infinite;}
+  .tile.shore::after{
+    background:linear-gradient(122deg,
+      transparent 34%, rgba(191,233,240,.14) 49%, rgba(191,233,240,.2) 50%,
+      rgba(191,233,240,.14) 51%, transparent 66%);
+    animation:swell-roll-b 8.2s ease-in-out infinite;}
+  @keyframes swell-roll{0%{transform:translateX(-30%);} 50%{transform:translateX(10%);} 100%{transform:translateX(-30%);}}
+  @keyframes swell-roll-b{0%{transform:translateX(12%);} 50%{transform:translateX(-26%);} 100%{transform:translateX(12%);}}
+
+  /* Bump tiles (version 1 only) - the depth-1/depth-2 inland cells - get a gold outline so
+     they're easy to pick out from the plain edge-run tiles while comparing. */
+  .tile.shore.bump{box-shadow:inset 0 0 0 2px var(--gold);}
+
+  .legend{max-width:720px;margin:22px auto 0;display:flex;gap:14px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+</style>
+</head>
+<body>
+  <h1>Coastline shape — 4 structured versions</h1>
+  <p class="lede">Round 3. Every ocean tile in every version below either sits on the board's outer
+    edge or connects directly back to it, minimum 3 tiles per shoreline, and each version follows
+    a specific, repeatable rule for how the tiles are chosen - not a pure random walk. You picked
+    <b>Corner Wrap</b> as closest - it now has 1-3 inland bump tiles (outlined gold) one step
+    in from the edge run, connected directly to it. No ocean tile in any version is allowed
+    within 2 tiles of a home base (Chebyshev distance) anymore, so once the tidal fringe floods
+    - 1 tile further in than the permanent ocean behind it - there's still guaranteed at least 1
+    dry tile of buffer before it ever reaches home. Reroll card 1 a few times to see the range;
+    versions 2-4 are kept as-is for reference.</p>
+  <p class="note">Shimmer treatment is the decided Layered Swell. Fringe/tide behavior (which of
+    these tiles float/drain vs. stay permanent) isn't shown here - this page is purely about the
+    <i>shape</i> question. Nothing here is built into <code>GameScene.js</code> yet.</p>
+
+  <div class="grid" id="grid">
+    <div class="card">
+      <h2>1 - Corner Wrap + Bump</h2>
+      <div class="stage"><div class="board" id="board-1"></div></div>
+      <p class="pitch">The same edge-hugging run as before, plus 1-2 small inland bumps (gold
+        outline): a single tile one step in from a random point on the run - so the shoreline
+        pokes inward in a couple spots instead of staying a perfectly flat 1-tile-wide strip,
+        while still growing directly out of the edge run.</p>
+      <div class="stat">Tiles: <b id="stat-1">-</b></div>
+      <button class="fire" data-v="1">Reroll</button>
+    </div>
+
+    <div class="card">
+      <h2>2 - Broken Run</h2>
+      <div class="stage"><div class="board" id="board-2"></div></div>
+      <p class="pitch">Same corner-wrapping edge path as version 1, but split into 2-3 separate
+        short runs with a gap of dry land between them - an archipelago-style broken coastline
+        instead of one unbroken stretch.</p>
+      <div class="stat">Tiles: <b id="stat-2">-</b></div>
+      <button class="fire" data-v="2">Reroll</button>
+    </div>
+
+    <div class="card">
+      <h2>3 - L-Bracket</h2>
+      <div class="stage"><div class="board" id="board-3"></div></div>
+      <p class="pitch">Always includes the exact corner tile, then a random-length arm running
+        out along each of the two adjacent edges (arms are independently sized, so the bracket is
+        lopsided - long one way, short the other - not a symmetric right angle).</p>
+      <div class="stat">Tiles: <b id="stat-3">-</b></div>
+      <button class="fire" data-v="3">Reroll</button>
+    </div>
+
+    <div class="card">
+      <h2>4 - Single-Edge Run</h2>
+      <div class="stage"><div class="board" id="board-4"></div></div>
+      <p class="pitch">Picks just ONE of the two adjacent edges (not both) and runs a contiguous
+        stretch of tiles along only that edge, positioned anywhere within the region - it may not
+        touch the corner at all. Matches "sometimes the shore comes from one side altogether."</p>
+      <div class="stat">Tiles: <b id="stat-4">-</b></div>
+      <button class="fire" data-v="4">Reroll</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw" style="background:var(--blue)"></i> Home (you)</span>
+    <span><i class="sw" style="background:var(--red)"></i> Home (enemy)</span>
+    <span><i class="sw" style="background:#2a3a6b"></i> Dry land</span>
+    <span><i class="sw" style="background:var(--water)"></i> Shoreline / ocean tile</span>
+    <span><i class="sw" style="background:var(--water);box-shadow:inset 0 0 0 2px var(--gold);"></i> Inland bump tile (version 1)</span>
+  </div>
+
+<script>
+  const COLS = 6, ROWS = 9;
+  const HOME_ME = { c: 4, r: 7 };
+  const HOME_AI = { c: 1, r: 1 };
+  function isHome(c, r){ return (c === HOME_ME.c && r === HOME_ME.r) || (c === HOME_AI.c && r === HOME_AI.r); }
+  function key(c, r){ return c + ',' + r; }
+
+  // Ordered border paths that walk from one edge, through the corner, onto the adjacent edge.
+  // Every cell in these paths is on the board's outer boundary by construction.
+  const PATH_TR = []; // top edge (left->right) then right edge (top->bottom)
+  for (let c = 2; c <= 5; c++) PATH_TR.push({ c, r: 0 });
+  for (let r = 1; r <= 4; r++) PATH_TR.push({ c: 5, r });
+  const PATH_BL = []; // left edge (top->bottom) then bottom edge (left->right)
+  for (let r = 4; r <= 8; r++) PATH_BL.push({ c: 0, r });
+  for (let c = 1; c <= 3; c++) PATH_BL.push({ c, r: 8 });
+
+  // No ocean tile may sit within 2 tiles of a home base. Chebyshev distance <= 2 covers the
+  // home tile, the ring touching it, and the ring beyond that - so when the tidal fringe (the
+  // outermost ring of a shoal, 1 tile further in than the permanent ocean behind it) floods,
+  // it's still guaranteed at least 1 dry tile of buffer before reaching home.
+  function touchesHome(c, r){
+    return Math.max(Math.abs(c - HOME_ME.c), Math.abs(r - HOME_ME.r)) <= 2
+        || Math.max(Math.abs(c - HOME_AI.c), Math.abs(r - HOME_AI.r)) <= 2;
+  }
+  function pathMinusHomes(path){ return path.filter(p => !touchesHome(p.c, p.r)); }
+
+  function randInt(lo, hi){ return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+  // ---- Version 1: Corner Wrap - one random contiguous window over the path ----
+  function genWrap(path){
+    const usable = pathMinusHomes(path);
+    const len = randInt(Math.min(3, usable.length), usable.length);
+    const start = randInt(0, usable.length - len);
+    return usable.slice(start, start + len);
+  }
+
+  // Which direction is "inward" (away from the board edge) for a given border cell, depends on
+  // which edge(s) it sits on. A corner cell sits on two edges, so it has two valid directions.
+  function inwardDirs(region, cell){
+    if (region === 'tr') {
+      const dirs = [];
+      if (cell.r === 0) dirs.push({ dc: 0, dr: 1 });
+      if (cell.c === 5) dirs.push({ dc: -1, dr: 0 });
+      return dirs;
+    }
+    const dirs = [];
+    if (cell.c === 0) dirs.push({ dc: 1, dr: 0 });
+    if (cell.r === 8) dirs.push({ dc: 0, dr: -1 });
+    return dirs;
+  }
+
+  // Attaches 1-3 small inland bumps to the wrap run - each bump is a single tile one step in
+  // from a random point on the run, so the shoreline pokes inward slightly instead of staying a
+  // perfectly flat 1-tile-wide strip, while staying directly connected to the edge run.
+  function addBumps(region, runCells){
+    const bumps = [];
+    const bumpCount = randInt(1, 3);
+    for (let i = 0; i < bumpCount && runCells.length; i++) {
+      const anchor = runCells[randInt(0, runCells.length - 1)];
+      const dirs = inwardDirs(region, anchor);
+      if (!dirs.length) continue;
+      const dir = dirs[randInt(0, dirs.length - 1)];
+      const d1 = { c: anchor.c + dir.dc, r: anchor.r + dir.dr };
+      if (d1.c < 0 || d1.c >= COLS || d1.r < 0 || d1.r >= ROWS) continue;
+      if (touchesHome(d1.c, d1.r)) continue;
+      bumps.push({ ...d1, bump: true });
+    }
+    return bumps;
+  }
+
+  function genWrapWithBumps(path, region){
+    const run = genWrap(path);
+    return [...run, ...addBumps(region, run)];
+  }
+
+  // ---- Version 2: Broken Run - 2-3 short runs with gaps, min 3 tiles total ----
+  function genBroken(path){
+    const usable = pathMinusHomes(path);
+    const cells = [];
+    let i = randInt(0, 1);
+    const pieces = randInt(2, 3);
+    for (let p = 0; p < pieces && i < usable.length; p++) {
+      const runLen = randInt(1, 3);
+      for (let k = 0; k < runLen && i < usable.length; k++, i++) cells.push(usable[i]);
+      i += randInt(1, 2); // gap
+    }
+    if (cells.length < 3) return genWrap(path); // fallback if we ran out of room
+    return cells;
+  }
+
+  // ---- Version 3: L-Bracket - corner tile + independent random arm on each edge ----
+  function genBracket(region){
+    const isTR = region === 'tr';
+    const corner = isTR ? { c: 5, r: 0 } : { c: 0, r: 8 };
+    const cells = [];
+    if (!touchesHome(corner.c, corner.r)) cells.push(corner);
+    const armA = randInt(1, 4), armB = randInt(1, 4);
+    if (isTR) {
+      for (let k = 1; k <= armA; k++) { const c = corner.c - k; if (c >= 2 && !touchesHome(c, 0)) cells.push({ c, r: 0 }); }
+      for (let k = 1; k <= armB; k++) { const r = corner.r + k; if (r <= 4 && !touchesHome(5, r)) cells.push({ c: 5, r }); }
+    } else {
+      for (let k = 1; k <= armA; k++) { const r = corner.r - k; if (r >= 4 && !touchesHome(0, r)) cells.push({ c: 0, r }); }
+      for (let k = 1; k <= armB; k++) { const c = corner.c + k; if (c <= 3 && !touchesHome(c, 8)) cells.push({ c, r: 8 }); }
+    }
+    if (cells.length < 3) { cells.push(isTR ? { c: 4, r: 0 } : { c: 1, r: 8 }); }
+    return cells;
+  }
+
+  // ---- Version 4: Single-Edge Run - only one of the two edges, position free within it ----
+  function genSingleEdge(region){
+    const isTR = region === 'tr';
+    const useFirst = Math.random() < 0.5; // top-edge-only vs right-edge-only (TR); left vs bottom (BL)
+    const segment = isTR
+      ? (useFirst ? [2, 3, 4, 5].map(c => ({ c, r: 0 })) : [0, 1, 2, 3, 4].map(r => ({ c: 5, r })))
+      : (useFirst ? [4, 5, 6, 7, 8].map(r => ({ c: 0, r })) : [0, 1, 2, 3].map(c => ({ c, r: 8 })));
+    const usable = pathMinusHomes(segment);
+    const len = randInt(Math.min(3, usable.length), usable.length);
+    const start = randInt(0, Math.max(0, usable.length - len));
+    return usable.slice(start, start + len);
+  }
+
+  const GENERATORS = {
+    1: () => [...genWrapWithBumps(PATH_TR, 'tr'), ...genWrapWithBumps(PATH_BL, 'bl')],
+    2: () => [...genBroken(PATH_TR), ...genBroken(PATH_BL)],
+    3: () => [...genBracket('tr'), ...genBracket('bl')],
+    4: () => [...genSingleEdge('tr'), ...genSingleEdge('bl')],
+  };
+
+  function render(v){
+    const cells = GENERATORS[v]();
+    const set = new Set(cells.map(t => key(t.c, t.r)));
+    const bumpSet = new Set(cells.filter(t => t.bump).map(t => key(t.c, t.r)));
+    document.getElementById('stat-' + v).textContent = set.size;
+    const el = document.getElementById('board-' + v);
+    el.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const div = document.createElement('div');
+        div.className = 'tile';
+        const k = key(c, r);
+        if (set.has(k)) {
+          div.classList.add('shore');
+          if (bumpSet.has(k)) div.classList.add('bump');
+        }
+        else if (c === HOME_ME.c && r === HOME_ME.r) div.classList.add('home', 'me');
+        else if (c === HOME_AI.c && r === HOME_AI.r) div.classList.add('home', 'ai');
+        el.appendChild(div);
+      }
+    }
+  }
+
+  document.getElementById('grid').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-v]');
+    if (!btn) return;
+    render(btn.dataset.v);
+  });
+
+  [1, 2, 3, 4].forEach(render);
+</script>
+</body>
+</html>

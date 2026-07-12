@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Ocean tile shimmer — 5 treatments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --gold:#f2c14e; --ocean:#123a4a; --foam:#bfe9f0;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 26px;max-width:760px;}
+  .lede code{color:var(--gold);}
+
+  .grid{max-width:1100px;margin:0 auto;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px;}
+  .card{background:var(--card);border:1px solid #333850;border-radius:16px;padding:20px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .card h2{font-family:var(--head);font-size:20px;margin:0;color:var(--foam);text-align:center;}
+  .card .pitch{font-size:13px;color:var(--subtle);text-align:center;margin:0;max-width:280px;}
+  .card .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}
+
+  /* ---- the large, readable tile swatch ---- */
+  .swatch{position:relative;width:260px;height:260px;border-radius:10px;overflow:hidden;
+    background:var(--ocean);box-shadow:inset 0 0 0 2px #0e3547, 0 8px 24px rgba(0,0,0,.35);}
+  .swatch .node{position:absolute;left:50%;top:50%;width:44px;height:44px;border-radius:50%;
+    background:var(--gold);opacity:.85;transform:translate(-50%,-50%);z-index:5;
+    box-shadow:0 0 14px rgba(242,193,78,.5);}
+
+  /* =========================================================
+     1 — Drifting Bands: soft diagonal light bands sliding sideways
+     ========================================================= */
+  .shim-1::before{content:'';position:absolute;inset:-20% -40%;z-index:1;
+    background:repeating-linear-gradient(115deg,
+      rgba(191,233,240,.20) 0 10px, transparent 10px 46px);
+    animation:bands-drift 7s linear infinite;}
+  @keyframes bands-drift{0%{transform:translateX(-8%);} 100%{transform:translateX(8%);}}
+
+  /* =========================================================
+     2 — Twinkle Sparkle: scattered glints fading in/out, staggered
+     ========================================================= */
+  .shim-2 .glint{position:absolute;width:5px;height:5px;border-radius:50%;
+    background:var(--foam);box-shadow:0 0 8px 2px rgba(191,233,240,.8);
+    animation:glint-twinkle 2.6s ease-in-out infinite;}
+  @keyframes glint-twinkle{0%,100%{opacity:0;transform:scale(.4);} 50%{opacity:1;transform:scale(1);}}
+
+  /* =========================================================
+     3 — Wave Crest Sweep: a single bright line sweeping top to bottom
+     ========================================================= */
+  .shim-3::before{content:'';position:absolute;left:-10%;right:-10%;height:14px;z-index:1;
+    top:-10%;border-radius:50%;filter:blur(3px);
+    background:linear-gradient(90deg, transparent, rgba(191,233,240,.9), transparent);
+    animation:crest-sweep 4s ease-in-out infinite;}
+  @keyframes crest-sweep{
+    0%{top:-8%; opacity:0;}
+    12%{opacity:.95;}
+    50%{top:50%; opacity:.7;}
+    88%{opacity:.95;}
+    100%{top:108%; opacity:0;}}
+
+  /* =========================================================
+     4 — Caustic Ripple: overlapping soft blobs drifting independently,
+     screen-blended so they brighten rather than tint - reads like
+     underwater light caustics playing across the sea floor.
+     ========================================================= */
+  .shim-4 .caustic{position:absolute;inset:-30%;z-index:1;mix-blend-mode:screen;opacity:.55;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(191,233,240,.55) 0 10%, transparent 45%),
+      radial-gradient(circle at 70% 60%, rgba(191,233,240,.45) 0 8%, transparent 40%),
+      radial-gradient(circle at 45% 80%, rgba(191,233,240,.4) 0 9%, transparent 42%);
+    animation:caustic-drift 9s ease-in-out infinite alternate;}
+  .shim-4 .caustic.b{animation-duration:13s; animation-direction:alternate-reverse; opacity:.4;}
+  @keyframes caustic-drift{
+    0%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(6%,4%) scale(1.08);}
+    100%{transform:translate(-4%,7%) scale(.96);}}
+
+  /* =========================================================
+     5 — Rolling Swell: a wide, soft diagonal band of brightness
+     scrolling through, like gentle current moving under the surface.
+     ========================================================= */
+  .shim-5::before{content:'';position:absolute;inset:-30% -60%;z-index:1;
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.22) 48%, rgba(191,233,240,.32) 50%,
+      rgba(191,233,240,.22) 52%, transparent 70%);
+    animation:swell-roll 5.5s ease-in-out infinite;}
+  @keyframes swell-roll{
+    0%{transform:translateX(-30%);}
+    50%{transform:translateX(10%);}
+    100%{transform:translateX(-30%);}}
+
+  /* =========================================================
+     ROUND 2 — Rolling Swell iterations. #5 was the favorite; these all
+     start from its "wide soft diagonal band" base and push toward a
+     stronger wave/tide feel rather than a flat drifting light.
+     ========================================================= */
+
+  /* 6 — Layered Swell: two bands at slightly different angles, speeds and
+     opacity, so they cross and reinforce/cancel like real overlapping
+     swells instead of one uniform sheet. */
+  .shim-6::before,.shim-6::after{content:'';position:absolute;inset:-30% -60%;z-index:1;}
+  .shim-6::before{
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.24) 48%, rgba(191,233,240,.34) 50%,
+      rgba(191,233,240,.24) 52%, transparent 70%);
+    animation:swell-roll 5.5s ease-in-out infinite;}
+  .shim-6::after{
+    background:linear-gradient(122deg,
+      transparent 34%, rgba(191,233,240,.14) 49%, rgba(191,233,240,.2) 50%,
+      rgba(191,233,240,.14) 51%, transparent 66%);
+    animation:swell-roll-b 8.2s ease-in-out infinite;}
+  @keyframes swell-roll-b{
+    0%{transform:translateX(12%);}
+    50%{transform:translateX(-26%);}
+    100%{transform:translateX(12%);}}
+
+  /* 7 — Tidal Pull: same single band as #5, but re-timed with asymmetric
+     easing - a quicker surge forward, a slower drawback - so it reads as
+     a wave pulling in and receding rather than a metronome sweep. */
+  .shim-7::before{content:'';position:absolute;inset:-30% -60%;z-index:1;
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.24) 48%, rgba(191,233,240,.34) 50%,
+      rgba(191,233,240,.24) 52%, transparent 70%);
+    animation:tidal-pull 6s infinite;}
+  @keyframes tidal-pull{
+    0%{transform:translateX(-32%); animation-timing-function:cubic-bezier(.2,.7,.3,1);}
+    38%{transform:translateX(14%); animation-timing-function:cubic-bezier(.6,0,.8,.4);}
+    100%{transform:translateX(-32%);}}
+
+  /* 8 — Foam-Crested Swell: the rolling band plus a thin brighter crest
+     line riding just ahead of it, fading as it passes - like whitewater
+     leading the swell instead of a flat band of light. */
+  .shim-8::before{content:'';position:absolute;inset:-30% -60%;z-index:1;
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.2) 48%, rgba(191,233,240,.28) 50%,
+      rgba(191,233,240,.2) 52%, transparent 70%);
+    animation:swell-roll 5.5s ease-in-out infinite;}
+  .shim-8::after{content:'';position:absolute;inset:-30% -60%;z-index:2;
+    background:linear-gradient(100deg, transparent 47%, rgba(255,255,255,.55) 50%, transparent 53%);
+    filter:blur(1.5px); mix-blend-mode:screen;
+    animation:crest-roll 5.5s ease-in-out infinite;}
+  @keyframes crest-roll{
+    0%{transform:translateX(-24%); opacity:0;}
+    15%{opacity:.85;}
+    50%{transform:translateX(16%); opacity:.5;}
+    85%{opacity:.85;}
+    100%{transform:translateX(-24%); opacity:0;}}
+
+  /* 9 — Breathing Tide: the rolling band plus a slow overall brightness
+     pulse on the whole tile, synced loosely to the swell so the water
+     itself seems to breathe in and out with the current. */
+  .shim-9{animation:tile-breathe 5.5s ease-in-out infinite;}
+  .shim-9::before{content:'';position:absolute;inset:-30% -60%;z-index:1;
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.22) 48%, rgba(191,233,240,.32) 50%,
+      rgba(191,233,240,.22) 52%, transparent 70%);
+    animation:swell-roll 5.5s ease-in-out infinite;}
+  @keyframes tile-breathe{
+    0%{filter:brightness(1);}
+    50%{filter:brightness(1.1);}
+    100%{filter:brightness(1);}}
+
+  /* 10 — Deep Current Bob: the rolling band plus a very subtle vertical
+     drift on the whole tile, as if the surface is gently rising and
+     falling with the current passing under it - not just sliding sideways. */
+  .shim-10::before{content:'';position:absolute;inset:-30% -60%;z-index:1;
+    background:linear-gradient(100deg,
+      transparent 30%, rgba(191,233,240,.22) 48%, rgba(191,233,240,.32) 50%,
+      rgba(191,233,240,.22) 52%, transparent 70%);
+    animation:swell-bob 5.5s ease-in-out infinite;}
+  @keyframes swell-bob{
+    0%{transform:translate(-30%,-2%);}
+    50%{transform:translate(10%,2%);}
+    100%{transform:translate(-30%,-2%);}}
+</style>
+</head>
+<body>
+  <h1>Ocean tile shimmer — 5 treatments</h1>
+  <p class="lede">Large, readable swatches (the in-game tile is much smaller) for the flat
+    <code>OCEAN_COLOR</code> fill on permanent deep-water tiles. All CSS-only, no build step,
+    matching the palette already in <code>GameScene.js</code>/<code>ocean-tides.html</code>
+    (<code>--foam: #bfe9f0</code> highlight over a <code>--ocean: #123a4a</code> base). A gold
+    node dot is shown on one swatch so you can judge readability against a claimable resource
+    sitting on top.</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="tag">1</span>
+      <h2>Drifting Bands</h2>
+      <div class="swatch shim-1"></div>
+      <p class="pitch">Soft diagonal light bands slide sideways at a slow, steady pace - calm,
+        ambient "moving water" texture. Cheapest of the five (one gradient, one animation).</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">2</span>
+      <h2>Twinkle Sparkle</h2>
+      <div class="swatch shim-2" id="swatch2"><div class="node"></div></div>
+      <p class="pitch">Scattered points of light fade in and out on independent timers, like sun
+        glints on a rippled surface. Busiest of the five - reads as "alive" water, but competes
+        more with a node sitting on top.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">3</span>
+      <h2>Wave Crest Sweep</h2>
+      <div class="swatch shim-3"></div>
+      <p class="pitch">A single soft, blurred line sweeps top to bottom on a slow loop - reads as
+        a gentle current or a beam of light passing through the depths. Very calm; easy to miss if
+        you're not looking directly at it.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">4</span>
+      <h2>Caustic Ripple</h2>
+      <div class="swatch shim-4"><div class="caustic"></div><div class="caustic b"></div></div>
+      <p class="pitch">Overlapping soft blobs of light drift independently and screen-blend
+        together - the classic "underwater light caustics" look. Most organic and premium-feeling
+        of the five, costs two blended layers instead of one.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">5</span>
+      <h2>Rolling Swell</h2>
+      <div class="swatch shim-5"></div>
+      <p class="pitch">A wide, soft band of brightness rolls back and forth like a slow swell or
+        current moving beneath the surface. Reads as more "deep and heavy" than the others -
+        good fit for permanent open ocean specifically, vs. the lighter shoreline fringe.</p>
+    </div>
+  </div>
+
+  <h1 style="margin-top:48px;">Round 2 — Rolling Swell iterations</h1>
+  <p class="lede">You liked #5 the most and want it to feel more like actual waves/tides. Five
+    pushes on the same base band, each adding one specific wave trait: layering, tidal timing,
+    foam, breathing, or a bob.</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="tag">6</span>
+      <h2>Layered Swell</h2>
+      <div class="swatch shim-6"></div>
+      <p class="pitch">A second, fainter band crosses the first at a different angle and speed,
+        so the two overlap and cancel unevenly instead of one uniform sheet - reads as multiple
+        swells passing through at once, closer to real open water.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">7</span>
+      <h2>Tidal Pull</h2>
+      <div class="swatch shim-7"></div>
+      <p class="pitch">Same single band, re-timed with a quick surge forward and a slow drawback
+        instead of an even back-and-forth - the asymmetry is what actually reads as "tide,"
+        since real waves don't move at a constant speed.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">8</span>
+      <h2>Foam-Crested Swell</h2>
+      <div class="swatch shim-8"></div>
+      <p class="pitch">A thin bright crest line rides just ahead of the swell band and fades as
+        it passes, like a sliver of whitewater leading the wave. Most "wave-like" of the five,
+        at the cost of a second blended layer.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">9</span>
+      <h2>Breathing Tide</h2>
+      <div class="swatch shim-9"></div>
+      <p class="pitch">The whole tile brightens and dims slightly in time with the swell, as if
+        the water itself is breathing with the current - subtle, but adds a sense of volume the
+        flat band alone doesn't have.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag">10</span>
+      <h2>Deep Current Bob</h2>
+      <div class="swatch shim-10"></div>
+      <p class="pitch">The band drifts on a slight diagonal path instead of pure sideways, like
+        the surface is gently rising and falling as the current passes under it. Cheapest of the
+        five iterations - one extra transform axis, nothing more.</p>
+    </div>
+  </div>
+
+<script>
+  // Twinkle Sparkle: scatter a handful of glints at random positions with staggered timing.
+  const s2 = document.getElementById('swatch2');
+  for (let i = 0; i < 14; i++) {
+    const g = document.createElement('div');
+    g.className = 'glint';
+    g.style.left = (6 + Math.random() * 88) + '%';
+    g.style.top = (6 + Math.random() * 88) + '%';
+    g.style.animationDelay = (Math.random() * 2.6).toFixed(2) + 's';
+    g.style.animationDuration = (2 + Math.random() * 1.6).toFixed(2) + 's';
+    s2.appendChild(g);
+  }
+</script>
+</body>
+</html>

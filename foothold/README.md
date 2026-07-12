@@ -26,7 +26,8 @@ Then open <http://localhost:8123>.
 
 ```
 src/main.js            Phaser bootstrap (picks a portrait 720-wide or wide 900-tall canvas, Scale.FIT)
-src/scenes/            BootScene (asset load), TitleScene (splash), GameScene (the match)
+src/scenes/            BootScene (asset load), TitleScene (splash), LevelSelectScene (pick a
+                        battleground), GameScene (the match)
 src/lib/sfx.js         Procedural Web Audio sound engine (synthesized, no audio files)
 src/lib/settings.js    Persisted user prefs (sound / volume / CRT / DLSS gag) via localStorage
 src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel

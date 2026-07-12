@@ -137,6 +137,52 @@
     background:var(--card2);border:1px dashed #3d425e;}
   .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
   .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+
+  /* ===== Tab switcher ===== */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px;}
+  .tabs button{font-family:var(--head);font-size:14px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ===== Shared "mini board" sizing for tabs 2-4 (lighter than tab 1's full stage) ===== */
+  .stage.mini{width:min(100%,460px);}
+  .board.g6x4{grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(4,1fr);}
+  .board.g4x3{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);}
+  .board.g5x3{grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(3,1fr);}
+  .tile.fogged{background:#10130f;}
+
+  /* ===== Idea 2: Wildwalker Incursion ===== */
+  .tile.bramble{background:#241a10;box-shadow:inset 0 0 0 1px #4a3520;}
+  .tile.bramble::after{content:'🌿';font-size:14px;filter:drop-shadow(0 0 2px #000);}
+  .raid-glyph{position:absolute;font-size:15px;animation:raidGlyphPop .65s ease forwards;}
+  @keyframes raidGlyphPop{0%{opacity:0;transform:scale(.4);}30%{opacity:1;transform:scale(1.15);}
+    100%{opacity:1;transform:scale(1);}}
+  .tile.raid-flash{animation:raidFlash .65s ease;}
+  @keyframes raidFlash{
+    0%{box-shadow:0 0 0 0 rgba(224,84,106,0);}
+    45%{box-shadow:0 0 16px 6px rgba(224,84,106,.85);}
+    100%{box-shadow:0 0 0 0 rgba(224,84,106,0);}}
+
+  /* ===== Idea 3: Overgrowth Reclaim ===== */
+  .tile.ov0{background:#2a3a6b;}
+  .tile.ov1{background:#243219;}
+  .tile.ov2{background:#1a2712;}
+  .tile.ov3{background:#101c0b;box-shadow:inset 0 0 0 1px #253818;}
+  .cost-badge{position:absolute;top:3px;right:3px;font-size:9px;font-weight:700;
+    background:rgba(0,0,0,.55);color:var(--gold);padding:1px 4px;border-radius:6px;
+    opacity:0;transition:opacity .25s ease;}
+  .cost-badge.show{opacity:1;}
+  .ov-slider{display:flex;align-items:center;gap:10px;}
+  .ov-slider input[type=range]{accent-color:var(--gold);}
+
+  /* ===== Idea 4: Canopy Watch ===== */
+  .tile.owl-perch{box-shadow:inset 0 0 0 1px rgba(242,193,78,.55);}
+  .owl-glyph{font-size:16px;filter:drop-shadow(0 0 3px #000);animation:owlPop .5s ease;}
+  @keyframes owlPop{0%{opacity:0;transform:scale(.4);}60%{opacity:1;transform:scale(1.2);}
+    100%{opacity:1;transform:scale(1);}}
+  .tile.mine.bonus-vision{box-shadow:0 0 0 2px var(--gold), 0 0 14px 3px rgba(242,193,78,.5);}
+  .tile.vision-glow{background:#2c3550;box-shadow:inset 0 0 0 1px rgba(242,193,78,.3);}
+  #tab4 button:disabled{opacity:.4;cursor:not-allowed;}
 </style>
 </head>
 <body>
@@ -150,6 +196,14 @@
     here). Real implementation would also need AI vision logic, not just new art — see the
     Future Ideas note in Todo.md.</p>
 
+  <div class="tabs" id="tabNav">
+    <button data-tab="tab1" class="active">1 — Fog of War</button>
+    <button data-tab="tab2">2 — Wildwalker Incursion</button>
+    <button data-tab="tab3">3 — Overgrowth Reclaim</button>
+    <button data-tab="tab4">4 — Canopy Watch</button>
+  </div>
+
+  <section id="tab1" class="tab-panel active">
   <div class="controls row">
     <div class="grp">
       <div class="k">Fog treatment</div>
@@ -222,6 +276,141 @@
       recaptured) — worth deciding before implementation, since "once seen always seen" vs.
       "fog returns" are very different tactical feels.</p>
   </div>
+  </section>
+
+  <section id="tab2" class="tab-panel">
+    <p class="note" style="max-width:680px;margin:0 auto 22px;">Future-idea stage — a third,
+      unaligned force living in unscouted fog. Click the demo button to trigger a raid on the
+      two thorn-marked fog tiles.</p>
+    <div class="controls row">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="opts">
+          <button class="fire" id="raidBtn">🐾 Trigger Wildwalker raid</button>
+          <button id="raidResetBtn">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage mini" style="aspect-ratio:6/4;">
+      <div class="idea-label">Unscouted edge tiles at risk</div>
+      <div class="board g6x4" id="board2"></div>
+    </div>
+    <p class="hint">Tiles left unscouted too many rounds can be raided by the Wildwalker: it
+      seizes 1-2 edge fog tiles and marks them with <b>brambles</b> before either player claims
+      them.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:#2a3a6b"></i> Unclaimed, scouted</span>
+      <span><i class="sw" style="background:#10130f"></i> Fogged</span>
+      <span><i class="sw" style="background:#241a10"></i> Bramble (neutral, blocked)</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>What it is:</b> a neutral, unaligned third force that lives deep in unscouted fog.
+        If a chunk of the map goes too many rounds without being scouted, the Wildwalker raids:
+        it seizes 1-2 random unclaimed (or lightly held) tiles at the fogged edge and covers
+        them in thorny brambles.</p>
+      <p><b>Ownership:</b> brambled tiles belong to neither player until someone pays an extra
+        clearing cost to reclaim them — they're neutral but blocked, not free real estate.</p>
+      <p><b>Design point:</b> punishes turtling and ignoring your own fog. It adds unpredictable
+        third-party pressure so the map isn't purely a two-player tug of war around one AI
+        opponent.</p>
+      <p>Not shown: the actual "rounds unscouted" counter and raid-frequency tuning — this demo
+        just fires the raid on click. Real implementation needs a per-tile timer and a rule for
+        how far into fog a raid can reach.</p>
+    </div>
+  </section>
+
+  <section id="tab3" class="tab-panel">
+    <p class="note" style="max-width:680px;margin:0 auto 22px;">Future-idea stage — unclaimed
+      tiles left unscouted slowly grow denser vines and get pricier to claim. Advance the round
+      counter to watch them overgrow.</p>
+    <div class="controls row">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="ov-slider">
+          <button class="fire" id="ovAdvanceBtn">+1 round</button>
+          <button id="ovResetBtn">↺ Reset</button>
+          <span class="k" id="ovRoundLabel" style="margin:0;">Round 0</span>
+        </div>
+      </div>
+    </div>
+    <div class="stage mini" style="aspect-ratio:4/3;">
+      <div class="idea-label">Overgrowth stages</div>
+      <div class="board g4x3" id="board3"></div>
+    </div>
+    <p class="hint">Each unscouted tile steps through overgrowth stages — darker and denser the
+      longer it's ignored — with a rising <b>gold-cost surcharge</b> shown on the tile.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:#2a3a6b"></i> Stage 0 - base cost</span>
+      <span><i class="sw" style="background:#243219"></i> Stage 1 - +cost</span>
+      <span><i class="sw" style="background:#1a2712"></i> Stage 2 - ++cost</span>
+      <span><i class="sw" style="background:#101c0b"></i> Stage 3 - +++cost</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>What it is:</b> unclaimed tiles that stay unscouted (still fogged) for too many
+        rounds slowly grow denser vines — visually darkening and thickening the longer they're
+        ignored.</p>
+      <p><b>Cost:</b> each overgrowth stage adds a small gold-cost surcharge to claiming that
+        tile, shown as a rising badge in the corner. Scouting a tile resets its overgrowth.</p>
+      <p><b>Design point:</b> rewards active scouting pace over turtling — the map itself pushes
+        back against players who sit still, without needing a third-party actor like the
+        Wildwalker.</p>
+      <p>Tiles in this demo advance in lockstep with the shared round counter but start at
+        staggered stages, so a real board would show a mix of fresh and heavily overgrown tiles
+        at once depending on when each was last seen.</p>
+    </div>
+  </section>
+
+  <section id="tab4" class="tab-panel">
+    <p class="note" style="max-width:680px;margin:0 auto 22px;">Future-idea stage — a wandering
+      owl perches on one random fogged tile. Whoever claims that specific tile gets a bonus
+      vision radius while they hold it, then the owl moves on and you decide whether to chase
+      it again.</p>
+    <div class="controls row">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="opts">
+          <button class="fire" id="owlClaimBtn">🦉 Claim owl's tile</button>
+          <button id="owlMoveBtn">Owl moves on →</button>
+          <button id="owlResetBtn">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage mini" style="aspect-ratio:5/3;">
+      <div class="idea-label">Chase the owl for bonus vision</div>
+      <div class="board g5x3" id="board4"></div>
+    </div>
+    <p class="hint">Claim the tile the <b>owl</b> is perched on for a bonus vision radius, bigger
+      than a normal claim's sightline, while you hold it. After a few rounds it moves on to a
+      new fogged tile elsewhere on the board — you'll have to decide whether to chase it again
+      or hold your ground.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> Your claimed tile</span>
+      <span><i class="sw" style="background:var(--blue);box-shadow:0 0 0 2px var(--gold)"></i> Claimed tile with owl (bonus vision)</span>
+      <span><i class="sw" style="background:#10130f"></i> Fogged tile</span>
+      <span>🦉 Owl's current perch</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>What it is:</b> a wandering owl perches on one random fogged tile at a time.
+        Whichever player claims that specific tile gets a larger-than-normal vision radius while
+        they hold it. After some number of rounds, the owl relocates to a new random fogged tile
+        elsewhere on the board.</p>
+      <p><b>Why it's clearer than the old Stealth Strike idea:</b> vision itself is the prize,
+        not a discount calculation layered on top of a symmetric-fog rule. There's one moving
+        landmark to track and one decision to make - is it worth going after - instead of hidden
+        math about who can see whom.</p>
+      <p><b>Tactical implication:</b> you can turtle and let the owl wander off into ground you
+        don't care about, banking on safety, or chase it into risky unscouted territory for a
+        real information edge over the enemy. Because it keeps moving, vision itself becomes a
+        contested resource instead of a flat, equally-shared one.</p>
+      <p>Not shown: whether the owl moves on a fixed round timer or a random one, and whether the
+        bonus vision lingers briefly after it leaves or cuts off the instant it relocates - both
+        change how aggressively it's worth chasing.</p>
+    </div>
+  </section>
 
 <script>
   const COLS = 6, ROWS = 9;
@@ -333,6 +522,212 @@
   build();
   // Layout settles a frame after build(); re-measure once more so the initial mask lines up.
   requestAnimationFrame(updateMask);
+
+  // ============================================================
+  // Tab switcher - swaps which .tab-panel is visible. Tab 1's own
+  // build/logic above is untouched; this only toggles display.
+  // ============================================================
+  document.getElementById('tabNav').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const id = btn.dataset.tab;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === id));
+    if (id === 'tab1') requestAnimationFrame(updateMask); // fog mask can drift stale while hidden
+  });
+
+  // ============================================================
+  // Idea 2: Wildwalker Incursion - a small illustrative 6x4 board.
+  // 'F' = fogged, 'M' = mine, blank = unclaimed/scouted. Two fogged
+  // edge tiles are pre-flagged as raid targets for the demo button.
+  // ============================================================
+  (function () {
+    const grid = document.getElementById('board2');
+    const layout = 'FFOOFF' + 'FMMOFF' + 'FMMOOF' + 'FFOOFF';
+    const raidIdx = [5, 19];
+    let tiles2 = [];
+
+    function buildTab2() {
+      grid.innerHTML = '';
+      tiles2 = [];
+      layout.split('').forEach((ch, i) => {
+        const el = document.createElement('div');
+        el.className = 'tile';
+        if (ch === 'F') el.classList.add('fogged');
+        if (ch === 'M') el.classList.add('mine');
+        if (raidIdx.includes(i)) el.dataset.raid = '1';
+        grid.appendChild(el);
+        tiles2.push(el);
+      });
+    }
+
+    document.getElementById('raidBtn').addEventListener('click', () => {
+      const targets = tiles2.filter(t => t.dataset.raid === '1' && !t.classList.contains('bramble'));
+      targets.forEach(t => {
+        t.classList.add('raid-flash');
+        const glyph = document.createElement('span');
+        glyph.className = 'raid-glyph';
+        glyph.textContent = '🐾';
+        t.appendChild(glyph);
+        setTimeout(() => {
+          t.classList.remove('raid-flash', 'fogged');
+          t.classList.add('bramble');
+          glyph.remove();
+        }, 650);
+      });
+    });
+    document.getElementById('raidResetBtn').addEventListener('click', buildTab2);
+
+    buildTab2();
+  })();
+
+  // ============================================================
+  // Idea 3: Overgrowth Reclaim - 4x3 board of unclaimed fog tiles,
+  // each with a staggered starting stage so a shared "+1 round"
+  // button shows a mix of overgrowth states, like a real board would.
+  // ============================================================
+  (function () {
+    const grid = document.getElementById('board3');
+    const COST = [0, 15, 30, 50]; // gold surcharge per overgrowth stage
+    const OFFSETS = [0, 1, 2, 0, 1, 3, 2, 0, 1, 2, 3, 1]; // per-tile stagger, 12 tiles
+    let round = 0;
+    let tiles3 = [];
+
+    function buildTab3() {
+      grid.innerHTML = '';
+      tiles3 = [];
+      OFFSETS.forEach(() => {
+        const el = document.createElement('div');
+        el.className = 'tile fogged';
+        const badge = document.createElement('span');
+        badge.className = 'cost-badge';
+        el.appendChild(badge);
+        grid.appendChild(el);
+        tiles3.push(el);
+      });
+      render3();
+    }
+
+    function render3() {
+      document.getElementById('ovRoundLabel').textContent = 'Round ' + round;
+      tiles3.forEach((el, i) => {
+        const stage = Math.max(0, Math.min(3, round - OFFSETS[i] + OFFSETS[0]));
+        el.classList.remove('ov0', 'ov1', 'ov2', 'ov3');
+        el.classList.add('ov' + stage);
+        const badge = el.querySelector('.cost-badge');
+        if (stage > 0) {
+          badge.textContent = '+' + COST[stage] + 'g';
+          badge.classList.add('show');
+        } else {
+          badge.classList.remove('show');
+        }
+      });
+    }
+
+    document.getElementById('ovAdvanceBtn').addEventListener('click', () => {
+      round = Math.min(6, round + 1);
+      render3();
+    });
+    document.getElementById('ovResetBtn').addEventListener('click', () => {
+      round = 0;
+      render3();
+    });
+
+    buildTab3();
+  })();
+
+  // ============================================================
+  // Idea 4: Canopy Watch - a small 5x3 board where an owl perches on
+  // one fogged tile at a time. Claiming that tile grants a bonus
+  // vision ring (its neighbors light up); "Owl moves on" relocates
+  // the owl to a new unclaimed fogged tile and drops the old ring.
+  // ============================================================
+  (function () {
+    const grid = document.getElementById('board4');
+    const COLS4 = 5, ROWS4 = 3;
+    const START_MINE = 5; // existing claimed tile, so there's a baseline to compare against
+    const START_OWL = 7;  // owl's starting perch, a couple tiles into the fog
+    let cells4 = []; // { el, claimed }
+    let owlIdx = START_OWL;
+    let bonusIdx = null; // index of the claimed tile currently granting bonus vision
+
+    function neighbors4(idx) {
+      const c = idx % COLS4, r = Math.floor(idx / COLS4);
+      const out = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nc = c + dc, nr = r + dr;
+          if (nc >= 0 && nc < COLS4 && nr >= 0 && nr < ROWS4) out.push(nr * COLS4 + nc);
+        }
+      }
+      return out;
+    }
+
+    function buildTab4() {
+      grid.innerHTML = '';
+      cells4 = [];
+      owlIdx = START_OWL;
+      bonusIdx = null;
+      for (let i = 0; i < COLS4 * ROWS4; i++) {
+        const el = document.createElement('div');
+        el.className = 'tile fogged';
+        grid.appendChild(el);
+        cells4.push({ el, claimed: false });
+      }
+      cells4[START_MINE].claimed = true;
+      render4();
+      updateButtons4();
+    }
+
+    function render4() {
+      const ring = bonusIdx !== null ? neighbors4(bonusIdx) : [];
+      cells4.forEach((cell, i) => {
+        const el = cell.el;
+        el.className = 'tile';
+        el.innerHTML = '';
+        if (cell.claimed) el.classList.add('mine');
+        else el.classList.add('fogged');
+        if (i === bonusIdx) el.classList.add('bonus-vision');
+        if (!cell.claimed && ring.includes(i)) el.classList.add('vision-glow');
+        if (i === owlIdx) {
+          el.classList.add('owl-perch');
+          const glyph = document.createElement('span');
+          glyph.className = 'owl-glyph';
+          glyph.textContent = '🦉';
+          el.appendChild(glyph);
+        }
+      });
+    }
+
+    function updateButtons4() {
+      document.getElementById('owlClaimBtn').disabled = cells4[owlIdx].claimed;
+      document.getElementById('owlMoveBtn').disabled = !cells4[owlIdx].claimed;
+    }
+
+    document.getElementById('owlClaimBtn').addEventListener('click', () => {
+      if (cells4[owlIdx].claimed) return;
+      cells4[owlIdx].claimed = true;
+      bonusIdx = owlIdx;
+      render4();
+      updateButtons4();
+    });
+
+    document.getElementById('owlMoveBtn').addEventListener('click', () => {
+      if (!cells4[owlIdx].claimed) return;
+      const candidates = cells4
+        .map((cell, i) => i)
+        .filter(i => i !== owlIdx && !cells4[i].claimed);
+      if (!candidates.length) return; // demo board fully claimed, nowhere left to wander
+      owlIdx = candidates[Math.floor(Math.random() * candidates.length)];
+      bonusIdx = null; // old perch keeps its claimed tile but loses the bonus vision ring
+      render4();
+      updateButtons4();
+    });
+
+    document.getElementById('owlResetBtn').addEventListener('click', buildTab4);
+
+    buildTab4();
+  })();
 </script>
 </body>
 </html>

@@ -1,0 +1,230 @@
+<title>Tide Wipe Timing - Simultaneous vs Sequential</title>
+<style>
+  :root {
+    --bg: #14161f;
+    --panel: #1b1e2b;
+    --card: #22263a;
+    --card-border: #333952;
+    --ink: #e7e9f0;
+    --subtle: #aeb4c6;
+    --sand: #3d3018;
+    --ocean: #1c5f7a;
+    --submerged: #164a5f;
+    --warn: #6fefff;
+    --accent: #3d6cff;
+    --font: system-ui, -apple-system, sans-serif;
+    --head: 'Grenze', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px; background: var(--bg); color: var(--ink);
+    font-family: var(--font);
+  }
+  h1 { font-family: var(--head); font-size: 28px; margin: 0 0 4px; }
+  .sub { color: var(--subtle); font-size: 15px; margin: 0 0 24px; max-width: 760px; line-height: 1.5; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; position: sticky; top: 0; background: var(--bg); padding: 12px 0; z-index: 10; }
+  .tab {
+    padding: 10px 18px; border-radius: 10px; background: var(--card); border: 1px solid var(--card-border);
+    cursor: pointer; font-size: 14px; font-weight: 600; color: var(--subtle);
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .copy {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 20px; font-size: 14px; color: var(--subtle); line-height: 1.5; max-width: 720px;
+  }
+  .copy b { color: var(--ink); }
+
+  .stage { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .boardWrap { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  canvas.board { background: var(--panel); border-radius: 8px; display: block; }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  button.replay {
+    padding: 8px 16px; border-radius: 8px; background: var(--accent); border: none; color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.replay:hover { filter: brightness(1.1); }
+  .status { font-size: 13px; color: var(--subtle); }
+
+  .legend { max-width: 280px; font-size: 13px; color: var(--subtle); line-height: 1.6; }
+  .legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .legend .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+</style>
+
+<h1>Tide Wipe Timing - Simultaneous vs Sequential</h1>
+<p class="sub">Four candidate timing styles for the flood-in wipe (the two shoreline clusters near the top-right and bottom-left corners, each sweeping from its own corner). All four run noticeably slower than the current live build (160ms/step) - the fastest option here is ~40% slower, the slowest is 2x. Click "Replay" to re-trigger a tab's animation; each also auto-loops every few seconds.</p>
+
+<div class="tabs">
+  <div class="tab active" data-tab="a">A - Simultaneous, moderate</div>
+  <div class="tab" data-tab="b">B - Simultaneous, slow</div>
+  <div class="tab" data-tab="c">C - Sequential (one, then the other)</div>
+  <div class="tab" data-tab="d">D - Cascade (overlapping start)</div>
+</div>
+
+<div class="panel active" id="panel-a">
+  <div class="copy"><b>A - Simultaneous, moderate.</b> Both clusters start the instant the tide turns and sweep from their own corner at the same time, just slower than today: 220ms per distance-step (current build is 160ms). Reads as "the whole coastline responds to the tide at once," each cluster still visibly animating inward from its corner.</div>
+  <div class="stage">
+    <div class="boardWrap">
+      <canvas class="board" id="board-a" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="a">Replay</button><span class="status" id="status-a"></span></div>
+    </div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:var(--sand)"></span> Dry shoreline</div>
+      <div class="row"><span class="swatch" style="background:var(--submerged)"></span> Flooded</div>
+      <div class="row"><span class="swatch" style="background:var(--ocean)"></span> Deep ocean</div>
+      <div class="row">Step: 220ms · both clusters start at t=0</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-b">
+  <div class="copy"><b>B - Simultaneous, slow.</b> Same as A (both clusters start together) but stretched further: 320ms per step, exactly 2x the current build. Each cluster's own sweep takes noticeably longer to cross its full length, giving the flood real weight and drama rather than a quick flick.</div>
+  <div class="stage">
+    <div class="boardWrap">
+      <canvas class="board" id="board-b" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="b">Replay</button><span class="status" id="status-b"></span></div>
+    </div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:var(--sand)"></span> Dry shoreline</div>
+      <div class="row"><span class="swatch" style="background:var(--submerged)"></span> Flooded</div>
+      <div class="row"><span class="swatch" style="background:var(--ocean)"></span> Deep ocean</div>
+      <div class="row">Step: 320ms · both clusters start at t=0</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-c">
+  <div class="copy"><b>C - Sequential.</b> The bottom-left cluster sweeps first, start to finish, THEN the top-right cluster begins its own sweep. Reads more like two distinct events ("the near shore floods, then the far shore floods") rather than one unified tide - could work if you want each cluster to draw individual attention, but takes longer overall to fully settle.</div>
+  <div class="stage">
+    <div class="boardWrap">
+      <canvas class="board" id="board-c" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="c">Replay</button><span class="status" id="status-c"></span></div>
+    </div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:var(--sand)"></span> Dry shoreline</div>
+      <div class="row"><span class="swatch" style="background:var(--submerged)"></span> Flooded</div>
+      <div class="row"><span class="swatch" style="background:var(--ocean)"></span> Deep ocean</div>
+      <div class="row">Step: 200ms · BL finishes, then TR starts (200ms pause between)</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-d">
+  <div class="copy"><b>D - Cascade (overlapping start).</b> Both clusters start close together but not simultaneously - the bottom-left cluster leads, and the top-right cluster joins in partway through (a fixed 450ms offset), so the two sweeps overlap in the middle rather than running perfectly in lockstep or fully back-to-back. Reads as one continuous "wave passing over the whole coastline" rather than two synced events or two separate ones.</div>
+  <div class="stage">
+    <div class="boardWrap">
+      <canvas class="board" id="board-d" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="d">Replay</button><span class="status" id="status-d"></span></div>
+    </div>
+    <div class="legend">
+      <div class="row"><span class="swatch" style="background:var(--sand)"></span> Dry shoreline</div>
+      <div class="row"><span class="swatch" style="background:var(--submerged)"></span> Flooded</div>
+      <div class="row"><span class="swatch" style="background:var(--ocean)"></span> Deep ocean</div>
+      <div class="row">Step: 240ms · BL starts at t=0, TR joins at t=450ms</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  }));
+
+  const GRID_W = 6, GRID_H = 9, TILE = 50;
+  const COLORS = { ocean: '#1c5f7a', sand: '#3d3018', submerged: '#164a5f', bg: '#1b1e2b' };
+
+  // Simplified stand-ins for the real generateShoals() output: an L-shaped ocean run in each
+  // corner (deep water, never changes) plus its adjacent shoal fringe (the tiles that flood).
+  const oceanTR = [[0,2],[0,3],[0,4],[0,5],[1,5],[2,5],[3,5],[4,5]];
+  const oceanBL = [[8,0],[8,1],[8,2],[8,3],[7,0],[6,0],[5,0],[4,0]];
+  const oceanSet = new Set([...oceanTR, ...oceanBL].map(([r,c]) => r + ',' + c));
+  function touchesOcean(r, c) {
+    return [[1,0],[-1,0],[0,1],[0,-1]].some(([dr,dc]) => oceanSet.has((r+dr) + ',' + (c+dc)));
+  }
+  const anchorTR = { r: 0, c: GRID_W - 1 }, anchorBL = { r: GRID_H - 1, c: 0 };
+  const shoal = [];
+  for (let r = 0; r < GRID_H; r++) {
+    for (let c = 0; c < GRID_W; c++) {
+      if (oceanSet.has(r + ',' + c)) continue;
+      if (!touchesOcean(r, c)) continue;
+      // Which corner cluster: whichever ocean anchor is nearer decides region, same idea as the
+      // live game's oceanRegion tag inherited from the adjacent ocean tile.
+      const region = (Math.hypot(r - anchorTR.r, c - anchorTR.c) < Math.hypot(r - anchorBL.r, c - anchorBL.c)) ? 'tr' : 'bl';
+      const anchor = region === 'tr' ? anchorTR : anchorBL;
+      const d = Math.hypot(r - anchor.r, c - anchor.c);
+      shoal.push({ r, c, region, d });
+    }
+  }
+  const maxD = { tr: Math.max(...shoal.filter(s => s.region === 'tr').map(s => s.d)),
+                 bl: Math.max(...shoal.filter(s => s.region === 'bl').map(s => s.d)) };
+
+  function drawBoard(ctx, floodedSet) {
+    ctx.fillStyle = COLORS.bg;
+    ctx.fillRect(0, 0, GRID_W * TILE, GRID_H * TILE);
+    for (let r = 0; r < GRID_H; r++) {
+      for (let c = 0; c < GRID_W; c++) {
+        const key = r + ',' + c;
+        let color = null;
+        if (oceanSet.has(key)) color = COLORS.ocean;
+        else if (shoal.find(s => s.r === r && s.c === c)) color = floodedSet.has(key) ? COLORS.submerged : COLORS.sand;
+        if (!color) continue;
+        ctx.fillStyle = color;
+        ctx.fillRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
+      }
+    }
+  }
+
+  // Runs one flood-in sweep given a per-tile delay function; timers are simple setTimeout calls
+  // (this is a static preview page, not the live game's Phaser clock).
+  function runSweep(canvasId, statusId, delayFor, totalDur) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const statusEl = document.getElementById(statusId);
+    const flooded = new Set();
+    const timers = [];
+    drawBoard(ctx, flooded);
+    statusEl.textContent = 'flooding…';
+    shoal.forEach(s => {
+      const key = s.r + ',' + s.c;
+      const t = setTimeout(() => { flooded.add(key); drawBoard(ctx, flooded); }, delayFor(s));
+      timers.push(t);
+    });
+    const doneTimer = setTimeout(() => { statusEl.textContent = 'settled'; }, totalDur + 80);
+    timers.push(doneTimer);
+    return timers;
+  }
+
+  const boards = {}; // id -> { delayFor, totalDur, loopTimer }
+
+  function startLoop(id) {
+    if (boards[id] && boards[id].loopTimer) clearTimeout(boards[id].loopTimer);
+    const { delayFor, totalDur } = boards[id];
+    runSweep('board-' + id, 'status-' + id, delayFor, totalDur);
+    boards[id].loopTimer = setTimeout(() => startLoop(id), totalDur + 1400);
+  }
+
+  // A: simultaneous, 220ms/step
+  boards.a = { delayFor: (s) => s.d * 220, totalDur: Math.max(maxD.tr, maxD.bl) * 220 };
+  // B: simultaneous, 320ms/step
+  boards.b = { delayFor: (s) => s.d * 320, totalDur: Math.max(maxD.tr, maxD.bl) * 320 };
+  // C: sequential - BL sweeps fully (200ms/step), then TR starts after a 200ms pause
+  boards.c = { delayFor: (s) => {
+    const blDur = maxD.bl * 200;
+    return s.region === 'bl' ? s.d * 200 : blDur + 200 + s.d * 200;
+  }, totalDur: maxD.bl * 200 + 200 + maxD.tr * 200 };
+  // D: cascade - BL starts at t=0, TR joins at t=450ms, both at 240ms/step
+  boards.d = { delayFor: (s) => (s.region === 'bl' ? 0 : 450) + s.d * 240,
+               totalDur: 450 + Math.max(maxD.tr, maxD.bl) * 240 };
+
+  Object.keys(boards).forEach(startLoop);
+
+  document.querySelectorAll('button.replay').forEach(btn => btn.addEventListener('click', () => {
+    startLoop(btn.dataset.board);
+  }));
+</script>

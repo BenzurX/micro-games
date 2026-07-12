@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Fire level hazard ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    /* fire-specific palette, same naming convention as --blue/--gold/etc */
+    --lava:#ff5a1f; --ember:#ffb347; --ash:#564d44; --scorch:#2a2420;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 22px;max-width:680px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:680px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  /* ---- tab switcher, styled like the sticky .controls bar elsewhere in this repo ---- */
+  .tabs{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.94);
+    backdrop-filter:blur(4px);padding:10px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:8px;flex-wrap:wrap;}
+  .tabs button{flex:1 1 160px;}
+
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:8px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--lava);}
+  button.active{background:var(--lava);border-color:var(--lava);color:#1b1e2b;}
+  button.fire{background:var(--ember);border-color:var(--ember);color:#1b1e2b;font-weight:700;}
+  button.fire:hover{filter:brightness(1.1);}
+  button:disabled{opacity:.5;cursor:default;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .scene{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;justify-content:center;}
+
+  .controls{background:var(--card2);border:1px solid #333850;border-radius:12px;
+    padding:12px 14px;margin:0 auto 18px;max-width:680px;display:flex;gap:14px;
+    flex-wrap:wrap;align-items:center;justify-content:center;}
+  .controls .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+    text-transform:uppercase;margin-right:4px;}
+
+  .stage{position:relative;width:min(100%,360px);aspect-ratio:2/3;
+    border-radius:14px;overflow:hidden;background:#141726;border:1px solid #262a3e;flex-shrink:0;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:8px;}
+  .tile{position:relative;border-radius:3px;background:#2a3a6b;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    transition:background .35s ease;}
+  .tile.mine{background:var(--blue);}
+  .tile.enemy{background:var(--red);}
+  .tile.node::after{content:'';width:34%;height:34%;border-radius:50%;background:var(--gold);opacity:.85;}
+  .tile.home{outline:2px solid var(--gold);outline-offset:-2px;}
+
+  /* ---- shared hazard tile states ---- */
+  .tile.scorched{background:var(--scorch);}
+  .tile.scorched::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(115deg, rgba(0,0,0,.25) 0 2px, transparent 2px 6px);}
+
+  .tile.burning{background:var(--lava);}
+  .tile.burning .flame{position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(circle at 30% 85%, var(--ember) 0 22%, transparent 45%),
+      radial-gradient(circle at 65% 80%, #fff2c9 0 12%, transparent 35%),
+      radial-gradient(circle at 50% 95%, var(--lava) 0 30%, transparent 55%);
+    animation:flicker .5s ease-in-out infinite alternate;}
+  @keyframes flicker{
+    0%{opacity:.75;transform:scaleY(.9) translateY(2%);}
+    100%{opacity:1;transform:scaleY(1.05) translateY(-2%);}}
+
+  .impact-flash{position:absolute;inset:0;border-radius:3px;pointer-events:none;
+    background:radial-gradient(circle, #fff8e0 0%, var(--ember) 35%, transparent 70%);
+    animation:impact-pop .45s ease-out forwards;}
+  @keyframes impact-pop{
+    0%{opacity:0;transform:scale(.2);}
+    35%{opacity:1;transform:scale(1.3);}
+    100%{opacity:0;transform:scale(1.6);}}
+
+  .meteor{position:absolute;width:9px;height:9px;border-radius:50%;z-index:6;pointer-events:none;
+    background:radial-gradient(circle, #fff8e0, var(--ember) 55%, var(--lava) 80%, transparent 90%);
+    box-shadow:0 0 10px 3px var(--lava);
+    transition:left .6s cubic-bezier(.6,0,1,.4), top .6s cubic-bezier(.6,0,1,.4);}
+  .meteor::before{content:'';position:absolute;left:50%;bottom:50%;width:3px;height:34px;
+    background:linear-gradient(to top, var(--lava), transparent);
+    transform-origin:50% 100%;
+    transform:translateX(-50%) rotate(var(--ang,0deg));opacity:.85;}
+
+  /* ---- volcano on-board feature (tab 1): fixed 2x2 impassable cluster mid-board ---- */
+  .tile.volcano-tile{background:var(--ash);pointer-events:none;}
+  .tile.volcano-tile::before{content:'';position:absolute;inset:0;
+    background:repeating-linear-gradient(115deg, rgba(0,0,0,.35) 0 2px, transparent 2px 6px);}
+  .volcano-onboard{grid-column:3/5;grid-row:5/7;position:relative;z-index:3;pointer-events:none;}
+  .volcano-onboard .cone{position:absolute;left:8%;right:8%;bottom:0;top:22%;
+    clip-path:polygon(50% 0%, 100% 100%, 0% 100%);
+    background:linear-gradient(180deg, #3a2a26 0%, #241a17 70%);
+    border-bottom:3px solid var(--scorch);}
+  .volcano-onboard .cone::after{content:'';position:absolute;top:-3px;left:38%;width:24%;height:12px;
+    border-radius:50%;background:radial-gradient(circle, var(--ember) 0%, var(--lava) 60%, transparent 80%);
+    box-shadow:0 0 12px 4px var(--lava);animation:glow-pulse 2.4s ease-in-out infinite;}
+  @keyframes glow-pulse{0%,100%{opacity:.7;}50%{opacity:1;}}
+  .volcano-onboard .smoke{position:absolute;top:-10px;left:44%;width:8px;height:8px;border-radius:50%;
+    background:rgba(180,180,190,.4);filter:blur(2px);animation:smoke-rise 3.6s ease-in infinite;}
+  .volcano-onboard .smoke:nth-child(2){animation-delay:1.2s;left:50%;}
+  .volcano-onboard .smoke:nth-child(3){animation-delay:2.4s;left:40%;}
+  @keyframes smoke-rise{
+    0%{transform:translate(0,0) scale(1);opacity:.5;}
+    100%{transform:translate(6px,-40px) scale(2.2);opacity:0;}}
+
+  /* ---- real-time eruption clock (tab 1) ---- */
+  .eruption-clock{max-width:420px;margin:0 auto 18px;display:flex;align-items:center;gap:10px;
+    font-size:12px;color:var(--subtle);}
+  .eruption-clock-track{flex:1;height:8px;border-radius:5px;background:var(--card2);
+    border:1px solid #333850;overflow:hidden;}
+  .eruption-clock-fill{height:100%;width:0%;
+    background:linear-gradient(90deg, var(--ember), var(--lava));transition:width .12s linear;}
+
+  /* ---- lava snake (tab 2) ---- */
+  .tile.snake-head{background:var(--ember);box-shadow:inset 0 0 0 2px #fff2c9;}
+  .tile.snake-body{background:var(--lava);}
+  .tile.telegraph{position:relative;}
+  .tile.telegraph::after{content:'';position:absolute;inset:3px;border-radius:2px;
+    background:var(--lava);opacity:.28;animation:telegraph-pulse 1s ease-in-out infinite;}
+  @keyframes telegraph-pulse{0%,100%{opacity:.18;}50%{opacity:.42;}}
+
+  /* ---- ember node (tab 3) ---- */
+  .tile.ember-node{background:#33322a;}
+  .tile.ember-node::after{content:'';width:38%;height:38%;border-radius:50%;
+    background:var(--ember);opacity:.9;}
+  .tile.ember-node.producing::after{animation:ember-pulse 1.8s ease-in-out infinite;}
+  @keyframes ember-pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,179,71,.5);transform:scale(1);}
+    50%{box-shadow:0 0 10px 4px rgba(255,179,71,.55);transform:scale(1.12);}}
+  .tile.ember-node.taxing{background:var(--lava);}
+  .tile.ember-node.taxing::after{background:#fff2c9;animation:ember-flare .55s ease-out;}
+  @keyframes ember-flare{
+    0%{box-shadow:0 0 0 0 rgba(255,90,31,.9);transform:scale(1);}
+    40%{box-shadow:0 0 22px 10px rgba(255,90,31,.85);transform:scale(1.5);}
+    100%{box-shadow:0 0 0 0 rgba(255,90,31,0);transform:scale(1);}}
+  .tax-pop{position:absolute;left:50%;top:20%;transform:translate(-50%,0);
+    font-family:var(--head);font-weight:700;font-size:13px;color:var(--lava);
+    text-shadow:0 1px 2px #000;pointer-events:none;animation:tax-float 1s ease-out forwards;
+    z-index:7;white-space:nowrap;}
+  @keyframes tax-float{
+    0%{opacity:0;transform:translate(-50%,4px);}
+    20%{opacity:1;}
+    100%{opacity:0;transform:translate(-50%,-26px);}}
+
+  /* ---- spreading wildfire (tab 4) ---- */
+  .tile.ignite{background:var(--scorch);outline:2px solid var(--ember);outline-offset:-2px;}
+  .tile.firebreak{outline:2px solid var(--blue);outline-offset:-2px;}
+  .tile.firebreak::before{content:'';position:absolute;inset:5px;border-radius:50%;
+    border:2px solid rgba(120,170,255,.8);box-shadow:0 0 6px 1px rgba(61,108,255,.55) inset;}
+  .tile.ward-block{animation:ward-flash .5s ease-out;}
+  @keyframes ward-flash{
+    0%{box-shadow:0 0 0 0 rgba(61,108,255,0);}
+    40%{box-shadow:0 0 14px 6px rgba(61,108,255,.7);}
+    100%{box-shadow:0 0 0 0 rgba(61,108,255,0);}}
+
+  .idea-label{position:absolute;top:8px;left:8px;z-index:4;font-family:var(--head);
+    font-weight:700;font-size:13px;color:var(--ember);background:rgba(0,0,0,.4);
+    padding:3px 9px;border-radius:20px;}
+
+  .legend{max-width:420px;margin:14px auto 0;display:flex;gap:14px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;flex-shrink:0;}
+
+  .copy{max-width:680px;margin:24px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);
+    text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+  .copy p:last-child{margin-bottom:0;}
+  .copy b{color:var(--ink);}
+</style>
+</head>
+<body>
+  <h1>Fire level — hazard mechanic ideas</h1>
+  <p class="lede">Future-idea stage only (Todo.md "Future Ideas", not v1 scope) — four candidate
+    hazard mechanics for a lava/hell-themed level, each distinct from the shipped v1 river terrain.
+    All hazard tiles punish whoever holds them; the tactical question in every idea is how much
+    risk a player accepts to sit near fire.</p>
+  <p class="note">Rough visual sketch only, no game engine or persistence. Each demo button plays
+    a canned animation once — click it, then "Reset" to replay.</p>
+
+  <div class="tabs" id="tabPicker">
+    <button data-tab="volcano" class="active">1 — Volcano meteors</button>
+    <button data-tab="snake">2 — Lava snake</button>
+    <button data-tab="ember">3 — Ember node</button>
+    <button data-tab="wildfire">4 — Spreading wildfire</button>
+  </div>
+
+  <!-- ============ TAB 1: VOLCANO METEOR STRIKES ============ -->
+  <div class="panel active" id="panel-volcano">
+    <div class="controls">
+      <span class="k">Demo</span>
+      <button class="fire" id="v1-erupt">🌋 Erupt now</button>
+      <button id="v1-reset">↺ Reset board</button>
+    </div>
+    <div class="eruption-clock">
+      <span>Next eruption (real-time, runs regardless of turns)</span>
+      <div class="eruption-clock-track"><div class="eruption-clock-fill" id="v1-clock-fill"></div></div>
+    </div>
+    <div class="scene">
+      <div class="stage" id="v1-stage">
+        <div class="idea-label">1 — Volcano meteors</div>
+        <div class="board" id="v1-board"></div>
+      </div>
+    </div>
+    <p class="legend" style="max-width:520px">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:var(--lava)"></i> Burning</span>
+      <span><i class="sw" style="background:var(--scorch)"></i> Scorched (neutral, reclaim it)</span>
+      <span><i class="sw" style="background:var(--ash)"></i> Volcano (impassable, fixed)</span>
+    </p>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>The idea:</b> the volcano is a fixed on-board feature now - a solid 2x2 cluster of
+        impassable tiles sitting in the middle of the map, not off-screen scenery. Neither player
+        can claim or act on those tiles; it's just a permanent landmark the match is played around.
+        Instead of erupting on a turn-based cadence, it runs on its own real-time clock - the bar
+        above fills continuously in the background and, the moment it completes, the volcano fires
+        3-4 meteors weighted toward already-claimed or contested tiles, then the bar resets and
+        starts filling again.</p>
+      <p><b>Tactical implication:</b> because that clock keeps running whether or not it's your
+        turn, you can't "wait out" an eruption the way you can plan around a turn-counted hazard -
+        it can fire mid-decision on your own move, or while you're just sitting idle waiting on the
+        opponent. That's a genuinely different pressure from the other three lava ideas (all
+        turn-paced) and from the rest of Foothold's level concepts generally, since the core game is
+        turn-based throughout - this is the one place real time intrudes on it.</p>
+      <p><b>Feel:</b> still bursty and dramatic - a few seconds of chaos, then calm - but the
+        anxiety is ambient now instead of scheduled. Watching that bar creep toward full while
+        you're trying to plan a move (yours or not) is the whole point: the board itself should feel
+        like it's on a fuse.</p>
+      <p>Open question: this is a bigger architectural lift than the other three ideas, worth
+        flagging honestly - Foothold's loop is otherwise fully turn-based, so a live clock needs a
+        real answer for how it behaves around anything that pauses play (does it keep ticking behind
+        a pause menu or settings modal? during the AI's "thinking" delay? on a game-over screen?).
+        "Always ticking except on an explicit pause" is probably the simplest safe default, but that
+        needs a real pause state to hook into, which doesn't exist elsewhere in the game yet.</p>
+    </div>
+  </div>
+
+  <!-- ============ TAB 2: LAVA SNAKE ============ -->
+  <div class="panel" id="panel-snake">
+    <div class="controls">
+      <span class="k">Demo</span>
+      <button class="fire" id="v2-slither">🐍 Slither (auto-play path)</button>
+      <button id="v2-reset">↺ Reset board</button>
+    </div>
+    <div class="scene">
+      <div class="stage" id="v2-stage">
+        <div class="idea-label">2 — Lava snake</div>
+        <div class="board" id="v2-board"></div>
+      </div>
+    </div>
+    <p class="legend" style="max-width:520px">
+      <span><i class="sw" style="background:var(--ember)"></i> Snake head</span>
+      <span><i class="sw" style="background:var(--lava)"></i> Snake body</span>
+      <span><i class="sw" style="background:var(--lava);opacity:.3"></i> Telegraphed (next 1-2 moves)</span>
+      <span><i class="sw" style="background:var(--scorch)"></i> Scorched in its wake</span>
+    </p>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>The idea:</b> a lava-elemental worm crawls a winding path across the board over several
+        turns, classic Snake-style movement. Any tile it currently occupies instantly loses
+        ownership — scorched to neutral the moment the worm passes over it, whether it was yours or
+        the enemy's.</p>
+      <p><b>Tactical implication:</b> unlike the meteors (bursty and semi-random) this is a slow,
+        readable threat. Because the next 1-2 tiles ahead of the head are shown as a dim telegraphed
+        preview, a sharp player can pull value out of a tile before the worm arrives, or deliberately
+        avoid building right in its path — it rewards reading ahead rather than reacting.</p>
+      <p><b>Feel:</b> creates a moving "no-go" corridor that reshapes the board over time, more like
+        a weather system than an attack. Could be tuned to move every N rounds so it's a background
+        rhythm rather than the main event of the level.</p>
+      <p>Open question: should the worm's path be fully fixed per game (procedurally generated once,
+        same fairness guarantee as node placement) or adapt toward whichever player is ahead — the
+        latter is spicier but risks feeling unfair on mobile.</p>
+    </div>
+  </div>
+
+  <!-- ============ TAB 3: EMBER NODE ============ -->
+  <div class="panel" id="panel-ember">
+    <div class="controls">
+      <span class="k">Demo</span>
+      <button class="fire" id="v3-flare">🔥 Trigger flare now</button>
+      <button id="v3-reset">↺ Reset board</button>
+    </div>
+    <div class="scene">
+      <div class="stage" id="v3-stage">
+        <div class="idea-label">3 — Ember node</div>
+        <div class="board" id="v3-board"></div>
+      </div>
+    </div>
+    <p class="legend" style="max-width:520px">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--ember)"></i> Ember node, producing (warm pulse)</span>
+      <span><i class="sw" style="background:var(--lava)"></i> Ember node, taxing (sharp flash)</span>
+    </p>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>The idea:</b> a hazard-adjacent resource node that produces noticeably more income than
+        a normal node while you hold it, but periodically "flares" and burns a chunk of your
+        stockpile as a tax for sitting on it. Genuine high-risk/high-reward, distinct from the other
+        three ideas which are all about losing the tile itself — here the tile stays yours, the
+        pain is a recurring stockpile hit.</p>
+      <p><b>Tactical implication:</b> claiming it is a bet that the extra income outpaces the
+        periodic tax over the rounds you expect to hold it — probably correct early (thin
+        stockpile, high value-per-turn) and risky late (a big flare can wipe out a war chest right
+        before a push). Gives late-game players a reason to actively decide whether to keep or
+        abandon it rather than passively upgrading everything.</p>
+      <p><b>Readability is the whole design problem here:</b> a player must be able to tell "is
+        this about to tax me" at a glance, so the two states use deliberately different language —
+        a slow warm amber pulse while producing safely, versus a sharp orange-red flash burst when
+        it fires. A floating "-N gold" popup on flare makes the cost legible immediately rather than
+        players noticing it only in the resource counter.</p>
+    </div>
+  </div>
+
+  <!-- ============ TAB 4: SPREADING WILDFIRE ============ -->
+  <div class="panel" id="panel-wildfire">
+    <div class="controls">
+      <span class="k">Demo</span>
+      <button class="fire" id="v4-advance">➡ Advance fire</button>
+      <button id="v4-reset">↺ Reset board</button>
+    </div>
+    <div class="scene">
+      <div class="stage" id="v4-stage">
+        <div class="idea-label">4 — Spreading wildfire</div>
+        <div class="board" id="v4-board"></div>
+      </div>
+    </div>
+    <p class="legend" style="max-width:520px">
+      <span><i class="sw" style="background:var(--scorch)"></i> Ignition point / burned</span>
+      <span><i class="sw" style="background:var(--blue)"></i> Firebreak (player-held, blocks spread)</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy (consumed if reached)</span>
+    </p>
+    <div class="copy">
+      <div class="k">Design notes</div>
+      <p><b>The idea:</b> fire ignites at one fixed point (e.g. an edge tile prone to catching)
+        and, if left unchecked, spreads tile-to-tile along adjacency once per round, consuming
+        whoever owns each newly-ignited tile. Unlike the snake (which moves along a path) or the
+        meteors (which strike at random), this is a growing front that fills outward from a single
+        source — closer to a wildfire than a projectile.</p>
+      <p><b>Tactical implication:</b> a player can actively contain it by holding a tile adjacent to
+        the fire front as a firebreak — as long as they keep that tile claimed, the fire cannot
+        cross it, and visibly deflects around to spread through other open tiles instead. This turns
+        "defend this specific tile" into a real decision with a clear payoff, which the settled
+        design pillars call out as something the game currently lacks (defense was cut in favor of
+        Upgrade as stone's sink) — this could be the level-specific way to reintroduce it without
+        touching the base ruleset.</p>
+      <p><b>Feel:</b> the slowest-building of the four ideas — dread rather than a jump-scare. Good
+        for a level that wants players to make an active choice every round ("do I spend an action
+        to hold the firebreak, or let this side of the board burn and expand elsewhere") rather than
+        just reacting to a random event.</p>
+      <p>Open question: does losing the firebreak tile (e.g. to enemy siege) let the fire resume
+        spreading from where it stopped, or does the fire simply treat a freshly-scorched tile the
+        same as any other burnable tile going forward? The latter is simpler to implement.</p>
+    </div>
+  </div>
+
+<script>
+  const COLS = 6, ROWS = 9;
+
+  // ---------- generic board builder shared by all four tabs ----------
+  function buildBoard(boardEl, seed) {
+    boardEl.innerHTML = '';
+    const tiles = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const el = document.createElement('div');
+        el.className = 'tile';
+        const t = { c, r, el, owner: null, node: false };
+        boardEl.appendChild(el);
+        tiles.push(t);
+      }
+    }
+    if (seed) seed(tiles);
+    return tiles;
+  }
+  function tileAt(tiles, c, r) { return tiles.find(t => t.c === c && t.r === r); }
+  function paintOwner(t) {
+    t.el.classList.remove('mine', 'enemy', 'home', 'node');
+    if (t.owner === 'me') t.el.classList.add('mine');
+    if (t.owner === 'ai') t.el.classList.add('enemy');
+    if (t.home) t.el.classList.add('home');
+    if (t.node) t.el.classList.add('node');
+  }
+
+  // ============ TAB SWITCHING ============
+  document.getElementById('tabPicker').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach(p =>
+      p.classList.toggle('active', p.id === 'panel-' + btn.dataset.tab));
+  });
+
+  // ============ TAB 1: VOLCANO METEOR STRIKES ============
+  (function () {
+    const boardEl = document.getElementById('v1-board');
+    const stageEl = document.getElementById('v1-stage');
+    const eruptBtn = document.getElementById('v1-erupt');
+    const clockFillEl = document.getElementById('v1-clock-fill');
+    let tiles = [];
+    let volcanoOnboardEl = null; // the visual cone, rebuilt every reset alongside the tile grid
+    let erupting = false; // guards overlapping eruptions (manual click vs. auto clock firing at once)
+    let clockTimer = null;
+    let clockStart = 0;
+
+    const ERUPT_INTERVAL_MS = 8000; // real-time, independent of turn order
+
+    // fixed 2x2 impassable cluster near the middle of the 6-wide x 9-tall board
+    const VOLCANO_TILES = [[2,4], [3,4], [2,5], [3,5]];
+
+    const OWNED_SEED = [ // a scatter of claimed/contested tiles so weighting has something to bite
+      [1,1,'ai'], [2,1,'ai'], [1,2,'ai'], [3,2,'ai'],
+      [4,7,'me'], [3,7,'me'], [4,6,'me'], [2,6,'me'],
+    ];
+
+    function seed(ts) {
+      OWNED_SEED.forEach(([c, r, owner]) => {
+        const t = tileAt(ts, c, r);
+        if (t) t.owner = owner;
+      });
+      VOLCANO_TILES.forEach(([c, r]) => {
+        const t = tileAt(ts, c, r);
+        if (t) t.volcano = true;
+      });
+      ts.forEach(t => { if (t.volcano) { t.el.classList.add('volcano-tile'); } else { paintOwner(t); } });
+
+      // the cone/glow/smoke visual is one overlay spanning the 2x2 cluster (see .volcano-onboard
+      // grid-column/grid-row in CSS), rebuilt each time the board rebuilds
+      volcanoOnboardEl = document.createElement('div');
+      volcanoOnboardEl.className = 'volcano-onboard';
+      volcanoOnboardEl.innerHTML = '<div class="cone"></div><div class="smoke"></div><div class="smoke"></div><div class="smoke"></div>';
+      boardEl.appendChild(volcanoOnboardEl);
+    }
+
+    function startClock() {
+      if (clockTimer) clearInterval(clockTimer); // never leave a stale interval running after a reset
+      clockStart = Date.now();
+      clockFillEl.style.width = '0%';
+      clockTimer = setInterval(tickClock, 100);
+    }
+
+    function tickClock() {
+      const elapsed = Date.now() - clockStart;
+      const pct = Math.min(1, elapsed / ERUPT_INTERVAL_MS);
+      clockFillEl.style.width = (pct * 100) + '%';
+      if (pct >= 1) {
+        clockStart = Date.now(); // restart the countdown immediately, whether or not eruption fires
+        triggerEruption();
+      }
+    }
+
+    function reset() {
+      tiles = buildBoard(boardEl, seed);
+      eruptBtn.disabled = false;
+      erupting = false;
+      startClock();
+    }
+
+    function pickTargets(n) {
+      // weight toward owned/contested tiles: owned tiles get 4x the pick-weight of empty ones
+      const pool = [];
+      tiles.forEach(t => {
+        if (t.volcano) return; // impassable, never a meteor target
+        if (t.el.classList.contains('burning') || t.el.classList.contains('scorched')) return;
+        const weight = t.owner ? 4 : 1;
+        for (let i = 0; i < weight; i++) pool.push(t);
+      });
+      const picked = [];
+      while (picked.length < n && pool.length) {
+        const t = pool[Math.floor(Math.random() * pool.length)];
+        if (!picked.includes(t)) picked.push(t);
+        pool.splice(pool.indexOf(t), 1);
+      }
+      return picked;
+    }
+
+    function launchMeteor(target, delay) {
+      setTimeout(() => {
+        const startRect = volcanoOnboardEl.getBoundingClientRect();
+        const stageRect = stageEl.getBoundingClientRect();
+        const endRect = target.el.getBoundingClientRect();
+        const startX = startRect.left + startRect.width / 2 - stageRect.left;
+        const startY = startRect.top + startRect.height * 0.15 - stageRect.top;
+        const endX = endRect.left + endRect.width / 2 - stageRect.left;
+        const endY = endRect.top + endRect.height / 2 - stageRect.top;
+
+        const m = document.createElement('div');
+        m.className = 'meteor';
+        const ang = Math.atan2(endX - startX, -(endY - startY)) * (180 / Math.PI);
+        m.style.setProperty('--ang', ang + 'deg');
+        m.style.left = startX + 'px';
+        m.style.top = startY + 'px';
+        stageEl.appendChild(m);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          m.style.left = endX + 'px';
+          m.style.top = endY + 'px';
+        }));
+
+        setTimeout(() => {
+          m.remove();
+          impact(target);
+        }, 650);
+      }, delay);
+    }
+
+    function impact(t) {
+      const flash = document.createElement('div');
+      flash.className = 'impact-flash';
+      t.el.appendChild(flash);
+      setTimeout(() => flash.remove(), 450);
+
+      t.owner = null;
+      paintOwner(t);
+      t.el.classList.add('burning');
+      const flame = document.createElement('div');
+      flame.className = 'flame';
+      t.el.appendChild(flame);
+
+      setTimeout(() => {
+        t.el.classList.remove('burning');
+        flame.remove();
+        t.el.classList.add('scorched');
+      }, 1600);
+    }
+
+    function triggerEruption() {
+      if (erupting) return; // already mid-animation (manual click and auto clock can both ask at once) - skip, don't stack
+      const targets = pickTargets(3 + (Math.random() < 0.5 ? 1 : 0));
+      if (!targets.length) return; // board fully burning/scorched already - nothing to strike this cycle
+      erupting = true;
+      eruptBtn.disabled = true;
+      targets.forEach((t, i) => launchMeteor(t, i * 260));
+      setTimeout(() => {
+        erupting = false;
+        eruptBtn.disabled = false;
+      }, targets.length * 260 + 2200);
+    }
+
+    eruptBtn.addEventListener('click', () => triggerEruption());
+    document.getElementById('v1-reset').addEventListener('click', reset);
+    reset();
+  })();
+
+  // ============ TAB 2: LAVA SNAKE ============
+  (function () {
+    const boardEl = document.getElementById('v2-board');
+    let tiles = [];
+    let timer = null;
+    let step = -1;
+
+    // hand-authored winding path across the board (canned demo, not procedural)
+    const PATH = [
+      [0,0],[1,0],[2,0],[2,1],[2,2],[1,2],[1,3],[1,4],[2,4],[3,4],
+      [3,5],[3,6],[4,6],[4,7],[4,8],[3,8],[2,8],[2,7],[1,7],[1,6],
+    ];
+    const OWNED_SEED = [
+      [1,2,'ai'], [2,2,'ai'], [1,4,'me'], [3,4,'ai'],
+      [3,6,'me'], [4,7,'me'], [2,7,'ai'], [1,6,'me'],
+    ];
+
+    function seed(ts) {
+      OWNED_SEED.forEach(([c, r, owner]) => {
+        const t = tileAt(ts, c, r);
+        if (t) t.owner = owner;
+      });
+      ts.forEach(paintOwner);
+    }
+
+    function clearSnakeClasses() {
+      tiles.forEach(t => t.el.classList.remove('snake-head', 'snake-body', 'telegraph'));
+    }
+
+    function render() {
+      clearSnakeClasses();
+      const head = PATH[step];
+      if (!head) return;
+      const headTile = tileAt(tiles, head[0], head[1]);
+      if (headTile) headTile.el.classList.add('snake-head');
+      for (let b = 1; b <= 3; b++) {
+        const p = PATH[step - b];
+        if (!p) continue;
+        const t = tileAt(tiles, p[0], p[1]);
+        if (t) t.el.classList.add('snake-body');
+      }
+      for (let ahead = 1; ahead <= 2; ahead++) {
+        const p = PATH[step + ahead];
+        if (!p) continue;
+        const t = tileAt(tiles, p[0], p[1]);
+        if (t) t.el.classList.add('telegraph');
+      }
+    }
+
+    function advance() {
+      step++;
+      if (step >= PATH.length) { clearInterval(timer); timer = null;
+        document.getElementById('v2-slither').disabled = false; return; }
+      const [c, r] = PATH[step];
+      const t = tileAt(tiles, c, r);
+      if (t) { t.owner = null; paintOwner(t); t.el.classList.add('scorched'); }
+      render();
+    }
+
+    function reset() {
+      tiles = buildBoard(boardEl, seed);
+      step = -1;
+      if (timer) { clearInterval(timer); timer = null; }
+      document.getElementById('v2-slither').disabled = false;
+    }
+
+    document.getElementById('v2-slither').addEventListener('click', (e) => {
+      e.currentTarget.disabled = true;
+      step = -1;
+      tiles.forEach(t => t.el.classList.remove('scorched'));
+      if (timer) clearInterval(timer);
+      timer = setInterval(advance, 550);
+    });
+    document.getElementById('v2-reset').addEventListener('click', reset);
+    reset();
+  })();
+
+  // ============ TAB 3: EMBER NODE ============
+  (function () {
+    const boardEl = document.getElementById('v3-board');
+    const stageEl = document.getElementById('v3-stage');
+    let tiles = [];
+    let cycleTimer = null;
+    const EMBER_POS = [3, 4];
+
+    const OWNED_SEED = [ [3,4,'me'], [4,7,'me'], [1,1,'ai'] ];
+
+    function seed(ts) {
+      OWNED_SEED.forEach(([c, r, owner]) => {
+        const t = tileAt(ts, c, r);
+        if (t) t.owner = owner;
+      });
+      const ember = tileAt(ts, EMBER_POS[0], EMBER_POS[1]);
+      ember.emberNode = true;
+      ts.forEach(paintOwner);
+      ember.el.classList.add('ember-node', 'producing');
+    }
+
+    function flare() {
+      const t = tileAt(tiles, EMBER_POS[0], EMBER_POS[1]);
+      t.el.classList.remove('producing');
+      t.el.classList.add('taxing');
+      const pop = document.createElement('div');
+      pop.className = 'tax-pop';
+      pop.textContent = '-12 gold';
+      t.el.appendChild(pop);
+      setTimeout(() => pop.remove(), 1000);
+      setTimeout(() => {
+        t.el.classList.remove('taxing');
+        t.el.classList.add('producing');
+      }, 600);
+    }
+
+    function reset() {
+      if (cycleTimer) clearInterval(cycleTimer);
+      tiles = buildBoard(boardEl, seed);
+      cycleTimer = setInterval(flare, 3200);
+    }
+
+    document.getElementById('v3-flare').addEventListener('click', flare);
+    document.getElementById('v3-reset').addEventListener('click', reset);
+    reset();
+  })();
+
+  // ============ TAB 4: SPREADING WILDFIRE ============
+  (function () {
+    const boardEl = document.getElementById('v4-board');
+    let tiles = [];
+    const IGNITE = [0, 4]; // fixed edge tile where the fire starts
+    const FIREBREAKS = [[2,4],[1,6]]; // player-held tiles that block the spread
+    const OWNED_SEED = [
+      [2,4,'me'], [1,6,'me'], // the firebreaks themselves
+      [3,3,'ai'], [4,2,'ai'], [3,6,'me'], [4,7,'me'],
+    ];
+    let frontier = [];
+    let advancing = false;
+
+    function seed(ts) {
+      OWNED_SEED.forEach(([c, r, owner]) => {
+        const t = tileAt(ts, c, r);
+        if (t) t.owner = owner;
+      });
+      FIREBREAKS.forEach(([c, r]) => {
+        const t = tileAt(ts, c, r);
+        t.firebreak = true;
+      });
+      ts.forEach(paintOwner);
+      ts.forEach(t => { if (t.firebreak) t.el.classList.add('firebreak'); });
+      const ignite = tileAt(ts, IGNITE[0], IGNITE[1]);
+      ignite.owner = null;
+      ignite.burned = true;
+      paintOwner(ignite);
+      ignite.el.classList.add('ignite');
+    }
+
+    function reset() {
+      tiles = buildBoard(boardEl, seed);
+      const start = tileAt(tiles, IGNITE[0], IGNITE[1]);
+      frontier = [start];
+      document.getElementById('v4-advance').disabled = false;
+    }
+
+    function neighbors(t) {
+      return [[t.c-1,t.r],[t.c+1,t.r],[t.c,t.r-1],[t.c,t.r+1]]
+        .map(([c, r]) => tileAt(tiles, c, r))
+        .filter(Boolean);
+    }
+
+    function advance() {
+      if (advancing || !frontier.length) return;
+      advancing = true;
+      const nextFrontier = [];
+      const seenThisStep = new Set();
+      frontier.forEach(t => {
+        neighbors(t).forEach(n => {
+          if (n.burned || seenThisStep.has(n)) return;
+          if (n.firebreak) {
+            n.el.classList.add('ward-block');
+            setTimeout(() => n.el.classList.remove('ward-block'), 500);
+            return; // blocked: fire does not enter or spread past this tile
+          }
+          seenThisStep.add(n);
+          nextFrontier.push(n);
+        });
+      });
+      nextFrontier.forEach(n => {
+        n.burned = true;
+        n.owner = null;
+        paintOwner(n);
+        n.el.classList.add('ignite');
+      });
+      frontier = nextFrontier;
+      advancing = false;
+      if (!frontier.length) document.getElementById('v4-advance').disabled = true;
+    }
+
+    document.getElementById('v4-advance').addEventListener('click', advance);
+    document.getElementById('v4-reset').addEventListener('click', reset);
+    reset();
+  })();
+</script>
+</body>
+</html>

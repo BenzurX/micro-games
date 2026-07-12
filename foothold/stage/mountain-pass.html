@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foothold · Mountains level pass ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --panel:#2a2e40; --card:#22263a; --card2:#1a1d2c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398;
+    --blue:#3d6cff; --gold:#f2c14e; --green:#3ea15a; --red:#e0546a;
+    --stone-wall:#5a5650; --rubble:#8a6f4c;
+    --head:'Grenze',Georgia,serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+    padding:28px 20px 100px;line-height:1.4;}
+  h1{font-family:var(--head);font-weight:700;font-size:30px;margin:0 0 4px;}
+  .lede{color:var(--subtle);font-size:15px;margin:0 0 22px;max-width:680px;}
+  .lede code{color:var(--gold);}
+  .note{max-width:680px;margin:0 auto 26px;font-size:13px;color:var(--muted);
+    background:var(--card2);border:1px dashed #3d425e;border-radius:10px;padding:10px 14px;}
+
+  .tabbar{position:sticky;top:0;z-index:20;background:rgba(27,30,43,.94);
+    backdrop-filter:blur(4px);padding:10px;margin:0 0 26px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:8px;flex-wrap:wrap;max-width:900px;
+    margin-left:auto;margin-right:auto;}
+  .tabbar button{flex:1 1 180px;}
+
+  .controls{background:var(--card2);padding:14px 16px;margin:0 0 22px;border-radius:12px;
+    border:1px solid #333850;display:flex;gap:14px;flex-wrap:wrap;max-width:420px;
+    margin-left:auto;margin-right:auto;}
+  .controls .grp{display:flex;flex-direction:column;gap:8px;min-width:150px;}
+  .controls .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+  .controls .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--body);font-size:14px;font-weight:600;padding:8px 12px;
+    border-radius:8px;border:1px solid #3d425e;background:var(--card);color:var(--ink);
+    cursor:pointer;}
+  button:hover{border-color:var(--blue);}
+  button:disabled{opacity:.45;cursor:default;}
+  button:disabled:hover{border-color:#3d425e;}
+  button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .fire{background:var(--gold);border-color:var(--gold);color:#1b1e2b;font-weight:700;}
+  .fire:hover{filter:brightness(1.1);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .stage{position:relative;width:min(100%,420px);aspect-ratio:2/3;margin:0 auto;
+    border-radius:14px;overflow:hidden;background:#141726;border:1px solid #262a3e;}
+  .board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,1fr);
+    grid-template-rows:repeat(9,1fr);gap:2px;padding:8px;}
+  .tile{position:relative;border-radius:3px;background:#2a3a6b;cursor:default;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    transition:background .3s ease, outline-color .3s ease;}
+  .tile.mine{background:var(--blue);}
+  .tile.enemy{background:var(--red);}
+  .tile.node::after{content:'';width:34%;height:34%;border-radius:50%;background:var(--gold);opacity:.85;}
+  .tile.home{outline:2px solid var(--gold);outline-offset:-2px;}
+
+  /* Solid mountain wall - unmistakably impassable: dark banded stone texture,
+     distinct from the river's flat blue-black water and from any neutral tile. */
+  .tile.wall{background:
+      repeating-linear-gradient(135deg, rgba(0,0,0,.22) 0 4px, transparent 4px 9px),
+      linear-gradient(160deg, #6b665e 0%, var(--stone-wall) 55%, #423f3a 100%);
+    cursor:default;}
+  .tile.wall::before{content:'▲';position:absolute;font-size:11px;color:rgba(255,255,255,.35);
+    top:1px;left:2px;}
+
+  /* Rubble - a crumbled wall tile, now claimable neutral ground. Warm and loose vs. the
+     cold flat grey of solid wall, so "opened" reads instantly different from "still solid". */
+  .tile.rubble{background:
+      radial-gradient(circle at 30% 70%, rgba(0,0,0,.25) 0 18%, transparent 20%),
+      radial-gradient(circle at 65% 35%, rgba(0,0,0,.2) 0 14%, transparent 16%),
+      linear-gradient(160deg, #a3865c 0%, var(--rubble) 60%, #6e5738 100%);}
+
+  /* Landslide crumble transition: brief dust/shake burst before settling into rubble.
+     Reused everywhere a wall tile physically opens: Avalanche Tug, Tunnel Race breakthrough,
+     and Rockfall Events' telegraphed opening. */
+  .tile.crumbling{animation:crumble-shake .7s ease;}
+  .tile.crumbling::after{content:'';position:absolute;inset:-40%;pointer-events:none;
+    background:radial-gradient(circle at 50% 55%, rgba(220,210,190,.9) 0 8%, rgba(220,210,190,.5) 8% 18%, transparent 30%);
+    animation:crumble-dust .7s ease forwards;}
+  @keyframes crumble-shake{
+    0%,100%{transform:translate(0,0);}
+    15%{transform:translate(-1px,1px);}
+    30%{transform:translate(1px,-1px);}
+    45%{transform:translate(-1px,0);}
+    60%{transform:translate(1px,1px);}
+    80%{transform:translate(-1px,-1px);}}
+  @keyframes crumble-dust{
+    0%{opacity:0;transform:scale(.3);}
+    35%{opacity:1;transform:scale(1);}
+    100%{opacity:0;transform:scale(1.6);}}
+
+  /* Rubble claimed toward a specific side (Avalanche Tug, Tunnel Race breakthrough) -
+     same crumbled-rock shape, tinted toward whichever pocket the tile joined. */
+  .tile.rubble.side-mine{background:
+      radial-gradient(circle at 30% 70%, rgba(0,0,0,.25) 0 18%, transparent 20%),
+      radial-gradient(circle at 65% 35%, rgba(0,0,0,.2) 0 14%, transparent 16%),
+      linear-gradient(160deg, #6f8fd6 0%, #3d6cff 55%, #24398a 100%);}
+  .tile.rubble.side-enemy{background:
+      radial-gradient(circle at 30% 70%, rgba(0,0,0,.25) 0 18%, transparent 20%),
+      radial-gradient(circle at 65% 35%, rgba(0,0,0,.2) 0 14%, transparent 16%),
+      linear-gradient(160deg, #e88a99 0%, #e0546a 55%, #8c2e3d 100%);}
+  .tile.rubble.tunnel::before{content:'⛏';position:absolute;font-size:9px;top:1px;left:2px;}
+
+  /* Mountain pass window: a wall tile that periodically opens on a telegraphed timer.
+     Reused wholesale by Rockfall Events (Idea 4) for its telegraph/open/reseal cycle. */
+  .tile.pass{cursor:default;}
+  .tile.pass .badge{position:absolute;top:1px;right:2px;font-size:9px;font-weight:700;
+    color:var(--gold);background:rgba(0,0,0,.5);border-radius:8px;padding:0 4px;line-height:13px;}
+  .tile.pass.open{background:
+      radial-gradient(circle at 40% 60%, rgba(255,255,255,.12) 0 20%, transparent 24%),
+      linear-gradient(160deg, #c9b98a 0%, #a3925f 60%, #7d6f45 100%);}
+  .tile.pass.open .badge{color:#1b1e2b;background:var(--gold);}
+  .tile.pass.sealing::after{content:'';position:absolute;inset:-40%;pointer-events:none;
+    background:radial-gradient(circle at 50% 55%, rgba(180,175,165,.85) 0 10%, transparent 30%);
+    animation:crumble-dust .6s ease forwards;}
+  /* Once a rush is resolved, tint the opened tile toward whoever claimed it, or split it
+     for a clash where both players rushed the same spot. */
+  .tile.pass.claimed-mine{background:linear-gradient(160deg,#7c92c4 0%,#3d6cff 60%,#24398a 100%);}
+  .tile.pass.claimed-enemy{background:linear-gradient(160deg,#e0879a 0%,#e0546a 60%,#8c2e3d 100%);}
+  .tile.pass.clash{background:linear-gradient(90deg,#3d6cff 0 50%,#e0546a 50% 100%);}
+
+  /* Peak: a claimed mountain tile, still impassable, but yours - watchtower glyph.
+     Reused by The One Pass (Idea 2), now with a contestable owner tint instead of a
+     one-time claim. */
+  .tile.peak{background:
+      repeating-linear-gradient(135deg, rgba(0,0,0,.18) 0 4px, transparent 4px 9px),
+      linear-gradient(160deg, #7c92c4 0%, #4a5c8c 55%, #2f3a5c 100%);}
+  .tile.peak::before{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);
+    width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+    border-bottom:7px solid var(--gold);}
+  .tile.peak::after{content:'';position:absolute;inset:0;
+    background:conic-gradient(from -35deg at 50% 30%, rgba(242,193,78,.28), transparent 70deg);
+    opacity:.9;}
+  .tile.peak.owner-mine{background:
+      repeating-linear-gradient(135deg, rgba(0,0,0,.18) 0 4px, transparent 4px 9px),
+      linear-gradient(160deg, #7c92c4 0%, #4a5c8c 55%, #2f3a5c 100%);}
+  .tile.peak.owner-enemy{background:
+      repeating-linear-gradient(135deg, rgba(0,0,0,.18) 0 4px, transparent 4px 9px),
+      linear-gradient(160deg, #e0879a 0%, #a14a5c 55%, #5c2f3a 100%);}
+  .tile.siege-target{outline:2px solid var(--red);outline-offset:-2px;}
+  .tile.siege-flash{animation:siege-flash .8s ease;}
+  @keyframes siege-flash{
+    0%{box-shadow:inset 0 0 0 999px rgba(224,84,106,0);}
+    35%{box-shadow:inset 0 0 0 999px rgba(224,84,106,.85);}
+    100%{box-shadow:inset 0 0 0 999px rgba(224,84,106,0);}}
+
+  .idea-label{position:absolute;top:10px;left:10px;z-index:4;font-family:var(--head);
+    font-weight:700;font-size:13px;color:var(--gold);background:rgba(0,0,0,.45);
+    padding:3px 10px;border-radius:20px;}
+
+  .hint{max-width:420px;margin:14px auto 0;font-size:13px;color:var(--subtle);text-align:center;}
+  .hint b{color:var(--ink);}
+
+  .legend{max-width:420px;margin:14px auto 0;display:flex;gap:14px;flex-wrap:wrap;
+    justify-content:center;font-size:12px;color:var(--subtle);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block;}
+
+  .copy{max-width:680px;margin:30px auto 0;padding:16px 18px;border-radius:14px;
+    background:var(--card2);border:1px dashed #3d425e;}
+  .copy .k{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+  .copy p{font-size:13px;color:var(--subtle);margin:0 0 8px;}
+  .copy p:last-child{margin-bottom:0;}
+  .copy b{color:var(--ink);}
+
+  .econ{max-width:420px;margin:16px auto 0;display:flex;flex-direction:column;gap:10px;}
+  .econ .bar-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--subtle);}
+  .econ .bar-label{width:64px;flex:none;}
+  .econ .bar-track{flex:1;height:14px;background:#141726;border-radius:7px;overflow:hidden;border:1px solid #262a3e;}
+  .econ .bar-fill{height:100%;width:0%;transition:width .5s cubic-bezier(.2,.7,.2,1);}
+  .econ .bar-fill.top{background:var(--red);}
+  .econ .bar-fill.bottom{background:var(--blue);}
+  .econ .bar-val{width:34px;flex:none;text-align:right;color:var(--ink);font-weight:700;}
+  .econ .verdict{text-align:center;font-family:var(--head);font-weight:700;font-size:15px;
+    color:var(--gold);min-height:20px;}
+
+  /* Tug-of-war meter (Avalanche Tug) - a shared, mutually-pushed bar, not two separate stats. */
+  .tug{max-width:420px;margin:16px auto 0;}
+  .tug .tug-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--subtle);margin-bottom:6px;}
+  .tug .tug-labels b{color:var(--ink);}
+  .tug-track{position:relative;height:22px;border-radius:11px;overflow:hidden;
+    border:1px solid #262a3e;background:linear-gradient(90deg, var(--red) 0%, #3a3f57 48%, #3a3f57 52%, var(--blue) 100%);}
+  .tug-mid{position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,.25);}
+  .tug-marker{position:absolute;top:1px;bottom:1px;width:4px;background:var(--gold);border-radius:2px;
+    left:50%;transform:translateX(-50%);transition:left .35s cubic-bezier(.2,.7,.2,1);
+    box-shadow:0 0 6px rgba(242,193,78,.8);}
+  .tug-status{text-align:center;font-family:var(--head);font-weight:700;font-size:14px;
+    color:var(--gold);margin-top:8px;min-height:18px;}
+</style>
+</head>
+<body>
+  <h1>Mountains level — how do you actually reach the other side?</h1>
+  <p class="lede">Redesigned after feedback: the first pass staged four ideas for crossing a
+    solid, impassable mountain wall, but they landed as <b>two disconnected boards</b> - luck of
+    the draw for who spawns with more tiles, with little real interaction. Concept unchanged:
+    mountain tiles are still <b>solid, impassable terrain</b>, splitting the 6x9 board into a top
+    pocket (AI home) and bottom pocket (player home). What changed: all four ideas below make the
+    wall itself a live, contested object - something both players are actively pushing, sieging,
+    digging, or racing toward <b>every round</b>, not a static split decided once at kickoff.</p>
+  <p class="note">Rough visual sketch only, no game logic wired in. Idea 2 reuses the
+    peak/ranged-siege-arc styling from the previous pass; Idea 4 reuses the pass-tile
+    open/reseal cycle from the previous pass - both are now contestable or temporary instead
+    of a one-time claim.</p>
+
+  <div class="tabbar" id="tabbar">
+    <button data-tab="1" class="active">1 — Avalanche Tug</button>
+    <button data-tab="2">2 — The One Pass</button>
+    <button data-tab="3">3 — Tunnel Race</button>
+    <button data-tab="4">4 — Rockfall Events</button>
+  </div>
+
+  <!-- ============ TAB 1 - Avalanche Tug ============ -->
+  <div class="panel active" id="panel1">
+    <div class="controls">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="opts">
+          <button class="fire" id="btn1You">⛰ Push (You)</button>
+          <button class="fire" id="btn1Enemy">⛰ Push (Enemy)</button>
+          <button id="btn1Reset">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="idea-label">1 — Avalanche Tug</div>
+      <div class="board" id="board1"></div>
+    </div>
+    <div class="tug">
+      <div class="tug-labels"><span>◀ <b>Enemy</b> pushes</span><span><b>You</b> push ▶</span></div>
+      <div class="tug-track"><div class="tug-mid"></div><div class="tug-marker" id="tug1Marker"></div></div>
+      <div class="tug-status" id="tug1Status"></div>
+    </div>
+    <p class="hint" id="hint1">Solid at kickoff. Spend stone to <b>push</b> the shared meter your
+      way each round - when it tips far enough, one wall tile crumbles into whichever pocket it
+      tipped toward. Repeats all match.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:var(--stone-wall)"></i> Solid wall</span>
+      <span><i class="sw" style="background:#3d6cff"></i> Crumbled into your pocket</span>
+      <span><i class="sw" style="background:#e0546a"></i> Crumbled into enemy pocket</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes - Avalanche Tug</div>
+      <p><b>The mechanic:</b> the wall is a contested, moveable resource, not fixed geography.
+        Each round, both players can spend stone to push a shared tug-of-war meter in their
+        favor. Whenever the meter tips past a threshold in either direction, one wall tile
+        crumbles into rubble on the side it tipped toward - that player's pocket physically
+        grows by one tile, into former wall, while the opponent's shrinks. The meter then resets
+        and the fight starts again.</p>
+      <p><b>Why this fixes the "luck of the draw" problem:</b> the split between pockets is never
+        decided once at kickoff. It's a running tally both players are actively fighting over
+        every single round, for the entire match - constant, mutual, and directly reactive to
+        how much stone either side is willing to commit, not a fixed geographic accident.</p>
+      <p><b>Tradeoff, plainly:</b> stone spent pushing the meter is stone not spent expanding or
+        building elsewhere, so this competes directly with core economy every round. Whoever
+        commits harder generally wins the tug, which risks a snowball if one side falls behind
+        early - worth watching in playtests.</p>
+      <p>Implementation note: needs a push cost, a rule for whether the meter decays or holds
+        between rounds, and a rule for which tile crumbles first when several remain (fixed
+        order vs. nearest-to-midpoint). Reuses the existing crumble-shake/crumble-dust
+        animation for the actual collapse.</p>
+    </div>
+  </div>
+
+  <!-- ============ TAB 2 - The One Pass ============ -->
+  <div class="panel" id="panel2">
+    <div class="controls">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="opts">
+          <button class="fire" id="btn2Claim">🏔 Claim Peak (You)</button>
+          <button id="btn2Contest" disabled>Enemy contests it</button>
+          <button id="btn2Reset">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="idea-label">2 — The One Pass</div>
+      <div class="board" id="board2"></div>
+      <svg class="arc-layer" id="arc2" width="0" height="0" style="position:absolute;inset:0;pointer-events:none;z-index:5;"></svg>
+    </div>
+    <p class="hint" id="hint2">A single, narrow pass tile sits at this chokepoint, unclaimed.
+      Claim it for vision and a discounted siege into the enemy pocket - but the enemy can
+      contest it right back at any time.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:var(--stone-wall)"></i> Solid wall</span>
+      <span><i class="sw" style="background:#4a5c8c"></i> Peak, yours</span>
+      <span><i class="sw" style="background:#a14a5c"></i> Peak, enemy's</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes - The One Pass</div>
+      <p><b>The mechanic:</b> a single, scarce pass/peak tile sits at a fixed chokepoint in the
+        wall. Either player can claim it, and holding it grants vision into the opponent's
+        pocket plus a discounted ranged siege into adjacent enemy tiles - no crossing needed.
+        Unlike a one-time claim, the peak can be sieged away and reclaimed by the other player
+        at any time.</p>
+      <p><b>Why this fixes the "luck of the draw" problem:</b> because ownership can flip any
+        round, both players must keep spending resources to hold or retake the one tile that
+        matters most on the wall. It's a live, ongoing tug-of-war over a single high-value
+        target, not a static split settled once and forgotten.</p>
+      <p><b>Tradeoff, plainly:</b> concentrating all wall interaction into one tile risks a
+        repetitive seesaw fight at the same coordinates every match. The peak needs to be
+        valuable enough to fight over without making every other wall tile feel completely
+        irrelevant by comparison.</p>
+      <p>Implementation note: needs a contest cost or short cooldown so ownership can't flip
+        every single action, and reuses the peak tile visual and ranged-siege-arc styling
+        already built for the previous Peak Siege concept, with an ownership tint swap added.</p>
+    </div>
+  </div>
+
+  <!-- ============ TAB 3 - Tunnel Race ============ -->
+  <div class="panel" id="panel3">
+    <div class="controls">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="opts">
+          <button class="fire" id="btn3DigYou">⛏ Dig (You)</button>
+          <button class="fire" id="btn3DigEnemy">⛏ Dig (Enemy)</button>
+          <button id="btn3Sabotage">💰 Sabotage enemy dig</button>
+          <button id="btn3Reset">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="idea-label">3 — Tunnel Race</div>
+      <div class="board" id="board3"></div>
+    </div>
+    <div class="econ" id="econ3">
+      <div class="bar-row"><span class="bar-label">Enemy dig</span>
+        <div class="bar-track"><div class="bar-fill top" id="bar3Enemy"></div></div>
+        <span class="bar-val" id="val3Enemy">0</span></div>
+      <div class="bar-row"><span class="bar-label">Your dig</span>
+        <div class="bar-track"><div class="bar-fill bottom" id="bar3You"></div></div>
+        <span class="bar-val" id="val3You">0</span></div>
+      <div class="verdict" id="verdict3"></div>
+    </div>
+    <p class="hint" id="hint3">Both sides dig simultaneously. Spend stone to dig, spend gold to
+      sabotage the opponent's progress. First to fill their meter breaks through and chooses
+      where the new crossing opens.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:var(--stone-wall)"></i> Solid wall</span>
+      <span><i class="sw" style="background:#3d6cff"></i> Your breakthrough</span>
+      <span><i class="sw" style="background:#e0546a"></i> Enemy's breakthrough</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes - Tunnel Race</div>
+      <p><b>The mechanic:</b> both players dig simultaneously through the wall on two separate,
+        visible progress meters, each advanced by spending stone. Either player can also spend
+        gold to sabotage the opponent's dig, partially resetting their meter. First to fill
+        their meter breaks through and gets to choose where the new permanent crossing opens -
+        an advantage for winning the race.</p>
+      <p><b>Why this fixes the "luck of the draw" problem:</b> every point of stone spent digging
+        is directly comparable to the opponent's meter in real time, and every point of gold
+        spent sabotaging is a direct hostile action against their board state. Both players are
+        reacting to the same shared race every round, not building in isolation behind a fixed
+        wall.</p>
+      <p><b>Tradeoff, plainly:</b> sabotage can feel purely destructive rather than constructive,
+        and a big early stone lead can snowball - falling behind on the dig invites more
+        sabotage, which discourages the losing side further. Needs tuning so sabotage stays a
+        spicy option rather than a mandatory chore.</p>
+      <p>Implementation note: needs separate cost tuning for dig vs. sabotage, a rule for who
+        "chooses" the breakthrough tile on a win, and reuses the existing progress-bar styling
+        and crumble animation for the actual breakthrough.</p>
+    </div>
+  </div>
+
+  <!-- ============ TAB 4 - Rockfall Events ============ -->
+  <div class="panel" id="panel4">
+    <div class="controls">
+      <div class="grp">
+        <div class="k">Demo</div>
+        <div class="opts">
+          <button class="fire" id="btn4Start">▶ Start countdown</button>
+          <button id="btn4You" disabled>You rush!</button>
+          <button id="btn4Enemy" disabled>Enemy rushes!</button>
+          <button id="btn4Reset">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="idea-label">4 — Rockfall Events</div>
+      <div class="board" id="board4"></div>
+    </div>
+    <p class="hint" id="hint4">Click <b>Start countdown</b> to telegraph a rockfall at these wall
+      tiles. Both players see the same countdown at the same time - expect a clash.</p>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--blue)"></i> You</span>
+      <span><i class="sw" style="background:var(--red)"></i> Enemy</span>
+      <span><i class="sw" style="background:var(--stone-wall)"></i> Solid wall</span>
+      <span><i class="sw" style="background:#a3925f"></i> Open, telegraphed</span>
+      <span><i class="sw" style="background:linear-gradient(90deg,#3d6cff 50%,#e0546a 50%)"></i> Clash</span>
+    </div>
+    <div class="copy">
+      <div class="k">Design notes - Rockfall Events</div>
+      <p><b>The mechanic:</b> periodic, telegraphed random events crack open one or two wall
+        tiles for exactly one round before resealing. A visible countdown badge tells both
+        players exactly when and where it will happen.</p>
+      <p><b>Why this fixes the "luck of the draw" problem:</b> because the opening is temporary
+        and both players see the identical telegraph on the identical tile at the identical
+        time, both are incentivized to rush the same spot simultaneously. That forces a direct
+        clash on a recurring schedule, rather than two players quietly building economy behind
+        a wall that never asks anything of them.</p>
+      <p><b>Tradeoff, plainly:</b> because timing is scheduled rather than resource-driven, a
+        player with a worse economy can still contest evenly - good for parity, but it also
+        means efficient economic play can't buy its way to an advantage around the wall
+        specifically. A missed rush window is pure downside with no partial credit.</p>
+      <p>Implementation note: needs an event scheduler with some randomized variance in timing
+        (to avoid full predictability), and reuses the pass-tile open/reseal CSS and the
+        crumble/dust animation wholesale from the previous Pass Window concept.</p>
+    </div>
+  </div>
+
+<script>
+  const COLS = 6, ROWS = 9;
+  const HOME_ME = { c: 4, r: 7 };
+  const HOME_AI = { c: 1, r: 1 };
+  // Jagged staircase wall (row changes by at most 1 between neighboring columns, same
+  // principle the river uses) - fully separates the top pocket (AI) from the bottom pocket (you).
+  const WALL = [
+    { c: 0, r: 3 }, { c: 1, r: 4 }, { c: 2, r: 5 },
+    { c: 3, r: 4 }, { c: 4, r: 3 }, { c: 5, r: 4 },
+  ];
+  const TOP_NODES = [
+    { c: 0, r: 0, v: 5 }, { c: 3, r: 1, v: 7 }, { c: 5, r: 2, v: 4 },
+  ];
+  const BOTTOM_NODES = [
+    { c: 1, r: 6, v: 6 }, { c: 3, r: 8, v: 5 }, { c: 5, r: 6, v: 8 },
+  ];
+
+  function isWall(c, r) { return WALL.some(w => w.c === c && w.r === r); }
+  function isHome(c, r) {
+    return (c === HOME_ME.c && r === HOME_ME.r) || (c === HOME_AI.c && r === HOME_AI.r);
+  }
+  function nodeAt(c, r) {
+    return TOP_NODES.find(n => n.c === c && n.r === r) ||
+      BOTTOM_NODES.find(n => n.c === c && n.r === r);
+  }
+
+  // Shared board builder - lays out the fixed 6x9 grid with homes, wall, and nodes.
+  // Returns a lookup {c,r} -> tile element so each tab can layer its own behavior on top.
+  function buildBoard(containerId) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    const tiles = {};
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const t = document.createElement('div');
+        t.className = 'tile';
+        t.dataset.c = c; t.dataset.r = r;
+        if (isWall(c, r)) t.classList.add('wall');
+        const n = nodeAt(c, r);
+        if (n) t.classList.add('node');
+        if (c === HOME_ME.c && r === HOME_ME.r) t.classList.add('home', 'mine');
+        if (c === HOME_AI.c && r === HOME_AI.r) t.classList.add('home', 'enemy');
+        el.appendChild(t);
+        tiles[c + ',' + r] = t;
+      }
+    }
+    return tiles;
+  }
+
+  document.getElementById('tabbar').addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const n = btn.dataset.tab;
+    [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel' + n).classList.add('active');
+  });
+
+  /* ================= TAB 1 - Avalanche Tug ================= */
+  (function () {
+    let tiles1 = buildBoard('board1');
+    let remaining = WALL.map(w => `${w.c},${w.r}`);
+    let value = 0; // -100 (enemy edge) .. 100 (your edge)
+    const THRESH = 90;
+    const marker = document.getElementById('tug1Marker');
+    const status = document.getElementById('tug1Status');
+    const hint = document.getElementById('hint1');
+
+    function renderMeter() {
+      marker.style.left = (50 + value / 2) + '%';
+    }
+
+    function crumbleToward(side) {
+      if (!remaining.length) return;
+      const key = remaining.shift();
+      const t = tiles1[key];
+      t.classList.remove('wall');
+      t.classList.add('crumbling');
+      setTimeout(() => {
+        t.classList.remove('crumbling');
+        t.classList.add('rubble', side === 'you' ? 'side-mine' : 'side-enemy');
+      }, 700);
+    }
+
+    function push(side) {
+      if (!remaining.length) {
+        status.textContent = 'All wall tiles have crumbled - the wall is fully contested ground.';
+        return;
+      }
+      value += side === 'you' ? 22 : -22;
+      value = Math.max(-100, Math.min(100, value));
+      renderMeter();
+      if (value >= THRESH || value <= -THRESH) {
+        const winner = value > 0 ? 'you' : 'enemy';
+        crumbleToward(winner);
+        status.textContent = winner === 'you'
+          ? 'Meter tipped your way - a wall tile crumbles into YOUR pocket!'
+          : 'Meter tipped the enemy way - a wall tile crumbles into the ENEMY pocket!';
+        value = 0;
+        setTimeout(renderMeter, 50);
+        hint.innerHTML = remaining.length
+          ? `Meter reset. ${remaining.length} wall tile${remaining.length === 1 ? '' : 's'} left
+             to fight over - keep pushing every round.`
+          : `All wall tiles have crumbled. The wall is now fully contested ground.`;
+      }
+    }
+
+    document.getElementById('btn1You').addEventListener('click', () => push('you'));
+    document.getElementById('btn1Enemy').addEventListener('click', () => push('enemy'));
+    document.getElementById('btn1Reset').addEventListener('click', () => {
+      tiles1 = buildBoard('board1');
+      remaining = WALL.map(w => `${w.c},${w.r}`);
+      value = 0;
+      renderMeter();
+      status.textContent = '';
+      hint.innerHTML = `Solid at kickoff. Spend stone to <b>push</b> the shared meter your way
+        each round - when it tips far enough, one wall tile crumbles into whichever pocket it
+        tipped toward. Repeats all match.`;
+    });
+
+    renderMeter();
+  })();
+
+  /* ================= TAB 2 - The One Pass ================= */
+  (function () {
+    let tiles2 = buildBoard('board2');
+    const PEAK = { c: 3, r: 4 }; // fixed chokepoint, contestable
+    const TARGET_MINE = { c: 3, r: 1 }; // your siege target once you hold the peak
+    const TARGET_ENEMY = { c: 3, r: 6 }; // enemy's siege target once they hold it
+    const stage2 = document.querySelector('#panel2 .stage');
+    const arcSvg = document.getElementById('arc2');
+    const btnClaim = document.getElementById('btn2Claim');
+    const btnContest = document.getElementById('btn2Contest');
+    const hint = document.getElementById('hint2');
+    let owner = null; // null | 'mine' | 'enemy'
+
+    function clearTargets() {
+      tiles2[TARGET_MINE.c + ',' + TARGET_MINE.r].classList.remove('siege-target');
+      tiles2[TARGET_ENEMY.c + ',' + TARGET_ENEMY.r].classList.remove('siege-target');
+    }
+
+    function fireSiege(from, to, color) {
+      const fromRect = tiles2[from.c + ',' + from.r].getBoundingClientRect();
+      const toRect = tiles2[to.c + ',' + to.r].getBoundingClientRect();
+      const stageRect = stage2.getBoundingClientRect();
+      arcSvg.setAttribute('width', stageRect.width);
+      arcSvg.setAttribute('height', stageRect.height);
+      arcSvg.setAttribute('viewBox', `0 0 ${stageRect.width} ${stageRect.height}`);
+      const x1 = fromRect.left + fromRect.width / 2 - stageRect.left;
+      const y1 = fromRect.top + fromRect.height / 2 - stageRect.top;
+      const x2 = toRect.left + toRect.width / 2 - stageRect.left;
+      const y2 = toRect.top + toRect.height / 2 - stageRect.top;
+      const midX = (x1 + x2) / 2, midY = Math.min(y1, y2) - 30;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', '2.5');
+      path.setAttribute('stroke-dasharray', '6 5');
+      path.style.opacity = '0';
+      arcSvg.appendChild(path);
+      requestAnimationFrame(() => {
+        path.style.transition = 'opacity .25s ease';
+        path.style.opacity = '1';
+      });
+      setTimeout(() => {
+        tiles2[to.c + ',' + to.r].classList.add('siege-flash');
+      }, 500);
+      setTimeout(() => path.remove(), 1600);
+    }
+
+    function applyOwner(next) {
+      owner = next;
+      arcSvg.innerHTML = '';
+      clearTargets();
+      const t = tiles2[PEAK.c + ',' + PEAK.r];
+      t.classList.remove('wall');
+      t.classList.add('peak');
+      t.classList.toggle('owner-mine', owner === 'mine');
+      t.classList.toggle('owner-enemy', owner === 'enemy');
+      if (owner === 'mine') {
+        tiles2[TARGET_MINE.c + ',' + TARGET_MINE.r].classList.add('siege-target');
+        fireSiege(PEAK, TARGET_MINE, '#3d6cff');
+        hint.innerHTML = `<b>You</b> hold the peak - vision and a discounted siege into the
+          enemy pocket. The enemy can contest it back at any time.`;
+        btnClaim.disabled = true;
+        btnContest.disabled = false;
+        btnContest.textContent = 'Enemy contests it';
+      } else {
+        tiles2[TARGET_ENEMY.c + ',' + TARGET_ENEMY.r].classList.add('siege-target');
+        fireSiege(PEAK, TARGET_ENEMY, '#e0546a');
+        hint.innerHTML = `<b>Enemy</b> holds the peak - they now have vision and a discounted
+          siege into YOUR pocket. Reclaim it to flip the advantage back.`;
+        btnClaim.disabled = true;
+        btnContest.disabled = false;
+        btnContest.textContent = 'Reclaim peak (You)';
+      }
+    }
+
+    btnClaim.addEventListener('click', () => { if (!owner) applyOwner('mine'); });
+    btnContest.addEventListener('click', () => { applyOwner(owner === 'mine' ? 'enemy' : 'mine'); });
+
+    document.getElementById('btn2Reset').addEventListener('click', () => {
+      owner = null;
+      tiles2 = buildBoard('board2');
+      arcSvg.innerHTML = '';
+      btnClaim.disabled = false;
+      btnContest.disabled = true;
+      btnContest.textContent = 'Enemy contests it';
+      hint.innerHTML = `A single, narrow pass tile sits at this chokepoint, unclaimed. Claim it
+        for vision and a discounted siege into the enemy pocket - but the enemy can contest it
+        right back at any time.`;
+    });
+  })();
+
+  /* ================= TAB 3 - Tunnel Race ================= */
+  (function () {
+    let tiles3 = buildBoard('board3');
+    const YOU_BREAKTHROUGH = { c: 2, r: 5 };
+    const ENEMY_BREAKTHROUGH = { c: 1, r: 4 };
+    const barYou = document.getElementById('bar3You');
+    const barEnemy = document.getElementById('bar3Enemy');
+    const valYou = document.getElementById('val3You');
+    const valEnemy = document.getElementById('val3Enemy');
+    const verdict = document.getElementById('verdict3');
+    const hint = document.getElementById('hint3');
+    const btnDigYou = document.getElementById('btn3DigYou');
+    const btnDigEnemy = document.getElementById('btn3DigEnemy');
+    const btnSabotage = document.getElementById('btn3Sabotage');
+    let digYou = 0, digEnemy = 0, over = false;
+
+    function render() {
+      barYou.style.width = digYou + '%';
+      barEnemy.style.width = digEnemy + '%';
+      valYou.textContent = digYou;
+      valEnemy.textContent = digEnemy;
+    }
+
+    function breakthrough(winner) {
+      over = true;
+      [btnDigYou, btnDigEnemy, btnSabotage].forEach(b => b.disabled = true);
+      const pos = winner === 'you' ? YOU_BREAKTHROUGH : ENEMY_BREAKTHROUGH;
+      const t = tiles3[pos.c + ',' + pos.r];
+      t.classList.remove('wall');
+      t.classList.add('crumbling');
+      setTimeout(() => {
+        t.classList.remove('crumbling');
+        t.classList.add('rubble', 'tunnel', winner === 'you' ? 'side-mine' : 'side-enemy');
+      }, 700);
+      verdict.textContent = winner === 'you'
+        ? 'You broke through first - you chose where the new crossing opens!'
+        : 'Enemy broke through first - they chose where the new crossing opens.';
+      hint.innerHTML = 'This crossing is now permanent. Race over.';
+    }
+
+    function dig(side) {
+      if (over) return;
+      if (side === 'you') digYou = Math.min(100, digYou + 18);
+      else digEnemy = Math.min(100, digEnemy + 18);
+      render();
+      if (digYou >= 100) breakthrough('you');
+      else if (digEnemy >= 100) breakthrough('enemy');
+    }
+
+    btnDigYou.addEventListener('click', () => dig('you'));
+    btnDigEnemy.addEventListener('click', () => dig('enemy'));
+    btnSabotage.addEventListener('click', () => {
+      if (over) return;
+      digEnemy = Math.max(0, digEnemy - 25);
+      render();
+      hint.innerHTML = `You spent gold to sabotage the enemy dig - their progress just took a
+        setback.`;
+    });
+
+    document.getElementById('btn3Reset').addEventListener('click', () => {
+      over = false; digYou = 0; digEnemy = 0;
+      render();
+      verdict.textContent = '';
+      tiles3 = buildBoard('board3');
+      [btnDigYou, btnDigEnemy, btnSabotage].forEach(b => b.disabled = false);
+      hint.innerHTML = `Both sides dig simultaneously. Spend stone to dig, spend gold to
+        sabotage the opponent's progress. First to fill their meter breaks through and chooses
+        where the new crossing opens.`;
+    });
+
+    render();
+  })();
+
+  /* ================= TAB 4 - Rockfall Events ================= */
+  (function () {
+    let tiles4 = buildBoard('board4');
+    const SITES = [{ c: 2, r: 5 }, { c: 4, r: 3 }];
+    const hint = document.getElementById('hint4');
+    const btnStart = document.getElementById('btn4Start');
+    const btnYou = document.getElementById('btn4You');
+    const btnEnemy = document.getElementById('btn4Enemy');
+    let phase = 'idle'; // idle -> counting -> open -> resolved
+    let firstClick = null;
+    let countdownTimer = null;
+    let resolveTimer = null;
+
+    function siteTiles() { return SITES.map(s => tiles4[s.c + ',' + s.r]); }
+
+    function setBadges(text) {
+      siteTiles().forEach(t => {
+        let b = t.querySelector('.badge');
+        if (!b) { b = document.createElement('span'); b.className = 'badge'; t.appendChild(b); }
+        b.textContent = text;
+      });
+    }
+    function clearBadges() {
+      siteTiles().forEach(t => { const b = t.querySelector('.badge'); if (b) b.remove(); });
+    }
+
+    function startCycle() {
+      if (phase !== 'idle') return;
+      phase = 'counting';
+      btnStart.disabled = true; btnYou.disabled = true; btnEnemy.disabled = true;
+      siteTiles().forEach(t => t.classList.add('pass'));
+      let count = 3;
+      setBadges(count);
+      hint.innerHTML = `Rockfall telegraphed - opens in <b>${count}</b>...`;
+      countdownTimer = setInterval(() => {
+        count--;
+        if (count <= 0) {
+          clearInterval(countdownTimer);
+          openSites();
+        } else {
+          setBadges(count);
+          hint.innerHTML = `Rockfall telegraphed - opens in <b>${count}</b>...`;
+        }
+      }, 700);
+    }
+
+    function openSites() {
+      phase = 'open';
+      siteTiles().forEach(t => { t.classList.remove('wall'); t.classList.add('open'); });
+      setBadges('OPEN');
+      hint.innerHTML = `Open now - both of you see it at once. Click <b>You rush!</b> before
+        the enemy claims it.`;
+      btnYou.disabled = false; btnEnemy.disabled = false;
+      firstClick = null;
+    }
+
+    function rush(side) {
+      if (phase !== 'open') return;
+      if (firstClick === null) {
+        firstClick = side;
+        resolveTimer = setTimeout(() => resolve(firstClick), 550);
+      } else if (firstClick !== side) {
+        clearTimeout(resolveTimer);
+        resolve('clash');
+      }
+    }
+
+    function resolve(outcome) {
+      phase = 'resolved';
+      btnYou.disabled = true; btnEnemy.disabled = true;
+      clearBadges();
+      siteTiles().forEach(t => {
+        t.classList.remove('open');
+        if (outcome === 'clash') t.classList.add('clash');
+        else t.classList.add(outcome === 'you' ? 'claimed-mine' : 'claimed-enemy');
+      });
+      hint.innerHTML = outcome === 'clash'
+        ? `Both of you rushed the same spot at once - a clash! Contested, no clean claim this time.`
+        : outcome === 'you'
+          ? `You rushed first and raided the opened tile before it resealed.`
+          : `The enemy rushed first and raided the opened tile before it resealed.`;
+      setTimeout(reseal, 1400);
+    }
+
+    function reseal() {
+      siteTiles().forEach(t => {
+        t.classList.add('sealing');
+        setTimeout(() => {
+          t.classList.remove('sealing', 'pass', 'claimed-mine', 'claimed-enemy', 'clash');
+          t.classList.add('wall');
+        }, 600);
+      });
+      phase = 'idle';
+      setTimeout(() => {
+        btnStart.disabled = false;
+        hint.innerHTML = `Resealed. Click <b>Start countdown</b> to telegraph the next rockfall -
+          the same spot is fair game again.`;
+      }, 650);
+    }
+
+    btnStart.addEventListener('click', startCycle);
+    btnYou.addEventListener('click', () => rush('you'));
+    btnEnemy.addEventListener('click', () => rush('enemy'));
+
+    document.getElementById('btn4Reset').addEventListener('click', () => {
+      if (countdownTimer) clearInterval(countdownTimer);
+      if (resolveTimer) clearTimeout(resolveTimer);
+      phase = 'idle'; firstClick = null;
+      tiles4 = buildBoard('board4');
+      btnStart.disabled = false; btnYou.disabled = true; btnEnemy.disabled = true;
+      hint.innerHTML = `Click <b>Start countdown</b> to telegraph a rockfall at these wall tiles.
+        Both players see the same countdown at the same time - expect a clash.`;
+    });
+  })();
+</script>
+</body>
+</html>
