@@ -3,6 +3,15 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.14 - 2026-07-11 - Mobile tap-to-preview fix
+- **Mobile tooltip**: the action tooltip was wired to `pointerover`/`pointerout`, a hover state
+  that doesn't exist on touch, so tapping a tile committed the move instantly with no preview -
+  new players had no way to see a move's cost/gain before it happened. Fixed with tap-to-select/
+  tap-again-to-confirm: the first tap on a tile shows its tooltip only; a second tap on that same
+  tile commits it. On desktop this is invisible, since hover already selects the tile before the
+  click lands, so a single click still commits in one motion, same as before. A board-wide tap
+  (river, margins, HUD) clears the selection so a stale preview can't linger.
+
 ## v0.13 - 2026-07-11 - Desktop tile-control bar corner fix
 - **Tile-control bar**: the tug-of-war corner radius was clamped to a hard 0/7px switch keyed off
   a 14px sliver threshold, so the narrower desktop rail crossed into the flat branch far more

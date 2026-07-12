@@ -1,0 +1,57 @@
+/* Prototype styling only. The real title screen / UI comes in the polish pass. */
+
+/* Grenze: the medieval display serif used for titles, modal headings, and buttons only
+   (body text stays system-ui for readability, especially under the CRT flicker). Vendored
+   locally under assets/fonts so the game works offline, in snapshots, and in mobile builds -
+   never a CDN link. Phaser rasterizes text to canvas, so main.js waits for these to load
+   (document.fonts.load) before booting the game, otherwise the first render falls back. */
+@font-face {
+  font-family: 'Grenze';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(assets/fonts/grenze-400.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Grenze';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(assets/fonts/grenze-700.woff2) format('woff2');
+}
+
+:root {
+  --bg: #1b1e2b;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: #e7e9f0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  overflow: hidden;
+  /* Stop iOS double-tap zoom / text selection on a game surface. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* Full-viewport host for the canvas. Phaser's Scale.CENTER_BOTH owns the centering
+   (it sets the canvas margins), so we must NOT also flex-center here — doing both
+   stacks two offsets and shoves the canvas off toward the lower-right. */
+#game {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+canvas { display: block; }
+
+/* CRT phosphor flicker - the shimmer from the staged "Classic CRT" (variant B), dialed to 75%
+   strength (B dipped opacity to .975; 75% of that 0.025 dip → .981). Applied to the canvas only
+   while the CRT filter is on (setSceneCrt toggles the .crt class on #game). steps(2) alternate
+   keeps it a coarse, retro flicker rather than a smooth fade, and it stays deliberately faint for
+   readability + photosensitivity. */
+@keyframes crt-flicker { from { opacity: 1; } to { opacity: .981; } }
+#game.crt canvas { animation: crt-flicker 90ms steps(2) infinite alternate; }
