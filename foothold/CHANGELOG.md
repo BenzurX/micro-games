@@ -3,6 +3,15 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.16 - 2026-07-11 - Mobile tooltip actually persists now
+- **Mobile tooltip (real fix)**: v0.14's tap-to-select/confirm still broke on a real device -
+  Phaser fires `pointerover` on touchstart and `pointerout` on release, since touch has no
+  lingering hover state. The hover wire-up showed the tooltip on press and then killed it the
+  instant the finger lifted, wiping the selection before a second tap could land - so claiming
+  was still impossible on touch. Hover (`pointerover`/`pointerout`) is now gated to mouse only
+  (`pointer.wasTouch === false`); touch gets its preview from the tap-select logic instead, which
+  doesn't get torn down on release. Confirmed only in code, not yet retested on a device.
+
 ## v0.15 - 2026-07-11 - Version display fix
 - **Build version label**: `src/lib/settings.js`'s `VERSION` constant (shown in the title screen
   and Settings ▸ About) had been stuck at `v0.08` since that release - every push since then
