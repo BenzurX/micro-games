@@ -3,6 +3,38 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.18 - 2026-07-12 - Ocean tide polish, level select thumbnails, corner-rounding fix
+- **Level select thumbnails**: River card now animates two masked light streaks drifting
+  downstream under the bridge deck. Ocean card cycles a live shoal tile through dry (sand +
+  twinkle) - warning ring - flood-in bloom - held high - recede bloom, reusing the same visual
+  language as the real tide wipe, so the thumbnails read as the actual mechanic instead of a
+  static gradient.
+- **Ocean tile borders**: ocean tiles now round their corners toward a dry (low-tide) shoal
+  neighbor, the same soft rounding as the land boundary, and flatten back to a square edge the
+  instant that shoal floods or enters its rising-tide warning.
+- **Tide recede direction**: the per-tile flood-in bloom sweeps from the open-ocean corner; the
+  recede now visibly pulls back the opposite way instead of replaying the same direction.
+- **Board-edge corners stay sharp**: any rounded corner that sits directly on the game board's
+  outer edge no longer rounds, so the shoreline curve reads flush against the frame instead of
+  looking like it's rounding off into nothing past the last row/column.
+- **Sand under rounded ocean corners**: a rounded ocean-tile corner now reveals a brown beach
+  layer underneath instead of empty board background.
+- **Ocean shimmer clipped to rounded corners**: the swell shimmer TileSprites are now masked to
+  each tile's own rounded-corner shape (previously only the shoal ripple/foam were), rebuilt on
+  every tide-phase change since ocean corner rounding is tide-dependent.
+- **Bell echo turned down**: the tide bell's ringing decay/echo tail is quieter; the two main
+  strikes are unchanged.
+- **Fixed**: stray colored circles appearing at shoreline corners during flood/recede. Two
+  separate bugs, both in the corner-rounding math: (1) land tiles' corner rounding used a
+  permanent "shoal always counts as water" rule while the new ocean-tile rounding used a
+  tide-aware rule, so at low tide both sides could independently carve a rounded corner at the
+  same shared grid vertex - two overlapping circles instead of one clean curve. Merged into a
+  single tide-aware corner calculation (`computeCornerPlan()`) used by both sides, so they can
+  no longer disagree about where a boundary is. (2) the corner-rounding overlay jumped straight
+  to a tile's post-transition color the instant its flood/recede animation started, so a corner
+  the growing tide hadn't actually reached yet showed the new color early - now each corner
+  tracks whether the animated wave has reached that specific point before switching color.
+
 ## v0.17 - 2026-07-12 - Shoreline rounding, tide wipe animation, level select
 - **Level select screen**: new `LevelSelectScene.js` between Title and the match, with a
   vertical list of level cards (thumbnail, title, description); River and Shoreline are

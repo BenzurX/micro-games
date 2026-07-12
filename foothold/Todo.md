@@ -4,6 +4,9 @@
 - [x] **Mobile tooltip** - Mobile tooltip preview problem - the tooltip was wired to `pointerover`/`pointerout`, a hover state that doesn't exist on touch, so `pointerdown` fired the move immediately with no preview step. Fixed with tap-to-select/tap-again-to-confirm: `pointerdown` now routes through `onTilePointerDown`, which only commits (`onTileTap`) if the tapped tile is already `this.selected`; otherwise it just calls `showTooltip` to preview and select it. `showTooltip`/`hideTooltip` now own `this.selected`, and a board-wide `pointerdown` listener clears it when the tap hits nothing (river/margins/HUD). On desktop this is invisible - hover already selects the tile before the click lands, so a single click still commits in one motion, same as before.
 - [x] **PWA support** - PWA build for the web version - `manifest.webmanifest` + `sw.js` (cache-first service worker, offline + installable), wired into `index.html`, verified in-browser (SW registers/activates, cache holds all 24 precached files). Icons are a temporary placeholder (upscaled `watchtower.png`) - swap to the real files once the custom app icon task is done. CLAUDE.md's pre-push gate now has the `CACHE_VERSION` bump step.
 - [x] **Total Victory** - Total Victory (fun polish) - capturing the enemy base while owning every non-river tile and having every held node upgraded now triggers "Complete Foothold! / Round N" / "The enemy has nothing left", a gold sunburst (pulsing ADD-blend glow + 10 rotating rays, sized off the canvas diagonal so it reaches the screen edges in both portrait and wide layouts), a camera flash/shake, and a unique "Grand Finale" fanfare (`sfx.js`: horn call, rising flourish, sustained chord, shimmering bells). Staged 10 fanfare candidates + 3 flare variants in `stage/total-victory.html` before picking. Tuned glow brightness down twice after playtest (alpha 1 -> 0.55 -> 0.28) since the ADD blend stacked much brighter than the mockup.
+- [x] **Level Select Thumbnails** - River card now animates two masked light streaks drifting downstream under the bridge deck (same "Arcane flow" language as GameScene.drawRiverFlow). Ocean card no longer shows a static gradient - it's a single live shoal tile cycling dry (sand + twinkling glitter) -> warning ring -> flood-in corner bloom + foam crest -> held high -> recede corner bloom back to sand, reusing the same corner-bloom/foam-crest visual language as GameScene.beginTileBloom/drawTideBloom. Driven by a `this.animators` array + scene `update()` (not `scene.events.on('update', ...)`) so re-entering the scene never stacks duplicate per-frame listeners.
+- [x] **Ocean Tile Borders** - Ocean tiles now dynamically round their corners toward a dry (low-tide) shoal neighbor, same soft rounding as the land boundary, and go back to a flat square edge the instant that shoal tile is submerged or in its rising-tide warning round. Implemented as `updateOceanShoalCorners()` in GameScene.js, layered on top of the existing static land-boundary `cornerPlan` and recomputed on every `advanceTide()` phase change.
+- [ ] 
 
 ## Polish
 - [ ] **Flag animation** - Add a simple animated flag that waves on top of each player home/stronghold
@@ -11,6 +14,11 @@
 - [ ] **Polish ideas** - Ask claude what some fun polish ideas would be
 - [ ] **Rock Icon** - Ben needs to provide a new rock icon that fits better
 - [ ] **Tile Tracker Fix** - Make the desktop tile tracker round corner like the mobile version
+- [ ] **Back Arrow Icon** - use an icon for the back arrow on the level select screen.
+- [ ] **Level select readability** - the level select text is still far too small to be readable. I'm not sure if it's an issue with the font size or the CRT render but when I look at the How to Play it doesn't look quite as bad or compressed. Increase the font size of the description and title and use three lines if needed for the descriptions.
+
+## Bugs
+- [ ] **Beach Cutoff** - there are very few instances where I see ocean tiles built in a way that one of the shoreline beaches is cut off by ocean tiles and captured so that the player could never reach the resource tile that is on that beach tile. We need a way to detect and prevent beach tiles from being completely adjacently surrounded by ocean tiles.
 
 
 # Future Ideas

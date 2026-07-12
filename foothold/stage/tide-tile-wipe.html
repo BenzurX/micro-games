@@ -1,0 +1,331 @@
+<title>Tide Tile Wipe - Per-Tile Crossing Styles</title>
+<style>
+  :root {
+    --bg: #14161f;
+    --panel: #1b1e2b;
+    --card: #22263a;
+    --card-border: #333952;
+    --ink: #e7e9f0;
+    --subtle: #aeb4c6;
+    --sand: #3d3018;
+    --ocean: #1c5f7a;
+    --submerged: #164a5f;
+    --warn: #6fefff;
+    --accent: #3d6cff;
+    --font: system-ui, -apple-system, sans-serif;
+    --head: 'Grenze', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px; background: var(--bg); color: var(--ink);
+    font-family: var(--font);
+  }
+  h1 { font-family: var(--head); font-size: 28px; margin: 0 0 4px; }
+  .sub { color: var(--subtle); font-size: 15px; margin: 0 0 24px; max-width: 760px; line-height: 1.5; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; position: sticky; top: 0; background: var(--bg); padding: 12px 0; z-index: 10; }
+  .tab {
+    padding: 10px 18px; border-radius: 10px; background: var(--card); border: 1px solid var(--card-border);
+    cursor: pointer; font-size: 14px; font-weight: 600; color: var(--subtle);
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .copy {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 20px; font-size: 14px; color: var(--subtle); line-height: 1.5; max-width: 760px;
+  }
+  .copy b { color: var(--ink); }
+
+  .stage { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .zoomWrap, .boardWrap { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  canvas.zoom { background: var(--panel); border-radius: 12px; display: block; }
+  canvas.board { background: var(--panel); border-radius: 8px; display: block; }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  button.replay {
+    padding: 8px 16px; border-radius: 8px; background: var(--accent); border: none; color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.replay:hover { filter: brightness(1.1); }
+  .status { font-size: 13px; color: var(--subtle); }
+  .cap { font-size: 12px; color: var(--subtle); text-transform: uppercase; letter-spacing: .04em; }
+
+  .legend { max-width: 260px; font-size: 13px; color: var(--subtle); line-height: 1.6; }
+  .legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .legend .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+</style>
+
+<h1>Tide Tile Wipe - Per-Tile Crossing Styles</h1>
+<p class="sub">The cascade timing (bottom-left cluster leads, top-right joins 450ms later, 240ms/step) is locked in. This is about what happens WITHIN each tile as the flood reaches it - instead of a tile flipping instantly from dry sand to flooded, the wipe visibly crosses the tile's own surface, in the same diagonal direction the flood is traveling (bottom-left cluster wipes bottom-left→top-right per tile; top-right cluster wipes top-right→bottom-left per tile). Left: one tile zoomed in on a loop, with an arrow showing the wipe direction. Right: the same style applied across the full cluster at the real cascade pace.</p>
+
+<div class="tabs">
+  <div class="tab active" data-tab="a">A - Hard diagonal edge</div>
+  <div class="tab" data-tab="b">B - Foam-crest edge</div>
+  <div class="tab" data-tab="c">C - Soft gradient blend</div>
+  <div class="tab" data-tab="d">D - Corner bloom</div>
+</div>
+
+<div class="panel active" id="panel-a">
+  <div class="copy"><b>A - Hard diagonal edge.</b> A crisp straight line sweeps across the tile at a 45° angle, sand on one side and flooded color on the other - no blending, just a clean line in motion. Reads as the most "graphic," least organic of the four; cheapest to draw (one clip + one fill).</div>
+  <div class="stage">
+    <div class="zoomWrap">
+      <span class="cap">Single tile, zoomed</span>
+      <canvas class="zoom" id="zoom-a" width="240" height="240"></canvas>
+      <div class="controls"><button class="replay" data-zoom="a">Replay</button></div>
+    </div>
+    <div class="boardWrap">
+      <span class="cap">Full cluster, real cascade pace</span>
+      <canvas class="board" id="board-a" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="a">Replay</button><span class="status" id="status-a"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-b">
+  <div class="copy"><b>B - Foam-crest edge.</b> Same diagonal wipe as A, but the leading edge carries a bright, slightly-wider foam-colored line that fades out just behind it as the flood color fills in - reads as an actual small wave crossing the tile rather than a flat color swap.</div>
+  <div class="stage">
+    <div class="zoomWrap">
+      <span class="cap">Single tile, zoomed</span>
+      <canvas class="zoom" id="zoom-b" width="240" height="240"></canvas>
+      <div class="controls"><button class="replay" data-zoom="b">Replay</button></div>
+    </div>
+    <div class="boardWrap">
+      <span class="cap">Full cluster, real cascade pace</span>
+      <canvas class="board" id="board-b" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="b">Replay</button><span class="status" id="status-b"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-c">
+  <div class="copy"><b>C - Soft gradient blend.</b> Instead of a hard line, a soft-edged band (~35% of the tile's width) sweeps across with the two colors blending smoothly at its edges - no crisp line at all, more like water visibly soaking across the sand than a wipe transition. Gentlest, most "watery" of the four.</div>
+  <div class="stage">
+    <div class="zoomWrap">
+      <span class="cap">Single tile, zoomed</span>
+      <canvas class="zoom" id="zoom-c" width="240" height="240"></canvas>
+      <div class="controls"><button class="replay" data-zoom="c">Replay</button></div>
+    </div>
+    <div class="boardWrap">
+      <span class="cap">Full cluster, real cascade pace</span>
+      <canvas class="board" id="board-c" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="c">Replay</button><span class="status" id="status-c"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-d">
+  <div class="copy"><b>D - Corner bloom.</b> Instead of a straight line, the flood grows from the tile's own near corner (the corner facing the direction the wave is coming from) as an expanding quarter-circle, reaching the tile's far corner last. Reads as water pooling in from that corner rather than a wave washing straight across - a softer, more organic motion than a straight-line wipe.</div>
+  <div class="stage">
+    <div class="zoomWrap">
+      <span class="cap">Single tile, zoomed</span>
+      <canvas class="zoom" id="zoom-d" width="240" height="240"></canvas>
+      <div class="controls"><button class="replay" data-zoom="d">Replay</button></div>
+    </div>
+    <div class="boardWrap">
+      <span class="cap">Full cluster, real cascade pace</span>
+      <canvas class="board" id="board-d" width="300" height="450"></canvas>
+      <div class="controls"><button class="replay" data-board="d">Replay</button><span class="status" id="status-d"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  }));
+
+  const COLORS = { ocean: '#1c5f7a', sand: '#3d3018', submerged: '#164a5f', bg: '#1b1e2b', foam: '#bfe9f0' };
+
+  // Direction each cluster's wipe travels, matching the live cascade: bottom-left cluster wipes
+  // bottom-left -> top-right per tile (dx>0, dy<0 in canvas coords); top-right cluster wipes the
+  // opposite way (dx<0, dy>0). A single tile-local wipe uses whichever direction its cluster owns.
+  const DIR = { bl: { x: 1, y: -1 }, tr: { x: -1, y: 1 } };
+  function norm(v) { const m = Math.hypot(v.x, v.y); return { x: v.x / m, y: v.y / m }; }
+
+  // Renders one tile's flood progress (0 = fully dry, 1 = fully flooded) using the given style,
+  // wiping along `dir`. size = tile pixel size, cx/cy = tile center.
+  function drawTileWipe(ctx, cx, cy, size, progress, dir, style) {
+    const half = size / 2;
+    // Base: dry sand everywhere.
+    ctx.fillStyle = COLORS.sand;
+    ctx.fillRect(cx - half, cy - half, size, size);
+    if (progress <= 0) return;
+    const d = norm(dir);
+    const diag = size * Math.SQRT2; // long enough to cover the tile at any rotation/offset
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cx - half, cy - half, size, size);
+    ctx.clip(); // never paint outside the tile itself
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.atan2(d.y, d.x));
+    // In rotated space, the wipe front moves along +x from -diag/2 to +diag/2 as progress 0->1.
+    const front = -diag / 2 + progress * diag;
+
+    if (style === 'hard' || style === 'foam') {
+      ctx.fillStyle = COLORS.submerged;
+      ctx.fillRect(-diag, -diag, front + diag, diag * 2);
+      if (style === 'foam' && progress < 1) {
+        const grad = ctx.createLinearGradient(front - 10, 0, front + 10, 0);
+        grad.addColorStop(0, 'rgba(191,233,240,0)');
+        grad.addColorStop(0.5, 'rgba(191,233,240,0.9)');
+        grad.addColorStop(1, 'rgba(191,233,240,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(front - 10, -diag, 20, diag * 2);
+      }
+    } else if (style === 'soft') {
+      const band = size * 0.35;
+      ctx.fillStyle = COLORS.submerged;
+      ctx.fillRect(-diag, -diag, Math.max(0, front - band / 2) + diag, diag * 2);
+      const grad = ctx.createLinearGradient(front - band / 2, 0, front + band / 2, 0);
+      grad.addColorStop(0, COLORS.submerged);
+      grad.addColorStop(1, 'rgba(22,74,95,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(front - band / 2, -diag, band, diag * 2);
+    } else if (style === 'bloom') {
+      // Near corner = the tile corner most in the -dir direction (where the wave "comes from").
+      const nx = -d.x * half, ny = -d.y * half;
+      ctx.restore(); // bloom draws in tile-local (unrotated) space, not the rotated wipe frame
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(cx - half, cy - half, size, size);
+      ctx.clip();
+      ctx.fillStyle = COLORS.submerged;
+      ctx.beginPath();
+      ctx.arc(cx + nx, cy + ny, progress * size * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---- Zoomed single-tile demo ----
+  const zoomState = {};
+  function runZoom(id, style, region) {
+    const canvas = document.getElementById('zoom-' + id);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height, size = 160, cx = W / 2, cy = H / 2;
+    const dir = DIR[region];
+    const TILE_MS = 900;
+    const start = performance.now();
+    if (zoomState[id]) cancelAnimationFrame(zoomState[id].raf);
+    zoomState[id] = { raf: null };
+    function frame(now) {
+      const t = now - start;
+      const holdBefore = 500, holdAfter = 1200;
+      let progress;
+      if (t < holdBefore) progress = 0;
+      else if (t < holdBefore + TILE_MS) progress = (t - holdBefore) / TILE_MS;
+      else progress = 1;
+      ctx.fillStyle = COLORS.bg;
+      ctx.fillRect(0, 0, W, H);
+      drawTileWipe(ctx, cx, cy, size, Math.min(1, progress), dir, style);
+      // Direction arrow.
+      const d = norm(dir);
+      const ax = cx - d.x * 90, ay = cy - d.y * 90, bx = cx + d.x * 90, by = cy + d.y * 90;
+      ctx.strokeStyle = 'rgba(231,233,240,0.55)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      const ang = Math.atan2(by - ay, bx - ax);
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx - 10 * Math.cos(ang - 0.4), by - 10 * Math.sin(ang - 0.4));
+      ctx.lineTo(bx - 10 * Math.cos(ang + 0.4), by - 10 * Math.sin(ang + 0.4));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(231,233,240,0.55)'; ctx.fill();
+      if (t < holdBefore + TILE_MS + holdAfter) {
+        zoomState[id].raf = requestAnimationFrame(frame);
+      } else {
+        zoomState[id].raf = requestAnimationFrame((n2) => { runZoom(id, style, region); });
+      }
+    }
+    zoomState[id].raf = requestAnimationFrame(frame);
+  }
+
+  // ---- Full-cluster board demo (real cascade pace) ----
+  const GRID_W = 6, GRID_H = 9, TILE = 50;
+  const oceanTR = [[0,2],[0,3],[0,4],[0,5],[1,5],[2,5],[3,5],[4,5]];
+  const oceanBL = [[8,0],[8,1],[8,2],[8,3],[7,0],[6,0],[5,0],[4,0]];
+  const oceanSet = new Set([...oceanTR, ...oceanBL].map(([r,c]) => r + ',' + c));
+  function touchesOcean(r, c) {
+    return [[1,0],[-1,0],[0,1],[0,-1]].some(([dr,dc]) => oceanSet.has((r+dr) + ',' + (c+dc)));
+  }
+  const anchorTR = { r: 0, c: GRID_W - 1 }, anchorBL = { r: GRID_H - 1, c: 0 };
+  const shoal = [];
+  for (let r = 0; r < GRID_H; r++) {
+    for (let c = 0; c < GRID_W; c++) {
+      if (oceanSet.has(r + ',' + c)) continue;
+      if (!touchesOcean(r, c)) continue;
+      const region = (Math.hypot(r - anchorTR.r, c - anchorTR.c) < Math.hypot(r - anchorBL.r, c - anchorBL.c)) ? 'tr' : 'bl';
+      const anchor = region === 'tr' ? anchorTR : anchorBL;
+      const d = Math.hypot(r - anchor.r, c - anchor.c);
+      shoal.push({ r, c, region, d });
+    }
+  }
+  const maxD = { tr: Math.max(...shoal.filter(s => s.region === 'tr').map(s => s.d)),
+                 bl: Math.max(...shoal.filter(s => s.region === 'bl').map(s => s.d)) };
+  const STEP_MS = 240, CASCADE_OFFSET_MS = 450, TILE_WIPE_MS = 420;
+  shoal.forEach(s => { s.startAt = (s.region === 'tr' ? CASCADE_OFFSET_MS : 0) + s.d * STEP_MS; });
+  const totalDur = Math.max(...shoal.map(s => s.startAt)) + TILE_WIPE_MS;
+
+  function drawBoardFrame(ctx, style, t) {
+    ctx.fillStyle = COLORS.bg;
+    ctx.fillRect(0, 0, GRID_W * TILE, GRID_H * TILE);
+    for (let r = 0; r < GRID_H; r++) {
+      for (let c = 0; c < GRID_W; c++) {
+        const key = r + ',' + c;
+        if (oceanSet.has(key)) {
+          ctx.fillStyle = COLORS.ocean;
+          ctx.fillRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
+        }
+      }
+    }
+    shoal.forEach(s => {
+      const cx = s.c * TILE + TILE / 2, cy = s.r * TILE + TILE / 2;
+      const local = t - s.startAt;
+      const progress = local <= 0 ? 0 : local >= TILE_WIPE_MS ? 1 : local / TILE_WIPE_MS;
+      drawTileWipe(ctx, cx, cy, TILE - 4, progress, DIR[s.region], style);
+    });
+  }
+
+  const boardState = {};
+  function runBoard(id, style) {
+    const ctx = document.getElementById('board-' + id).getContext('2d');
+    const statusEl = document.getElementById('status-' + id);
+    if (boardState[id]) cancelAnimationFrame(boardState[id].raf);
+    boardState[id] = {};
+    const start = performance.now();
+    statusEl.textContent = 'flooding…';
+    function frame(now) {
+      const t = now - start;
+      drawBoardFrame(ctx, style, Math.min(t, totalDur));
+      if (t < totalDur) {
+        boardState[id].raf = requestAnimationFrame(frame);
+      } else {
+        statusEl.textContent = 'settled';
+        boardState[id].raf = requestAnimationFrame((n2) => {
+          setTimeout(() => runBoard(id, style), 1200);
+        });
+      }
+    }
+    boardState[id].raf = requestAnimationFrame(frame);
+  }
+
+  const STYLES = { a: 'hard', b: 'foam', c: 'soft', d: 'bloom' };
+  const REGION_FOR_ZOOM = { a: 'bl', b: 'bl', c: 'bl', d: 'bl' }; // zoom demo always shows the BL direction
+  Object.keys(STYLES).forEach(id => {
+    runZoom(id, STYLES[id], REGION_FOR_ZOOM[id]);
+    runBoard(id, STYLES[id]);
+  });
+
+  document.querySelectorAll('button.replay[data-zoom]').forEach(btn => btn.addEventListener('click', () => {
+    const id = btn.dataset.zoom;
+    runZoom(id, STYLES[id], REGION_FOR_ZOOM[id]);
+  }));
+  document.querySelectorAll('button.replay[data-board]').forEach(btn => btn.addEventListener('click', () => {
+    const id = btn.dataset.board;
+    runBoard(id, STYLES[id]);
+  }));
+</script>

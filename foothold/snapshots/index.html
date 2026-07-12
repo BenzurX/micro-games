@@ -101,18 +101,41 @@
   <div class="page-header">
     <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
     <div class="page-title">&#9733; Foothold</div>
-    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>16 snapshots</strong> captured</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>18 snapshots</strong> captured</div>
   </div>
 
   <div class="timeline">
 
-    <!-- v0.17 - current -->
+    <!-- v0.18 - current -->
     <div class="version-entry current">
       <div class="v-dot">&#9670;</div>
       <div class="v-card">
         <div class="v-card-head">
-          <span class="v-badge">v0.17</span>
+          <span class="v-badge">v0.18</span>
           <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 12, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Ocean tide polish, level select thumbnails, corner-rounding fix</div>
+          <ul class="v-bullets">
+            <li><strong>Level select thumbnails</strong>: River card animates light streaks drifting under the bridge deck; Ocean card cycles a live shoal tile through the real dry - warn - flood - high - recede tide sequence, so the cards read as the actual mechanic.</li>
+            <li><strong>Ocean tile borders</strong>: ocean tiles round toward a dry low-tide shoal neighbor and flatten back to square once it floods; board-edge corners always stay sharp/flush with the frame; a sand-brown layer shows underneath rounded ocean corners.</li>
+            <li><strong>Tide recede direction</strong> now visibly pulls back the opposite way from the flood-in sweep, and the ocean shimmer is clipped to each tile's rounded-corner shape.</li>
+            <li><strong>Fixed</strong>: stray colored circles at shoreline corners during flood/recede - two rounding systems (land vs. ocean) disagreed about tide state and each carved its own corner at the same shared point; merged into one consistent calculation.</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.18/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.17 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.17</span>
           <span class="v-date">July 12, 2026</span>
         </div>
         <div class="v-card-body">
