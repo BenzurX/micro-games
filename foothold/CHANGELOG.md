@@ -3,6 +3,13 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.15 - 2026-07-11 - Version display fix
+- **Build version label**: `src/lib/settings.js`'s `VERSION` constant (shown in the title screen
+  and Settings ▸ About) had been stuck at `v0.08` since that release - every push since then
+  bumped the CHANGELOG/snapshot but missed this one, so the in-game footer silently drifted out
+  of sync for six releases. Now reads `v0.15`. Adding this file to the pre-push gate so it
+  doesn't drift again.
+
 ## v0.14 - 2026-07-11 - Mobile tap-to-preview fix
 - **Mobile tooltip**: the action tooltip was wired to `pointerover`/`pointerout`, a hover state
   that doesn't exist on touch, so tapping a tile committed the move instantly with no preview -

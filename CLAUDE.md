@@ -18,10 +18,14 @@ Before pushing any game's repo, complete these first (skip nothing):
    (and its `snapshots/index.html` card). If the game has a service worker (Foothold does,
    `sw.js`), also bump its `CACHE_VERSION` string - a stale one leaves players stuck on an
    old cached build even after you ship a fix.
-4. Confirm `assets/CREDITS.md` covers every third-party asset in the build.
-5. Remove any "em dashes" (—) and use regular dashes (-) instead.
+4. If the game shows its own version number in-UI (Foothold's `src/lib/settings.js` has a
+   `VERSION` constant read by the title screen and Settings ▸ About), bump that string too.
+   It's a separate constant from the CHANGELOG/snapshot version and won't update on its own -
+   it drifted six releases behind (stuck at v0.08 through v0.14) before this line was added.
+5. Confirm `assets/CREDITS.md` covers every third-party asset in the build.
+6. Remove any "em dashes" (—) and use regular dashes (-) instead.
 
-Only after all five: commit, then push.
+Only after all six: commit, then push.
 
 ## Tech Stack
 
