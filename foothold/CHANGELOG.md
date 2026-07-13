@@ -13,7 +13,8 @@ under `snapshots/`. Newest first.
   over the actual glyph (`GameScene.drawNodeGlints()`). Shipped "Glint Sweep" from the same
   staged variants.
 - **New stone icon**: replaced the tinted log stand-in with Ben's own original stone artwork
-  (`assets/icons/stone.svg`, sourced from `images/Vector/Icons/stone2.svg`).
+  (`assets/icons/stone.svg`, sourced from `images/Vector/Icons/stone2.svg`). Refined again
+  post-release with a shape tweak to the same source artwork (no version bump).
 - **Back-nav icon**: Level Select's back button now uses a real icon (mirrored Kenney
   `arrow_right`) instead of the plain `←` text glyph.
 - **Level select readability**: title/description font sizes bump up in portrait, rows grow
