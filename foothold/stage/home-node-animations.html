@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foothold - Flag &amp; node animation variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1b1e2b; --card:#22263a; --tile:#2b2f45; --tile-line:#3a3f5c;
+    --ink:#e7e9f0; --subtle:#aeb4c6; --muted:#7c8398; --accent:#3d6cff;
+    --gold:#f2c14e; --wood:#b5793a; --stone:#b9c2d0; --special:#5ad1c8;
+    --head:'Grenze', Georgia, serif; --body:system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);padding:32px 20px 80px}
+  h1{font-family:var(--head);font-weight:700;font-size:34px;margin:0 0 6px;text-align:center}
+  h2{font-family:var(--head);font-weight:700;font-size:24px;margin:48px 0 6px;text-align:center}
+  .sub{color:var(--subtle);text-align:center;max-width:760px;margin:0 auto 8px;font-size:15px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px;max-width:1200px;margin:26px auto 0}
+  .cardv{background:var(--card);border:1px solid #2e3350;border-radius:16px;padding:18px 18px 20px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .cap{display:flex;align-items:baseline;gap:8px;margin:0 0 4px}
+  .tag{font-family:var(--head);font-weight:700;font-size:19px}
+  .letter{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0e1017;background:var(--accent);padding:2px 7px;border-radius:6px}
+  .note{color:var(--subtle);font-size:13px;line-height:1.5;margin:0 0 14px;min-height:52px}
+  .stage-box{border-radius:12px;background:#141726;border:1px solid #262a3e;display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+  /* ---- flag mock tile ---- */
+  .flag-stage{width:100%;height:150px}
+  .home-tile{fill:var(--tile);stroke:var(--tile-line);stroke-width:2}
+  .tower{fill:#e7e9f0;opacity:.9}
+
+  /* ---- node mock row (4 elements per animation style) ---- */
+  .node-stage{width:100%;height:110px;gap:18px}
+  .node-slot{width:56px;height:56px;display:flex;align-items:center;justify-content:center;position:relative}
+  .node-tile{position:absolute;inset:0;background:var(--tile);border:1px solid var(--tile-line);border-radius:10px}
+  .node-icon{position:relative;width:30px;height:30px;border-radius:50%}
+  .node-icon.gold{background:var(--gold)}
+  .node-icon.wood{background:var(--wood)}
+  .node-icon.stone{background:var(--stone)}
+  .node-icon.special{background:var(--special)}
+  .node-label{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+
+  /* ===== Node animation A: idle bob ===== */
+  .n-bob .node-icon{animation:nodeBob 2.2s ease-in-out infinite}
+  .n-bob .node-icon.wood{animation-delay:-.4s}
+  .n-bob .node-icon.stone{animation-delay:-.8s}
+  .n-bob .node-icon.special{animation-delay:-1.2s}
+  @keyframes nodeBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+  /* ===== Node animation B: bob + scale pulse (breathe) ===== */
+  .n-breathe .node-icon{animation:nodeBreathe 1.8s ease-in-out infinite}
+  .n-breathe .node-icon.wood{animation-delay:-.3s}
+  .n-breathe .node-icon.stone{animation-delay:-.6s}
+  .n-breathe .node-icon.special{animation-delay:-.9s}
+  @keyframes nodeBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.12)}}
+
+  /* ===== Node animation C: glint sweep ===== */
+  .n-glint .node-icon{overflow:hidden}
+  .n-glint .node-icon::after{content:'';position:absolute;inset:0;border-radius:50%;
+    background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.85) 48%,transparent 66%);
+    transform:translateX(-120%);animation:nodeGlint 2.6s ease-in-out infinite}
+  .n-glint .node-icon.wood::after{animation-delay:.5s}
+  .n-glint .node-icon.stone::after{animation-delay:1s}
+  .n-glint .node-icon.special::after{animation-delay:1.5s}
+  @keyframes nodeGlint{0%,20%{transform:translateX(-120%)}45%,100%{transform:translateX(120%)}}
+
+  /* ===== Node animation D: rotate wobble ===== */
+  .n-wobble .node-icon{animation:nodeWobble 2.4s ease-in-out infinite}
+  .n-wobble .node-icon.wood{animation-delay:-.35s}
+  .n-wobble .node-icon.stone{animation-delay:-.7s}
+  .n-wobble .node-icon.special{animation-delay:-1.05s}
+  @keyframes nodeWobble{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+</style>
+</head>
+<body>
+
+<h1>Flag &amp; node animation variants</h1>
+<p class="sub">Polish-list ideas for the two Todo items: a waving flag over each home/stronghold tile, and simple idle
+motion on the resource-node icons. Four takes on each - pick one (or mix) and I'll wire it into GameScene.</p>
+
+<h2>Flag on home/stronghold tile</h2>
+<p class="sub">Each variant is the same pole + cloth silhouette rendered with live SVG points, matching how it'd
+actually be drawn in Phaser (<code>fillPoints</code> on a Graphics layer, redrawn every frame). Home glyph shown
+as a plain triangle placeholder.</p>
+<div class="grid" id="flagGrid"></div>
+
+<h2>Resource node idle motion</h2>
+<p class="sub">Same four-variant idea applied to every resource icon (gold / wood / stone / special), phase-offset
+per tile so a row of nodes doesn't breathe in lockstep. Icons shown as plain color-coded circles here - the real
+build swaps in the actual tinted SVGs.</p>
+<div class="grid">
+  <div class="cardv">
+    <div class="cap"><span class="letter">A</span><span class="tag">Idle bob</span></div>
+    <p class="note">Pure vertical bob, no scale change. Cheapest, calmest - reads as "gently floating" rather than reacting to anything.</p>
+    <div class="stage-box node-stage n-bob" style="display:flex">
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon gold"></div><div class="node-label">gold</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon wood"></div><div class="node-label">wood</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon stone"></div><div class="node-label">stone</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon special"></div><div class="node-label">special</div></div>
+    </div>
+  </div>
+  <div class="cardv">
+    <div class="cap"><span class="letter">B</span><span class="tag">Bob + breathe</span></div>
+    <p class="note">Bob combined with a scale pulse. More alive than A, still subtle - closest to the first pass already tried in-game.</p>
+    <div class="stage-box node-stage n-breathe" style="display:flex">
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon gold"></div><div class="node-label">gold</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon wood"></div><div class="node-label">wood</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon stone"></div><div class="node-label">stone</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon special"></div><div class="node-label">special</div></div>
+    </div>
+  </div>
+  <div class="cardv">
+    <div class="cap"><span class="letter">C</span><span class="tag">Glint sweep</span></div>
+    <p class="note">Icon holds still; a soft highlight sweeps across it on a slow cycle, like light catching metal/stone. No position change at all - safest if motion is distracting during play.</p>
+    <div class="stage-box node-stage n-glint" style="display:flex">
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon gold"></div><div class="node-label">gold</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon wood"></div><div class="node-label">wood</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon stone"></div><div class="node-label">stone</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon special"></div><div class="node-label">special</div></div>
+    </div>
+  </div>
+  <div class="cardv">
+    <div class="cap"><span class="letter">D</span><span class="tag">Rotate wobble</span></div>
+    <p class="note">Gentle side-to-side rotation, like a hanging charm. Reads more "toy-like" than A/B - good fit if the art style should feel playful rather than ambient.</p>
+    <div class="stage-box node-stage n-wobble" style="display:flex">
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon gold"></div><div class="node-label">gold</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon wood"></div><div class="node-label">wood</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon stone"></div><div class="node-label">stone</div></div>
+      <div class="node-slot"><div class="node-tile"></div><div class="node-icon special"></div><div class="node-label">special</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Flag variants: each draws its own <polygon> points every frame via rAF, mirroring the
+// exact fillPoints() math that would run in Phaser's Graphics layer (see GameScene.drawFlags idea).
+const FLAG_COLOR = '#4f7df0', POLE_COLOR = '#6b5636';
+const flagDefs = [
+  {
+    id: 'A', title: 'Ripple wave', desc: 'Cloth free edge sways on a sine skew pinned at the pole - the version already tried in-game. Smooth, continuous ripple.',
+    build(t, cx, top, w, h) {
+      const cols = 6, top2 = top, bot = top + h;
+      const topPts = [], botPts = [];
+      for (let i = 0; i <= cols; i++) {
+        const f = i / cols;
+        const sway = Math.sin(t / 260 + f * 2.4) * h * 0.3 * f;
+        topPts.push([cx + f * w, top2 + sway]);
+        botPts.push([cx + f * w, bot + sway]);
+      }
+      return topPts.concat(botPts.reverse());
+    },
+  },
+  {
+    id: 'B', title: 'Flap / pennant swing', desc: 'The whole cloth swings as a rigid pennant (no internal ripple), like a flag in a steady gust rather than loose fabric. Reads more graphic/iconic, cheaper on the eye.',
+    build(t, cx, top, w, h) {
+      const bot = top + h, tip = cx + w;
+      const swing = Math.sin(t / 500) * h * 0.35;
+      return [[cx, top], [tip, top + h / 2 + swing], [cx, bot]];
+    },
+  },
+  {
+    id: 'C', title: 'Billow (double wave)', desc: 'Two overlaid sine waves at different speeds for a fuller, more voluminous flutter - reads windier/more energetic than the plain ripple.',
+    build(t, cx, top, w, h) {
+      const cols = 7, bot0 = top + h;
+      const topPts = [], botPts = [];
+      for (let i = 0; i <= cols; i++) {
+        const f = i / cols;
+        const sway = (Math.sin(t / 240 + f * 2.6) * 0.65 + Math.sin(t / 130 + f * 4.1) * 0.35) * h * 0.32 * f;
+        topPts.push([cx + f * w, top + sway]);
+        botPts.push([cx + f * w, bot0 + sway]);
+      }
+      return topPts.concat(botPts.reverse());
+    },
+  },
+  {
+    id: 'D', title: 'Ripple + pole sway', desc: 'Same cloth ripple as A, but the pole itself leans a couple degrees with the same gust cycle, so the whole flagpole reads as one wind-affected object instead of a static pole with animated cloth.',
+    build(t, cx, top, w, h, poleLean) {
+      const lean = Math.sin(t / 500) * 3;
+      poleLean.deg = lean;
+      const cols = 6, bot = top + h;
+      const topPts = [], botPts = [];
+      for (let i = 0; i <= cols; i++) {
+        const f = i / cols;
+        const sway = Math.sin(t / 260 + f * 2.4) * h * 0.3 * f + lean * f * 0.6;
+        topPts.push([cx + f * w, top + sway]);
+        botPts.push([cx + f * w, bot + sway]);
+      }
+      return topPts.concat(botPts.reverse());
+    },
+  },
+];
+
+const flagGrid = document.getElementById('flagGrid');
+const flagStates = [];
+flagDefs.forEach((def) => {
+  const card = document.createElement('div');
+  card.className = 'cardv';
+  card.innerHTML = `
+    <div class="cap"><span class="letter">${def.id}</span><span class="tag">${def.title}</span></div>
+    <p class="note">${def.desc}</p>
+    <div class="stage-box flag-stage">
+      <svg viewBox="0 0 140 150" width="100%" height="100%">
+        <rect class="home-tile" x="4" y="4" width="132" height="142" rx="14"/>
+        <polygon class="tower" points="55,120 85,120 78,70 62,70"/>
+        <rect class="tower" x="66" y="46" width="8" height="26"/>
+        <g class="pole-group">
+          <rect class="pole" x="0" y="0" width="3" height="0" fill="${POLE_COLOR}"/>
+          <polygon class="flag-poly" points="" fill="${FLAG_COLOR}"/>
+        </g>
+      </svg>
+    </div>`;
+  flagGrid.appendChild(card);
+  const pole = card.querySelector('.pole');
+  const poly = card.querySelector('.flag-poly');
+  const poleGroup = card.querySelector('.pole-group');
+  flagStates.push({ def, pole, poly, poleGroup });
+});
+
+const POLE_H = 46, POLE_X = 78, POLE_TOP = 26, FLAG_W = 32, FLAG_H = 22;
+function animateFlags(t) {
+  for (const st of flagStates) {
+    const poleLean = { deg: 0 };
+    const pts = st.def.build(t, POLE_X, POLE_TOP + 4, FLAG_W, FLAG_H, poleLean);
+    st.pole.setAttribute('x', POLE_X - 1.5);
+    st.pole.setAttribute('y', POLE_TOP);
+    st.pole.setAttribute('width', 3);
+    st.pole.setAttribute('height', POLE_H);
+    st.poleGroup.setAttribute('transform', poleLean.deg ? `rotate(${poleLean.deg} ${POLE_X} ${POLE_TOP + POLE_H})` : '');
+    st.poly.setAttribute('points', pts.map((p) => p.join(',')).join(' '));
+  }
+  requestAnimationFrame(animateFlags);
+}
+requestAnimationFrame(animateFlags);
+</script>
+
+</body>
+</html>

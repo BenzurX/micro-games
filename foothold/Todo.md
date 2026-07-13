@@ -9,13 +9,13 @@
 - [ ] 
 
 ## Polish
-- [ ] **Flag animation** - Add a simple animated flag that waves on top of each player home/stronghold
-- [ ] **Node animations** - Simple animations for some of the resource node icons
+- [x] **Flag animation** - Staged 4 variants in `stage/home-node-animations.html`; went with "Ripple Wave". Waving flag centered on each home/stronghold tile, sticking up out of the watchtower's parapet, `GameScene.drawFlags()` - a Graphics layer redrawn every frame with a sine-skewed free edge pinned at the pole. Reads `tile.owner` live so it recolors instantly if a home is ever captured. Pole position is derived from the watchtower SVG's own crenellation height so it clears the parapet without poking outside the tile.
+- [x] **Node animations** - Staged 4 variants (same file); went with "Glint Sweep". A soft highlight bar sweeps across each resource node's icon on a slow, phase-offset cycle, clipped to a circular GeometryMask (`GameScene.drawNodeGlints()`); the node itself never moves.
 - [ ] **Polish ideas** - Ask claude what some fun polish ideas would be
-- [ ] **Rock Icon** - Ben needs to provide a new rock icon that fits better
-- [ ] **Tile Tracker Fix** - Make the desktop tile tracker round corner like the mobile version
-- [ ] **Back Arrow Icon** - use an icon for the back arrow on the level select screen.
-- [ ] **Level select readability** - the level select text is still far too small to be readable. I'm not sure if it's an issue with the font size or the CRT render but when I look at the How to Play it doesn't look quite as bad or compressed. Increase the font size of the description and title and use three lines if needed for the descriptions.
+- [x] **Rock Icon** - Ben needs to provide a new rock icon that fits better
+- [x] **Tile Tracker Fix** - Confirmed already fixed (desktop tile-control bar already shares the same corner-rounding/clamp logic as mobile).
+- [x] **Back Arrow Icon** - Level Select's back button now uses a real icon (`assets/icons/arrow_back.svg`, the Kenney `arrow_right` glyph mirrored) instead of the `←` text glyph, loaded as `ic_back` in BootScene. Credited in CREDITS.md.
+- [x] **Level select readability** - Title/description font sizes now bump up in portrait (34px/20px vs 28px/16px wide), rows grow taller to fit, and the description wraps to 3 lines when needed - same `port`-based bump pattern already used by the Settings overlay.
 
 ## Bugs
 - [ ] **Beach Cutoff** - there are very few instances where I see ocean tiles built in a way that one of the shoreline beaches is cut off by ocean tiles and captured so that the player could never reach the resource tile that is on that beach tile. We need a way to detect and prevent beach tiles from being completely adjacently surrounded by ocean tiles.

@@ -3,6 +3,26 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.20 - 2026-07-13 - Flag & node-glint idle animations, back-nav icon, level select readability
+- **Waving home flags**: a small flag now waves on top of each player's home/stronghold tile,
+  sticking up out of the watchtower's parapet (`GameScene.drawFlags()`). Recolors instantly if
+  a home is ever captured, since it reads `tile.owner` live rather than caching it. Staged 4
+  variants first in `stage/home-node-animations.html`; shipped "Ripple Wave".
+- **Resource node glint sweep**: a soft highlight bar sweeps across each resource node's icon on
+  a slow, phase-offset cycle, masked to the icon's own silhouette so the shine only ever shows
+  over the actual glyph (`GameScene.drawNodeGlints()`). Shipped "Glint Sweep" from the same
+  staged variants.
+- **New stone icon**: replaced the tinted log stand-in with Ben's own original stone artwork
+  (`assets/icons/stone.svg`, sourced from `images/Vector/Icons/stone2.svg`).
+- **Back-nav icon**: Level Select's back button now uses a real icon (mirrored Kenney
+  `arrow_right`) instead of the plain `←` text glyph.
+- **Level select readability**: title/description font sizes bump up in portrait, rows grow
+  taller to fit, and the description wraps to 3 lines when needed - same pattern already used
+  by the Settings overlay. River card thumbnail redrawn as a true cross-section (land banks +
+  river band) instead of a rounded gradient block.
+- **Confirmed already fixed**: desktop tile tracker already shares the same corner-rounding/
+  clamp logic as the mobile version.
+
 ## v0.19 - 2026-07-12 - Hidden dev tile/tide editor, shoreline rounding fix
 - **Dev tile/tide overlay** (`src/lib/tileEditor.js`): a hidden dev-only panel for the ocean
   level, entered by typing D-E-V or tapping the moon icon on the round timeline. Paint a tile's
