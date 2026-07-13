@@ -101,18 +101,41 @@
   <div class="page-header">
     <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
     <div class="page-title">&#9733; Foothold</div>
-    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>18 snapshots</strong> captured</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>19 snapshots</strong> captured</div>
   </div>
 
   <div class="timeline">
 
-    <!-- v0.18 - current -->
+    <!-- v0.19 - current -->
     <div class="version-entry current">
       <div class="v-dot">&#9670;</div>
       <div class="v-card">
         <div class="v-card-head">
-          <span class="v-badge">v0.18</span>
+          <span class="v-badge">v0.19</span>
           <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 12, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Hidden dev tile/tide editor, shoreline rounding fix</div>
+          <ul class="v-bullets">
+            <li><strong>Dev tile/tide overlay</strong>: a hidden dev-only panel for the ocean level (type D-E-V or tap the moon icon) to paint terrain and scrub tide phases directly on the real board, plus an Export Layout button that copies the board as a plain-text grid.</li>
+            <li><strong>Terrain paint rebuilds real water FX</strong>: painting a tile to ocean/shoal now rebuilds its actual shimmer/ripple/foam instead of just changing its fill color.</li>
+            <li><strong>Fixed</strong>: shoreline corners went square at low tide - rounding was keyed off each shoal tile's live wet/dry state instead of its fixed terrain, so the coastline only looked right while flooded. Now based on terrain, so the same rounded shape holds at every tide phase.</li>
+            <li><strong>Fixed</strong>: the board rendered flat-edged on round 1 - the rounded-corner overlay was only computed from the first tide advance (start of round 2); round 1 now seeds it during setup.</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.19/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.18 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.18</span>
           <span class="v-date">July 12, 2026</span>
         </div>
         <div class="v-card-body">

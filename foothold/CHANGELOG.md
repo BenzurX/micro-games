@@ -3,6 +3,25 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.19 - 2026-07-12 - Hidden dev tile/tide editor, shoreline rounding fix
+- **Dev tile/tide overlay** (`src/lib/tileEditor.js`): a hidden dev-only panel for the ocean
+  level, entered by typing D-E-V or tapping the moon icon on the round timeline. Paint a tile's
+  terrain (land/shoal/ocean/river) or scrub directly to any tide phase, both rendered through
+  the scene's real `refresh()` so what's shown is always accurate. Includes an Export Layout
+  button that dumps the current board as a plain-text grid (to console + clipboard) for sharing
+  an exact layout instead of a screenshot. Never active during normal play.
+- **Terrain paint now rebuilds real water FX**: painting a tile to ocean/shoal via the dev tool
+  rebuilds its actual swell shimmer/ripple/foam GameObjects and recomputes the shoreline's
+  rounded corners, instead of just changing its fill color.
+- **Fixed: shoreline corners went square at low tide.** Corner rounding was keyed off each
+  shoal tile's live wet/dry state, so the coastline only looked right while the shoal ring
+  happened to be flooded. Rounding is now based on tile terrain (`isShoreWater`) instead of
+  current tide, so the same rounded shape holds at every tide phase - only the fill color
+  underneath changes.
+- **Fixed: board rendered flat-edged on round 1.** The rounded-corner overlay was only ever
+  (re)computed from `advanceTide()`, which doesn't run until the start of round 2 - round 1
+  now seeds it once during board setup.
+
 ## v0.18 - 2026-07-12 - Ocean tide polish, level select thumbnails, corner-rounding fix
 - **Level select thumbnails**: River card now animates two masked light streaks drifting
   downstream under the bridge deck. Ocean card cycles a live shoal tile through dry (sand +

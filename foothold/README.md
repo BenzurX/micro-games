@@ -31,6 +31,8 @@ src/scenes/            BootScene (asset load), TitleScene (splash), LevelSelectS
 src/lib/sfx.js         Procedural Web Audio sound engine (synthesized, no audio files)
 src/lib/settings.js    Persisted user prefs (sound / volume / CRT / DLSS gag) via localStorage
 src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel
+src/lib/tileEditor.js  Hidden dev-only tile/tide overlay for the ocean level (D-E-V key or
+                        moon-tap to enter); not part of normal play
 src/lib/CrtPipeline.js WebGL CRT post-processing filter (curve, scanlines, grille, bloom, vignette)
 assets/icons/          Kenney "Board Game Icons" (CC0), tinted per resource - see assets/CREDITS.md
 assets/fonts/          Grenze display serif (OFL), vendored woff2 for titles/headings/buttons
