@@ -82,6 +82,11 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 - Blocked: None. Caveat: this reconciliation work was done live but never logged or committed that day - reconciled and committed 2026-07-11.
 - Tomorrow (next session): AI-vs-AI balance harness (item 1 of Next Session queue).
 
+### 2026-07-13
+- Done: Foothold v0.20 shipped (home flag + node-glint idle animations, back-nav icon, level select readability), plus a post-release stone icon artwork refinement (no version bump).
+- Done: beta feedback mechanism authorized as a scope expansion (Benzur is starting a friend beta of v0.20) - in-game Bug/Feature form + Cloudflare Worker + Trello card creation. Shipped as Foothold v0.21. Logged in the Decision Log above and DESIGN.md.
+- Blocked: None.
+
 ## Scope Backlog (v1.1 ideas — NOT for v1)
 *(Claude: when Benzur suggests an out-of-scope feature, it goes here.)*
 - Game 1 — real-time variant (tiles fill red/blue as they capture gradually); playtest vs turn-based.
@@ -106,6 +111,7 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 - Game 1 node placement: same economy each side of the river (2 wood / 2 gold / 2 stone per half = balanced), positions rolled independently per half (asymmetric); 2 specials just off the water (contested, 1 per side); no two nodes orthogonally adjacent (balance wins over this in a rare thin half); each home guaranteed a node within 2 tiles for an opening move.
 - Game 1 art: using Kenney "Board Game Icons" (CC0), tinted per resource — d2=gold, lumber=wood, brick/log=stone (grey), award=special, house=home, watchtower=fortify. No exact gold/stone icon in the pack (stand-ins).
 - Repo structure: **single monorepo** at the pipeline root (GitHub: BenzurX/micro-games, branch `main`). Shared template + every game live as sibling folders. Repo-per-game rejected 2026-07-04 — the shared-template rule makes separate repos require submodules/copy (friction for a solo beginner), and the solo/private/premium model doesn't need per-game isolation. A breakout game can be split out later via git subtree/filter-repo with history intact.
+- Game 1: **beta feedback mechanism authorized as a scope expansion** (2026-07-13, not deferred to backlog) - an in-game Bug/Feature form (Settings panel) posting to a Cloudflare Worker that creates a Trello card for triage. Needed now because Benzur is starting a friend beta test of v0.20. See DESIGN.md's "Beta feedback mechanism" section for the spec.
 
 ## Store/Admin Checklist
 - [ ] macOS updated to latest supported version (2018 MBP → Sonoma)

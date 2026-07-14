@@ -3,6 +3,20 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.21 - 2026-07-13 - Beta feedback form
+- **In-game Feedback form** (Settings ▸ Feedback, next to How to Play): players pick Bug or
+  Feature from a dropdown, type a message, and submit. Built with Phaser's DOM element container
+  (real `<select>`/`<textarea>`, styled to match the dark UI) since Phaser has no native dropdown
+  or multiline text input.
+- **Cloudflare Worker backend** (`worker/`): receives the submission and files a Trello card on
+  the Foothold board's "Cloudflare" list, labeled "Beta Feedback" + Bug or Feature, for manual
+  triage. Trello is the only system of record - no submissions are stored anywhere else.
+- **Abuse handling**: a honeypot field and a per-IP rate limit (5/hour via Cloudflare KV) keep the
+  form frictionless for a small friend beta with no CAPTCHA.
+- Deliberate scope expansion beyond `DESIGN.md` for the v0.20 friend beta test, authorized
+  directly rather than deferred to the v1.1 backlog (see `DESIGN.md` and the pipeline-root
+  `PROGRESS.md` Decision Log).
+
 ## v0.20 - 2026-07-13 - Flag & node-glint idle animations, back-nav icon, level select readability
 - **Waving home flags**: a small flag now waves on top of each player's home/stronghold tile,
   sticking up out of the watchtower's parapet (`GameScene.drawFlags()`). Recolors instantly if

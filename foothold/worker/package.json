@@ -1,0 +1,13 @@
+{
+  "name": "foothold-feedback-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker: files a Trello card from Foothold's in-game beta-feedback form.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

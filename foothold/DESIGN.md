@@ -90,6 +90,18 @@ Four actions, four highlight colors; each resource has exactly one job.
 - Free = full core game. Unlock candidates (NOT built yet): extra board sizes, more
   special-node types, harder AI / endless gauntlet. Design free tier to feel complete.
 
+## Beta feedback mechanism (scope expansion, authorized by Benzur 2026-07-13)
+Out-of-scope addition for the v0.20 friend beta test - not part of the original v1 pitch, but
+authorized directly rather than deferred to the v1.1 backlog since the beta needs it now.
+- **In-game form:** a "Feedback" button next to How to Play in the Settings panel opens a popup
+  with a Bug/Feature dropdown and a free-text message field, Cancel + Submit buttons.
+- **Backend:** a Cloudflare Worker receives the submission, validates it, and creates a card on
+  Benzur's Trello board (list: "Cloudflare Worker", labeled "Beta Feedback" + Bug or Feature)
+  for manual triage. No submissions are stored anywhere else; Trello is the system of record.
+- **Abuse handling:** a honeypot field + per-IP rate limit on the Worker (no CAPTCHA - keeps the
+  form frictionless for a small friend beta); CORS restricted to the game's own origins.
+- Not a monetization or core-loop feature; purely an operational tool for the beta period.
+
 ## v1.1 backlog (captured, not committed)
 - **Real-time variant:** tiles capture gradually - prototype and playtest vs turn-based.
 - **More terrain:** mountains (walk around); the river + bridges shipped in v1, further

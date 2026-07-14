@@ -10,6 +10,10 @@ desktop.ini
 # Node (none used yet; keep clean if tooling is added later)
 node_modules/
 
+# Wrangler (Cloudflare Workers) local build/dev cache - regenerated on every
+# `wrangler deploy`/`dev`; contains account metadata, not meant to be shared
+.wrangler/
+
 # Claude Code machine-local settings (permissions allowlist) — not shared
 .claude/settings.local.json
 

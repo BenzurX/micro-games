@@ -1,0 +1,42 @@
+# Foothold feedback Worker - Cloudflare Wrangler config
+#
+# BEFORE THIS CAN DEPLOY, Ben must:
+#   1. Create a KV namespace for rate limiting:
+#        wrangler kv namespace create RATE_LIMIT_KV
+#      Then paste the returned "id" (and, if you want a separate one for
+#      `wrangler dev --local` testing, the "preview_id") into the
+#      [[kv_namespaces]] block below, replacing the placeholders.
+#   2. Set the two Trello secrets (never put these in this file):
+#        wrangler secret put TRELLO_KEY
+#        wrangler secret put TRELLO_TOKEN
+#   3. Update ALLOWED_ORIGINS below once the itch.io page URL is known,
+#      e.g. "https://benzur.itch.io/foothold,http://localhost:8123"
+#   4. Then deploy with: wrangler deploy
+#
+# See worker/README.md for the full step-by-step setup walkthrough.
+
+name = "foothold-feedback"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# Comma-separated list of origins allowed to POST to this Worker.
+# TODO(Ben): replace with the real itch.io page origin once the game is published,
+# e.g. "https://benzur.itch.io,http://localhost:8123,http://localhost:8080"
+ALLOWED_ORIGINS = "https://benzurx.github.io,http://localhost:8123,http://localhost:8080"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "e7b97facd37f450682caab46543077d4"
+preview_id = "<replace-with-preview-id-or-reuse-the-same-id-for-local-dev>"
+
+# Trello config (board/list/label IDs are fixed and not secret - safe to keep here).
+# The API key + token themselves are set as secrets, NOT here:
+#   wrangler secret put TRELLO_KEY
+#   wrangler secret put TRELLO_TOKEN
+[vars.trello]
+board_id = "6a5561e77bb31280a2ad8750"
+list_id = "6a5564f4557bda36272cade9"
+label_beta_feedback = "6a556464c220cf878c8ea062"
+label_bug = "6a55645b1c19c420b850565a"
+label_feature = "6a55645fc57b266d3290052f"

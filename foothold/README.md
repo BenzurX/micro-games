@@ -30,7 +30,8 @@ src/scenes/            BootScene (asset load), TitleScene (splash), LevelSelectS
                         battleground), GameScene (the match)
 src/lib/sfx.js         Procedural Web Audio sound engine (synthesized, no audio files)
 src/lib/settings.js    Persisted user prefs (sound / volume / CRT / DLSS gag) via localStorage
-src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel
+src/lib/feedback.js    Submits the Settings ▸ Feedback form to the Cloudflare Worker backend
+src/lib/ui.js          Shared overlays: How to Play tutorial + Settings panel + Feedback form
 src/lib/tileEditor.js  Hidden dev-only tile/tide overlay for the ocean level (D-E-V key or
                         moon-tap to enter); not part of normal play
 src/lib/CrtPipeline.js WebGL CRT post-processing filter (curve, scanlines, grille, bloom, vignette)
@@ -42,6 +43,8 @@ manifest.webmanifest   PWA manifest (name, icons, standalone display)
 sw.js                  Service worker: caches the whole game for offline play/install
 scripts/                Node-only dev tooling (not shipped in the web build)
   balance-harness.mjs  Headless AI-vs-AI simulator (uses src/lib/rules.js)
+worker/                 Cloudflare Worker backend for the in-game Feedback form (separate
+                        deploy, not part of the static web build - see worker/README.md)
 ```
 
 ## Versioning
