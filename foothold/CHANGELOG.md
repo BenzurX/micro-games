@@ -3,6 +3,28 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.22 - 2026-07-16 - Custom app icon, Beach Cutoff fix, ocean balance testing
+- **Custom app icon**: replaced the temporary placeholder (upscaled watchtower) with Ben's own
+  icon artwork across `assets/icons/pwa-192.png`/`pwa-512.png` - also covers the browser
+  favicon and Apple touch icon, which already pointed at the same files.
+- **Beach Cutoff bug fix**: the ocean level's shoreline generator could occasionally stack ocean
+  tiles on every side of a land/shoal tile at once, boxing it in - a resource placed there
+  became permanently unreachable (claiming requires 4-directional adjacency to owned territory,
+  and ocean is never claimable). Added `sealUnreachablePockets()` - flood-fills from both homes
+  right after ocean tagging and converts any unreached tile to ocean before nodes are placed.
+  Verified with a standalone reachability check across 5000 generated boards (0 trapped tiles)
+  and a 20,000-game balance re-run (no win-rate regression).
+- **Dev Mode**: tide-phase buttons relabeled Low/Rising/High (was raw index buttons "0"-"3");
+  added a toggleable on-screen FPS counter for real-device performance testing that stays
+  visible after closing Dev Mode and persists across reloads.
+- **AI-vs-AI balance testing**: ported the ocean level's tide/shoal logic into the Phaser-free
+  `src/lib/rules.js` so the harness (`scripts/balance-harness.mjs`) can simulate it - previously
+  River-only. Also fixed the harness capping Player 1 at the AI opponent's 5-action turn limit,
+  which doesn't reflect a real human's unlimited-until-out-of-resources turn and was skewing
+  results. River: 49.8%/50.2%. Ocean/Twin Shoals: 49.4%/49.8%, both healthy.
+- Beta feedback Trello cards no longer carry a redundant `[Bug]`/`[Feature]` text prefix in the
+  title, since the Trello label already carries that.
+
 ## v0.21 - 2026-07-13 - Beta feedback form
 - **In-game Feedback form** (Settings ▸ Feedback, next to How to Play): players pick Bug or
   Feature from a dropdown, type a message, and submit. Built with Phaser's DOM element container

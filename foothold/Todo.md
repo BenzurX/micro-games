@@ -1,3 +1,9 @@
+> **Frozen 2026-07-14.** Task tracking moved to the Foothold Trello board (board_id
+> `6a5561e77bb31280a2ad8750`, lists "Todo"/"Backlog") - see PROGRESS.md Decision Log.
+> No new `[ ]` items get added here. The `[x]` entries below stay as a historical
+> record (design rationale, staged alternatives, tuning numbers) that Trello cards
+> don't carry at this depth.
+
 # Tackle First
 
 - [x] **Turn order fix** - Balance fix: first-mover imbalance - player 1 (always moves first each round) was winning 66.8% vs player 2's 33.1% over 5000 AI-vs-AI games. Considered alternating who moves first, but that would read as "the enemy went twice in a row" at the round boundary - kept turn order fixed and compensated player 2 with a starting-resource bump instead (`P2_START_BONUS = { wood: 14, gold: 14, stone: 7 }`, tuned against the harness). Invisible to the player (AI's stockpile is never shown in the UI). Re-ran at 20,000 games: 50.7%/49.3%.

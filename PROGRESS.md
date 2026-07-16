@@ -19,18 +19,36 @@ Fable trial week (ends July 7). Objective: 1 fully shipped game, 1 second game b
 
 ## Today's Target
 *(One line. Set it each morning before opening Claude Code.)*
-- **Date:** 2026-07-11
-- **Target:** Reconcile the uncommitted 2026-07-09 income-tiebreaker/doc-sync work, then build the AI-vs-AI balance harness (Next Session item 1).
-- **Status:** DONE. Reconciled the 2026-07-09 work (committed) and built the balance harness (`src/lib/rules.js` + `scripts/balance-harness.mjs`). Ran it: found a 66.8%/33.1% first-mover win-rate imbalance - new top Next Session item.
+- **Date:** 2026-07-14
+- **Target:** Ship-lock declared after the 2-week audit (see Decision Log). Work only the items required to get Foothold live on itch.io; no new scope until it's shipped.
+
+## SHIP-LOCK (2026-07-14)
+Two-week audit found itch.io had been deprioritized every session since 2026-07-02 in favor of
+conscious-but-cumulative scope expansions (PWA, balance harness, beta feedback + Trello backend).
+Benzur chose: freeze all new scope, ship to itch.io this week. Any out-of-scope ask during
+ship-lock goes straight to the v1.1 backlog, no exceptions, until item 4 below is done.
 
 ## Next Session
-*(Canonical resume queue - the single source of truth for "ready to continue?". Set at
-session close via the Session End Ritual; restated verbatim and worked from item 1 on
-resume. A newer plan replaces this whole section. See global CLAUDE.md - Session handoff.)*
-1. **Custom app icon** - Benzur's own design (quality-bar requirement, highest-visibility "not AI slop" item). Also unblocks swapping the PWA's placeholder icons.
-2. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
-3. **60fps device test** - run on a real mid-range mobile before ship (quality-bar requirement).
-4. **Extract the reusable template** from Foothold (save system, audio manager, settings, IAP wrapper stub) into a shared template folder - needed before Game 2. (Keep this last.)
+*(Canonical resume queue - the single source of truth for "ready to continue?". As of
+2026-07-14, discrete task/feature/bug items live on the Foothold Trello board (board_id
+6a5561e77bb31280a2ad8750, lists "Todo" and "Backlog") - this list is a snapshot of that
+board's ship-lock chain at session close, restated verbatim on resume. A newer plan or
+Trello state replaces this whole section. See global CLAUDE.md - Session handoff. Cached
+board/list/label IDs for this and every other project's Trello board live in
+`C:\Users\Ben\Claude\Trello.md` - check it before any Trello MCP call instead of running
+`get_lists`/`get_board_labels` fresh.)*
+
+1. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
+2. **60fps device test** - run on a real mid-range mobile before ship (quality-bar requirement).
+3. **AI vs AI balance testing - River level** - run `scripts/balance-harness.mjs` against the River level, check for win-rate skew.
+4. **AI vs AI balance testing - Shoreline level (Twin Shoals)** - same harness against the Ocean level; balance/tide-clock timing was never confirmed by playtest.
+5. **Ship Foothold to itch.io.** This is the ship-lock target - do not let anything else jump ahead of it.
+
+Non-blocking (also on the Trello Todo list, not part of the ship-lock chain): Dev Mode tide-button relabel; Connect itch.io to Beta Feedback form (blocked until item 5 ships, needs the live origin); Polish ideas; Beach Cutoff bug fix.
+
+Template extraction is deliberately deferred until after the itch.io ship (Trello Todo card, not listed above).
+
+Done (cleared from this queue 2026-07-16): Custom app icon - Benzur provided `app-icon.png` (watchtower on the game's dark navy); resized into `assets/icons/pwa-192.png`/`pwa-512.png` (replacing the temporary upscaled-watchtower placeholder), also covering the favicon/apple-touch-icon; `sw.js` `CACHE_VERSION` bumped to v0.22. Trello card moved to Done.
 
 Done (cleared from this queue 2026-07-11): AI-vs-AI balance harness (`src/lib/rules.js` + `scripts/balance-harness.mjs`); first-mover imbalance fix (`P2_START_BONUS`, 66.8/33.1 -> 50.7/49.3 at 20k games).
 
@@ -84,7 +102,21 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 
 ### 2026-07-13
 - Done: Foothold v0.20 shipped (home flag + node-glint idle animations, back-nav icon, level select readability), plus a post-release stone icon artwork refinement (no version bump).
-- Done: beta feedback mechanism authorized as a scope expansion (Benzur is starting a friend beta of v0.20) - in-game Bug/Feature form + Cloudflare Worker + Trello card creation. Shipped as Foothold v0.21. Logged in the Decision Log above and DESIGN.md.
+- Done: beta feedback mechanism authorized as a scope expansion (Benzur is starting a friend beta of v0.20) - in-game Bug/Feature form + Cloudflare Worker + Trello card creation. Shipped as Foothold v0.21. Logged in the Decision Log above and DESIGN.md. Debugged a 401/502 chain to a mis-set Trello secret, fixed GitHub Pages CORS (`ALLOWED_ORIGINS`), confirmed working from Benzur's phone, then dropped the redundant `[Bug]`/`[Feature]` text prefix from Trello card titles since the labels already carry that.
+- Blocked: None.
+
+### 2026-07-16
+- Done: AI-vs-AI balance testing, River level - re-ran `scripts/balance-harness.mjs` at 20,000 games: 51.3%/48.7% (P1/P2), 0.1% draws. Consistent with the 2026-07-11 tuning result (50.7/49.3); no new skew.
+- Done: AI-vs-AI balance testing, Ocean/Twin Shoals level - the harness couldn't simulate this level at all before today (only GameScene.js had the tide/shoal logic, never ported to the Phaser-free `src/lib/rules.js`). Delegated the port to Codex (mechanical mirror of `generateShoals`/`placeNodesOcean`/`advanceTide`/`isSubmerged` into `rules.js`, plus tide-advance wiring in the harness matching `endAITurn`'s ordering); reviewed the diff, applied it, ran 20,000 games: 47.6%/51.4% (P1/P2), 1.0% draws, avg 11.78/12 rounds. Win-condition shape differs notably from River - only 14.6% base-capture (vs River's 46.4%) with 82.6% going to timeup-tiles - reads as the tide clock making home sieges harder to land; win-rate split itself is healthy. Logged as a design note on the Trello card, not a bug.
+- Blocked: 60fps device test still needs Ben on a real mid-range phone - moved back to Todo (was briefly In Progress by mistake before any work started on it).
+- Done: Trello workflow gained a **Review** list between In Progress and Done (Foothold board + the other three task-pipeline boards: Board Game Tracker, Micro Games Hub, Pan Y Amor, Side Projects Hub), with a "Needs Review" label and a "Sign-off" checklist gate so Ben has a distinct, deliberate approval action instead of just eyeballing a chat summary. Saved as a feedback memory (`trello-review-workflow.md`).
+- Done: Dev Mode tide-phase buttons - `src/lib/tileEditor.js`'s phase row now shows Low/Rising/High (was 4 raw-index buttons "0"-"3"); Low jumps to the first of the two "low" tide indices since both read identically in play.
+- Done: Beach Cutoff bug - fixed the ocean-level generator boxing a shoreline/resource tile in on all sides with stacked ocean bumps (Ben caught it via a Dev Mode map export: row 7 col 1 stone, fully ocean-ringed, permanently unreachable since claiming requires 4-directional adjacency to owned territory and ocean is never claimable). Added `sealUnreachablePockets()` - flood-fills from both homes right after ocean tagging and converts any unreached non-ocean tile to ocean before nodes are placed. Fixed in `GameScene.js` (the real generator) and mirrored into `src/lib/rules.js`. Verified with a standalone reachability check across 5000 generated boards (0 trapped tiles/resources) and a 20,000-game balance re-run (48.1%/50.8%, 1.1% draws - in line with the prior 47.6%/51.4%, 1.0% baseline, no regression).
+- Done: Custom app icon (quality-bar requirement) - Ben provided `app-icon.png`; resized into `assets/icons/pwa-192.png`/`pwa-512.png`, replacing the placeholder and also covering the favicon/apple-touch-icon. `sw.js` `CACHE_VERSION` bumped to v0.22. Trello card moved to Done, PROGRESS.md Next Session queue cleared of item 1.
+- Fixed: Dev-mode FPS counter (added to the Dev Mode panel, `src/lib/tileEditor.js`) crashed on "New Game" - `attachTileEditor` re-runs every `create()` since GameScene is a reused instance, so its `update`/`shutdown` listeners were stacking across restarts and a stale listener called `setText()` on an already-destroyed Text object. Fixed by unhooking each session's own listeners on `shutdown`. Also fixed `balance-harness.mjs`: Player 1's simulated turn was capped at `AI_MAX_ACTIONS` (5), a limit that's actually specific to the in-game AI opponent - a real human keeps acting until out of legal/affordable moves. Uncapped Player 1's loop; re-ran and results held close to balanced (River 49.8/50.2, Ocean 49.4/49.8).
+
+### 2026-07-14
+- Done: Trello made the task tracker of record - moved all Todo.md unchecked items + ship-lock items into cards on the Foothold Trello board (Todo/Backlog lists, Feature/Bug/Polish labels); `foothold/Todo.md` frozen as a historical decision/rationale log. Added two new Polish cards (AI vs AI balance testing for the River and Shoreline/Twin Shoals levels) as ship-lock prerequisites.
 - Blocked: None.
 
 ## Scope Backlog (v1.1 ideas — NOT for v1)
@@ -112,6 +144,8 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 - Game 1 art: using Kenney "Board Game Icons" (CC0), tinted per resource — d2=gold, lumber=wood, brick/log=stone (grey), award=special, house=home, watchtower=fortify. No exact gold/stone icon in the pack (stand-ins).
 - Repo structure: **single monorepo** at the pipeline root (GitHub: BenzurX/micro-games, branch `main`). Shared template + every game live as sibling folders. Repo-per-game rejected 2026-07-04 — the shared-template rule makes separate repos require submodules/copy (friction for a solo beginner), and the solo/private/premium model doesn't need per-game isolation. A breakout game can be split out later via git subtree/filter-repo with history intact.
 - Game 1: **beta feedback mechanism authorized as a scope expansion** (2026-07-13, not deferred to backlog) - an in-game Bug/Feature form (Settings panel) posting to a Cloudflare Worker that creates a Trello card for triage. Needed now because Benzur is starting a friend beta test of v0.20. See DESIGN.md's "Beta feedback mechanism" section for the spec.
+- **Ship-lock declared 2026-07-14** after a 2-week audit found itch.io deprioritized every session since 2026-07-02 despite being a Weekly Target. All new scope frozen (straight to v1.1 backlog) until Foothold is live on itch.io. See `SHIP-LOCK` section above.
+- **Trello is the task tracker of record, effective 2026-07-14.** `foothold/Todo.md` is frozen - its `[x]` entries stay as a historical decision/rationale log (staged alternatives, tuning numbers), but no new `[ ]` items get added there. New tasks/features/bugs go straight to Trello (board_id 6a5561e77bb31280a2ad8750) as one card each, labeled Feature/Bug/Polish.
 
 ## Store/Admin Checklist
 - [ ] macOS updated to latest supported version (2018 MBP → Sonoma)

@@ -150,9 +150,7 @@ async function createTrelloCard(env, type, message) {
     .filter(Boolean)
     .join(',');
 
-  const namePrefix = `[${type}] `;
-  const nameBody = message.length > 60 ? `${message.slice(0, 60)}...` : message;
-  const name = `${namePrefix}${nameBody}`;
+  const name = message.length > 60 ? `${message.slice(0, 60)}...` : message;
 
   const params = new URLSearchParams({
     idList,

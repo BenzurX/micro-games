@@ -101,18 +101,41 @@
   <div class="page-header">
     <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
     <div class="page-title">&#9733; Foothold</div>
-    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>21 snapshots</strong> captured</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>22 snapshots</strong> captured</div>
   </div>
 
   <div class="timeline">
 
-    <!-- v0.21 - current -->
+    <!-- v0.22 - current -->
     <div class="version-entry current">
       <div class="v-dot">&#9670;</div>
       <div class="v-card">
         <div class="v-card-head">
-          <span class="v-badge">v0.21</span>
+          <span class="v-badge">v0.22</span>
           <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 16, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Custom app icon, Beach Cutoff fix, ocean balance testing</div>
+          <ul class="v-bullets">
+            <li><strong>Custom app icon</strong>: Ben's own icon artwork replaces the temporary placeholder, covering the PWA install icon, favicon, and Apple touch icon.</li>
+            <li><strong>Beach Cutoff bug fix</strong>: the ocean level's generator could box a shoreline/resource tile in on all sides with ocean, making it permanently unreachable - fixed with a flood-fill seal pass before nodes are placed.</li>
+            <li><strong>Dev Mode</strong>: tide-phase buttons relabeled Low/Rising/High; added a toggleable on-screen FPS counter for real-device performance testing.</li>
+            <li><strong>AI-vs-AI balance testing</strong>: ocean level ported into the headless harness and a Player 1 turn-cap bug fixed; both levels confirmed healthy (~50/50 win rates).</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.22/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.21 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.21</span>
           <span class="v-date">July 13, 2026</span>
         </div>
         <div class="v-card-body">
