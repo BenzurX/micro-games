@@ -101,18 +101,39 @@
   <div class="page-header">
     <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
     <div class="page-title">&#9733; Foothold</div>
-    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>22 snapshots</strong> captured</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>23 snapshots</strong> captured</div>
   </div>
 
   <div class="timeline">
 
-    <!-- v0.22 - current -->
+    <!-- v0.23 - current -->
     <div class="version-entry current">
       <div class="v-dot">&#9670;</div>
       <div class="v-card">
         <div class="v-card-head">
-          <span class="v-badge">v0.22</span>
+          <span class="v-badge">v0.23</span>
           <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 16, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Shoreline level FPS fix (mask consolidation)</div>
+          <ul class="v-bullets">
+            <li><strong>Root cause</strong>: every ocean/shoal tile carried its own masked shimmer/ripple/foam layers - ~40-50 individually masked draw calls a frame, each forcing its own WebGL stencil pass, which is what was dragging shoreline FPS down to ~20 on mobile.</li>
+            <li><strong>Fix</strong>: consolidated all ocean swell sprites into one shared-mask Container and all shoal ripple/foam sprites into a second - 2 stencil passes a frame instead of 40-50. Visual output unchanged; needs on-device re-test.</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.23/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.22 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.22</span>
           <span class="v-date">July 16, 2026</span>
         </div>
         <div class="v-card-body">

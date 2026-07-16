@@ -3,6 +3,19 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.23 - 2026-07-16 - Shoreline level FPS fix (mask consolidation)
+- **Root cause of the shoreline level's low FPS on mobile** (river held 55-60fps; shoreline
+  dropped to ~20fps): every ocean tile carried 2 masked swell-shimmer sprites and every shoal
+  tile carried 2 masked layers (ripple + foam), each with its own per-tile `GeometryMask` -
+  ~40-50 individually masked draw calls a frame. Masked objects can't batch in WebGL and each
+  forces its own stencil-buffer pass, which mobile GPUs pay for far more than desktop.
+- **Fix**: consolidated all ocean-tile swell sprites into one `Container` clipped by a single
+  shared mask, and all shoal ripple/foam sprites into a second `Container` with its own single
+  shared mask - 2 stencil passes per frame instead of 40-50. Tide-phase changes
+  (`updateOceanSwellMasks`) now redraw the shared mask's backing Graphics in place instead of
+  destroying/recreating a `GeometryMask` per tile. Visual output is unchanged; this is a
+  rendering-cost-only refactor. Needs on-device FPS re-test to confirm the fix.
+
 ## v0.22 - 2026-07-16 - Custom app icon, Beach Cutoff fix, ocean balance testing
 - **Custom app icon**: replaced the temporary placeholder (upscaled watchtower) with Ben's own
   icon artwork across `assets/icons/pwa-192.png`/`pwa-512.png` - also covers the browser
