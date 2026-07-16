@@ -39,14 +39,15 @@ board/list/label IDs for this and every other project's Trello board live in
 `get_lists`/`get_board_labels` fresh.)*
 
 1. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
-2. **60fps device test** - run on a real mid-range mobile before ship (quality-bar requirement).
-3. **AI vs AI balance testing - River level** - run `scripts/balance-harness.mjs` against the River level, check for win-rate skew.
-4. **AI vs AI balance testing - Shoreline level (Twin Shoals)** - same harness against the Ocean level; balance/tide-clock timing was never confirmed by playtest.
-5. **Ship Foothold to itch.io.** This is the ship-lock target - do not let anything else jump ahead of it.
+2. **AI vs AI balance testing - River level** - run `scripts/balance-harness.mjs` against the River level, check for win-rate skew.
+3. **AI vs AI balance testing - Shoreline level (Twin Shoals)** - same harness against the Ocean level; balance/tide-clock timing was never confirmed by playtest.
+4. **Ship Foothold to itch.io.** This is the ship-lock target - do not let anything else jump ahead of it.
 
-Non-blocking (also on the Trello Todo list, not part of the ship-lock chain): Dev Mode tide-button relabel; Connect itch.io to Beta Feedback form (blocked until item 5 ships, needs the live origin); Polish ideas; Beach Cutoff bug fix.
+Non-blocking (also on the Trello Todo list, not part of the ship-lock chain): Dev Mode tide-button relabel; Connect itch.io to Beta Feedback form (blocked until item 4 ships, needs the live origin); Polish ideas; Beach Cutoff bug fix.
 
 Template extraction is deliberately deferred until after the itch.io ship (Trello Todo card, not listed above).
+
+Done (cleared from this queue 2026-07-16): 60fps device test - shoreline level was dropping to ~20fps on a real mid-range phone (river held 55-60fps). Root cause: ~40-50 per-tile GeometryMasks on ocean/shoal water FX (swell shimmer, ripple, foam), each forcing its own WebGL stencil pass. Fixed in v0.23 by consolidating to 2 shared masks driven by Containers. Re-tested on device: shoreline now stays above 50fps. Trello card moved to Done.
 
 Done (cleared from this queue 2026-07-16): Custom app icon - Benzur provided `app-icon.png` (watchtower on the game's dark navy); resized into `assets/icons/pwa-192.png`/`pwa-512.png` (replacing the temporary upscaled-watchtower placeholder), also covering the favicon/apple-touch-icon; `sw.js` `CACHE_VERSION` bumped to v0.22. Trello card moved to Done.
 
@@ -114,6 +115,7 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 - Done: Beach Cutoff bug - fixed the ocean-level generator boxing a shoreline/resource tile in on all sides with stacked ocean bumps (Ben caught it via a Dev Mode map export: row 7 col 1 stone, fully ocean-ringed, permanently unreachable since claiming requires 4-directional adjacency to owned territory and ocean is never claimable). Added `sealUnreachablePockets()` - flood-fills from both homes right after ocean tagging and converts any unreached non-ocean tile to ocean before nodes are placed. Fixed in `GameScene.js` (the real generator) and mirrored into `src/lib/rules.js`. Verified with a standalone reachability check across 5000 generated boards (0 trapped tiles/resources) and a 20,000-game balance re-run (48.1%/50.8%, 1.1% draws - in line with the prior 47.6%/51.4%, 1.0% baseline, no regression).
 - Done: Custom app icon (quality-bar requirement) - Ben provided `app-icon.png`; resized into `assets/icons/pwa-192.png`/`pwa-512.png`, replacing the placeholder and also covering the favicon/apple-touch-icon. `sw.js` `CACHE_VERSION` bumped to v0.22. Trello card moved to Done, PROGRESS.md Next Session queue cleared of item 1.
 - Fixed: Dev-mode FPS counter (added to the Dev Mode panel, `src/lib/tileEditor.js`) crashed on "New Game" - `attachTileEditor` re-runs every `create()` since GameScene is a reused instance, so its `update`/`shutdown` listeners were stacking across restarts and a stale listener called `setText()` on an already-destroyed Text object. Fixed by unhooking each session's own listeners on `shutdown`. Also fixed `balance-harness.mjs`: Player 1's simulated turn was capped at `AI_MAX_ACTIONS` (5), a limit that's actually specific to the in-game AI opponent - a real human keeps acting until out of legal/affordable moves. Uncapped Player 1's loop; re-ran and results held close to balanced (River 49.8/50.2, Ocean 49.4/49.8).
+- Done: Shoreline level FPS fix (Foothold v0.23) - Ben's device test found the shoreline level dropping to ~20fps (river stayed 55-60fps). Root cause: every ocean/shoal tile carried its own masked swell/ripple/foam sprites, ~40-50 individually masked draw calls a frame, each forcing its own WebGL stencil pass on top of the already-heavier shoreline scene - mobile GPUs pay for that far more than desktop. Fixed by consolidating to 2 shared masks driven by Containers (`oceanSwellContainer`/`shoalContainer` in `GameScene.js`); `updateOceanSwellMasks()` now redraws the shared masks' backing Graphics in place instead of destroying/recreating a GeometryMask per tile. Re-tested on device: shoreline stays above 50fps. 60fps device test Trello card moved to Done.
 
 ### 2026-07-14
 - Done: Trello made the task tracker of record - moved all Todo.md unchecked items + ship-lock items into cards on the Foothold Trello board (Todo/Backlog lists, Feature/Bug/Polish labels); `foothold/Todo.md` frozen as a historical decision/rationale log. Added two new Polish cards (AI vs AI balance testing for the River and Shoreline/Twin Shoals levels) as ship-lock prerequisites.
