@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Foothold — Update Toast Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1b1e2b;
+    --ink: #e7e9f0;
+    --subtle: #aeb4c6;
+    --card: #22263a;
+    --card-2: #1a1d2c;
+    --accent: #3d6cff;
+    --border: #39405c;
+    --head: 'Grenze', Georgia, serif;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #0e1018;
+    color: var(--ink);
+    font-family: var(--font);
+  }
+  body {
+    padding: 32px 20px 80px;
+    display: flex; flex-direction: column; align-items: center; gap: 48px;
+  }
+  h1 {
+    font-family: var(--head);
+    font-size: 22px;
+    margin: 8px 0 0;
+    color: var(--ink);
+  }
+  p.sub {
+    color: var(--subtle);
+    font-size: 14px;
+    max-width: 620px;
+    text-align: center;
+    line-height: 1.5;
+    margin: 0 0 8px;
+  }
+
+  .option {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .option-label {
+    font-family: var(--head);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--ink);
+  }
+  .option-note {
+    font-size: 13px;
+    color: var(--subtle);
+    max-width: 380px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* Phone frame simulating the game's mobile canvas (portrait, 720-design-width game
+     rendered at a real device width; frame here is 380px CSS px, a common phone width). */
+  .frame {
+    position: relative;
+    width: 380px;
+    height: 720px;
+    border-radius: 28px;
+    overflow: hidden;
+    background: var(--bg);
+    box-shadow: 0 0 0 6px #05060a, 0 20px 50px rgba(0,0,0,0.55);
+    container-type: inline-size;
+  }
+
+  /* Fake mid-match HUD so the toast's non-blocking placement reads true-to-life:
+     a top resource bar, a grid of "tiles", and a bottom action row. Not the real game,
+     just enough to judge contrast/overlap against actual board content. */
+  .fake-hud-top {
+    position: absolute; top: 0; left: 0; right: 0; height: 64px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+  }
+  .fake-res { display: flex; gap: 14px; }
+  .fake-res span {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.gold { background: #f2c14e; }
+  .dot.wood { background: #b5793a; }
+  .dot.stone { background: #b9c2d0; }
+
+  .fake-board {
+    position: absolute; top: 64px; left: 0; right: 0; bottom: 84px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 1fr;
+    gap: 3px;
+    padding: 10px;
+  }
+  .fake-board div {
+    border-radius: 4px;
+    background: #262b40;
+  }
+  .fake-board div.p1 { background: #2d4a3e; }
+  .fake-board div.p2 { background: #4a2d33; }
+  .fake-board div.node { background: #3a3320; }
+  .fake-board div.river { background: #1a2f4a; }
+
+  .fake-hud-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 84px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fake-end-turn {
+    font-family: var(--head); font-weight: 700; font-size: 18px;
+    color: #fff; background: var(--accent);
+    padding: 12px 32px; border-radius: 24px;
+  }
+
+  /* ---------- A: bottom banner bar ---------- */
+  .toast-a {
+    position: absolute; left: 0; right: 0; bottom: 84px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    animation: slideUp 400ms ease-out;
+  }
+  .toast-a .msg { flex: 1; font-size: 14px; color: var(--ink); }
+  .toast-a .msg b { font-family: var(--head); }
+  .toast-a button.primary {
+    font-family: var(--head); font-weight: 700; font-size: 14px;
+    color: #fff; background: var(--accent); border: none;
+    padding: 8px 18px; border-radius: 16px; cursor: pointer;
+  }
+  .toast-a button.dismiss {
+    background: transparent; border: none; color: var(--subtle);
+    font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 6px;
+  }
+
+  /* ---------- B: bottom-center floating card ---------- */
+  .toast-b {
+    position: absolute; left: 16px; right: 16px; bottom: 100px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+    animation: slideUp 400ms ease-out;
+  }
+  .toast-b .row-top { display: flex; align-items: flex-start; gap: 10px; }
+  .toast-b .icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #fff; font-weight: 700;
+  }
+  .toast-b .title { font-family: var(--head); font-weight: 700; font-size: 16px; color: var(--ink); }
+  .toast-b .desc { font-size: 13px; color: var(--subtle); margin-top: 2px; line-height: 1.4; }
+  .toast-b .close {
+    margin-left: auto; background: transparent; border: none;
+    color: var(--subtle); font-size: 16px; cursor: pointer; padding: 2px 4px;
+  }
+  .toast-b .actions { display: flex; gap: 10px; margin-top: 12px; }
+  .toast-b button.primary {
+    font-family: var(--head); font-weight: 700; font-size: 14px;
+    color: #fff; background: var(--accent); border: none;
+    padding: 9px 20px; border-radius: 20px; cursor: pointer;
+  }
+  .toast-b button.secondary {
+    font-family: var(--font); font-weight: 600; font-size: 14px;
+    color: var(--subtle); background: transparent; border: none;
+    padding: 9px 4px; cursor: pointer;
+  }
+
+  /* ---------- C: top pill / chip ---------- */
+  .toast-c {
+    position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 10px 8px 16px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    animation: dropIn 400ms ease-out;
+    white-space: nowrap;
+  }
+  .toast-c .msg { font-size: 13px; color: var(--ink); font-weight: 600; }
+  .toast-c button.primary {
+    font-family: var(--head); font-weight: 700; font-size: 13px;
+    color: #fff; background: var(--accent); border: none;
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .toast-c button.dismiss {
+    background: transparent; border: none; color: var(--subtle);
+    font-size: 15px; line-height: 1; cursor: pointer; padding: 2px 4px;
+  }
+
+  /* ---------- D: quiet corner badge, expands on tap ---------- */
+  .toast-d-badge {
+    position: absolute; top: 78px; right: 16px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px rgba(61,108,255,0.5);
+    cursor: pointer;
+    animation: pop 400ms ease-out;
+  }
+  .toast-d-badge::after {
+    content: '';
+    position: absolute; top: -2px; right: -2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #ff6a3d; border: 2px solid var(--bg);
+  }
+  .toast-d-badge svg { width: 18px; height: 18px; }
+  .toast-d-panel {
+    position: absolute; top: 124px; right: 16px; width: 220px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+    animation: dropIn 300ms ease-out;
+  }
+  .toast-d-panel .title { font-family: var(--head); font-weight: 700; font-size: 15px; color: var(--ink); }
+  .toast-d-panel .desc { font-size: 12.5px; color: var(--subtle); margin: 6px 0 12px; line-height: 1.4; }
+  .toast-d-panel .actions { display: flex; gap: 8px; }
+  .toast-d-panel button.primary {
+    font-family: var(--head); font-weight: 700; font-size: 13px;
+    color: #fff; background: var(--accent); border: none;
+    padding: 8px 14px; border-radius: 16px; cursor: pointer; flex: 1;
+  }
+  .toast-d-panel button.secondary {
+    font-family: var(--font); font-weight: 600; font-size: 13px;
+    color: var(--subtle); background: transparent; border: none;
+    padding: 8px 6px; cursor: pointer;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes dropIn {
+    from { transform: translate(-50%, -10px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+  .toast-d-panel { animation-name: dropInPlain; }
+  @keyframes dropInPlain {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes pop {
+    from { transform: scale(0.4); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 380px);
+    gap: 56px 40px;
+    justify-content: center;
+  }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 380px; }
+  }
+</style>
+</head>
+<body>
+
+  <h1>Foothold — "Update Available" toast, 4 options</h1>
+  <p class="sub">
+    All four fire the same way: the page checks for a new service-worker version on load and
+    on tab refocus, and only ever shows when an update is actually waiting — never mid-tap,
+    never blocking the board, no dim scrim behind it. Reload only happens on the player's own
+    click. Each one below is shown mid-match so you can judge it against real board content,
+    not an empty screen.
+  </p>
+
+  <div class="grid">
+
+    <div class="option">
+      <div class="option-label">A — Bottom banner bar</div>
+      <div class="frame">
+        <div class="fake-hud-top">
+          <div class="fake-res">
+            <span><i class="dot gold"></i>42</span>
+            <span><i class="dot wood"></i>18</span>
+            <span><i class="dot stone"></i>7</span>
+          </div>
+          <span style="font-family:var(--head);font-weight:700;">Round 6</span>
+        </div>
+        <div class="fake-board" id="board-a"></div>
+        <div class="fake-hud-bottom"><div class="fake-end-turn">End Turn</div></div>
+        <div class="toast-a">
+          <div class="msg"><b>Update available (v0.24).</b> Reload to get the latest Foothold.</div>
+          <button class="primary">Reload</button>
+          <button class="dismiss" title="Dismiss">✕</button>
+        </div>
+      </div>
+      <div class="option-note">Full-width, sits just above End Turn. Reads immediately, never mistaken for game UI thanks to the flat divider — but it's the widest footprint of the four.</div>
+    </div>
+
+    <div class="option">
+      <div class="option-label">B — Floating card</div>
+      <div class="frame">
+        <div class="fake-hud-top">
+          <div class="fake-res">
+            <span><i class="dot gold"></i>42</span>
+            <span><i class="dot wood"></i>18</span>
+            <span><i class="dot stone"></i>7</span>
+          </div>
+          <span style="font-family:var(--head);font-weight:700;">Round 6</span>
+        </div>
+        <div class="fake-board" id="board-b"></div>
+        <div class="fake-hud-bottom"><div class="fake-end-turn">End Turn</div></div>
+        <div class="toast-b">
+          <div class="row-top">
+            <div class="icon">↻</div>
+            <div>
+              <div class="title">Update available (v0.24)</div>
+              <div class="desc">A newer version of Foothold is ready.</div>
+            </div>
+            <button class="close" title="Dismiss">✕</button>
+          </div>
+          <div class="actions">
+            <button class="primary">Reload now</button>
+            <button class="secondary">Later</button>
+          </div>
+        </div>
+      </div>
+      <div class="option-note">Most explicit — a real "Later" option alongside Reload, not just a bare X. Best readability, but the biggest visual object sitting over the board.</div>
+    </div>
+
+    <div class="option">
+      <div class="option-label">C — Top pill</div>
+      <div class="frame">
+        <div class="fake-hud-top">
+          <div class="fake-res">
+            <span><i class="dot gold"></i>42</span>
+            <span><i class="dot wood"></i>18</span>
+            <span><i class="dot stone"></i>7</span>
+          </div>
+          <span style="font-family:var(--head);font-weight:700;">Round 6</span>
+        </div>
+        <div class="fake-board" id="board-c"></div>
+        <div class="fake-hud-bottom"><div class="fake-end-turn">End Turn</div></div>
+        <div class="toast-c">
+          <span class="msg">Update available (v0.24)</span>
+          <button class="primary">Reload</button>
+          <button class="dismiss" title="Dismiss">✕</button>
+        </div>
+      </div>
+      <div class="option-note">Compact, drops in below the resource bar without touching the board or End Turn. Least visually loud, but "Update available" alone assumes the player already knows what that means.</div>
+    </div>
+
+    <div class="option">
+      <div class="option-label">D — Quiet corner badge</div>
+      <div class="frame">
+        <div class="fake-hud-top">
+          <div class="fake-res">
+            <span><i class="dot gold"></i>42</span>
+            <span><i class="dot wood"></i>18</span>
+            <span><i class="dot stone"></i>7</span>
+          </div>
+          <span style="font-family:var(--head);font-weight:700;">Round 6</span>
+        </div>
+        <div class="fake-board" id="board-d"></div>
+        <div class="fake-hud-bottom"><div class="fake-end-turn">End Turn</div></div>
+        <div class="toast-d-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-3-6.7"/>
+            <path d="M21 3v6h-6"/>
+          </svg>
+        </div>
+        <div class="toast-d-panel">
+          <div class="title">Update available (v0.24)</div>
+          <div class="desc">A newer version of Foothold is ready to play.</div>
+          <div class="actions">
+            <button class="primary">Reload</button>
+            <button class="secondary">Later</button>
+          </div>
+        </div>
+      </div>
+      <div class="option-note">Least intrusive by default — a small badge with an orange "new" dot, doesn't say anything until tapped. Trade-off: a first-time player may not know what the icon means, and it could get lost among other HUD icons.</div>
+    </div>
+
+  </div>
+
+  <script>
+    // Populate each fake board with a plausible mid-match tile pattern so the toasts sit over
+    // real-looking content, not a blank rectangle.
+    const pattern = [
+      'p1','p1','n','','','p2',
+      'p1','n','','','p2','p2',
+      '','','r','r','','',
+      '','','r','r','','',
+      'p1','','','','n','p2',
+      'p1','p1','n','','p2','p2',
+    ];
+    ['board-a','board-b','board-c','board-d'].forEach((id) => {
+      const el = document.getElementById(id);
+      pattern.forEach((cell) => {
+        const d = document.createElement('div');
+        if (cell === 'p1') d.className = 'p1';
+        else if (cell === 'p2') d.className = 'p2';
+        else if (cell === 'n') d.className = 'node';
+        else if (cell === 'r') d.className = 'river';
+        el.appendChild(d);
+      });
+    });
+  </script>
+</body>
+</html>

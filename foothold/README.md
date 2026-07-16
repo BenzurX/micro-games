@@ -10,7 +10,9 @@ Micro Games pipeline.
 - **Stack:** plain ES modules, no build step
 - **Target:** mobile-first (Capacitor later), itch.io web build first
 - **PWA:** installable + offline-playable (`manifest.webmanifest` + `sw.js`); see the
-  pre-push gate in the root CLAUDE.md for bumping `sw.js`'s `CACHE_VERSION`
+  pre-push gate in the root CLAUDE.md for bumping `sw.js`'s `CACHE_VERSION`. When a new
+  build finishes installing in the background, a dismissable "Update available" toast
+  (`index.html`) lets the player reload on their own terms - it never forces a reload.
 
 ## Run it locally
 

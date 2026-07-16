@@ -101,18 +101,40 @@
   <div class="page-header">
     <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
     <div class="page-title">&#9733; Foothold</div>
-    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>23 snapshots</strong> captured</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>24 snapshots</strong> captured</div>
   </div>
 
   <div class="timeline">
 
-    <!-- v0.23 - current -->
+    <!-- v0.24 - current -->
     <div class="version-entry current">
       <div class="v-dot">&#9670;</div>
       <div class="v-card">
         <div class="v-card-head">
-          <span class="v-badge">v0.23</span>
+          <span class="v-badge">v0.24</span>
           <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 16, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">"Update available" toast</div>
+          <ul class="v-bullets">
+            <li><strong>Update-available toast</strong>: a small dismissable pill at the top of the screen tells the player when a newer build has finished installing in the background, with a Reload button and a version number - never forces a reload or interrupts a match.</li>
+            <li><strong>Faster update checks</strong>: the page now forces a check on load and whenever the tab regains focus, instead of relying solely on the browser's own re-check schedule.</li>
+            <li>Detection uses a per-tab baseline version rather than lifecycle-event timing, so a fast connection can't let an update slip by unnoticed before listeners attach.</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.24/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.23 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.23</span>
           <span class="v-date">July 16, 2026</span>
         </div>
         <div class="v-card-body">

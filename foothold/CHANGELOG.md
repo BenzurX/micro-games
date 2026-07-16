@@ -3,6 +3,23 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.24 - 2026-07-16 - "Update available" toast
+- **Update-available toast**: a small dismissable pill at the top of the screen tells the
+  player when a newer build has finished installing in the background, with a Reload button
+  and a version number (e.g. "Update available (v0.24)"). Never forces a reload or interrupts
+  a match - the player dismisses or reloads on their own terms. Fixes the ux-reviewer's Trello
+  finding that a stale cached build (v0.20) could sit silently with no signal to the player.
+- **Faster update checks**: `index.html` now calls `registration.update()` on load and whenever
+  the tab regains focus, instead of relying solely on the browser's own re-check schedule for
+  `sw.js` (subject to normal HTTP caching, capped at ~24h even with no cache headers at all).
+- **`sw.js`**: responds to a `GET_VERSION` message with its `CACHE_VERSION`, so the page can ask
+  what build is actually active rather than guessing from lifecycle event timing. Detection uses
+  a per-tab baseline (the first version this tab ever sees is recorded silently - only a later
+  change from that baseline surfaces the toast), since on a fast connection the whole install/
+  activate cycle can complete before a naive "listen for updatefound after register" approach
+  even attaches its listener.
+- Staged 4 toast designs (`stage/update-toast.html`) before picking the top-pill layout.
+
 ## v0.23 - 2026-07-16 - Shoreline level FPS fix (mask consolidation)
 - **Root cause of the shoreline level's low FPS on mobile** (river held 55-60fps; shoreline
   dropped to ~20fps): every ocean tile carried 2 masked swell-shimmer sprites and every shoal
