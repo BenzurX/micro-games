@@ -11,7 +11,7 @@
 
 import { sfx } from './sfx.js';
 import { settings, VERSION } from './settings.js';
-import { setSceneCrt } from './CrtPipeline.js';
+import { setSceneCrt, lighten } from './CrtPipeline.js';
 import { submitFeedback } from './feedback.js';
 
 const FONT = 'system-ui, -apple-system, sans-serif';
@@ -77,20 +77,29 @@ function makeSlider(scene, cont, x, y, w, initial, onChange) {
   cont.add([track, hit, knob]);
 }
 
-// A filled pill button with centered label. onTap fires on pointerdown. Returns the rect.
+// A filled pill button with centered label. onTap fires on pointerdown. Hovering brightens the
+// fill and nudges the label up in scale - same hover language as the HUD's End Turn/New Game
+// buttons. Returns the rect.
 function makeButton(scene, cont, cx, y, w, h, label, color, textColor, onTap) {
-  const g = roundRect(scene, cx - w / 2, y - h / 2, w, h, color, h / 2);
+  const gx = cx - w / 2, gy = y - h / 2, radius = h / 2, hoverColor = lighten(color);
+  const g = roundRect(scene, gx, gy, w, h, color, radius);
   const hit = scene.add.rectangle(cx, y, w, h, 0x000000, 0.001).setInteractive({ useHandCursor: true });
   const txt = scene.add.text(cx, y, label, { fontFamily: HEAD, fontSize: '26px', fontStyle: 'bold', color: textColor }).setOrigin(0.5);
+  hit.on('pointerover', () => { g.clear().fillStyle(hoverColor, 1).fillRoundedRect(gx, gy, w, h, radius); txt.setScale(1.04); });
+  hit.on('pointerout', () => { g.clear().fillStyle(color, 1).fillRoundedRect(gx, gy, w, h, radius); txt.setScale(1); });
   hit.on('pointerdown', onTap);
   cont.add([g, hit, txt]);
   return hit;
 }
 
-// Small round × close button, top-right of a card. onTap closes.
+// Small round × close button, top-right of a card. Hovering brightens the circle and nudges the
+// × up in scale. onTap closes.
 function makeClose(scene, cont, x, y, onTap) {
-  const c = scene.add.circle(x, y, 24, 0x39405c).setInteractive({ useHandCursor: true });
+  const BASE = 0x39405c, HOVER = lighten(BASE);
+  const c = scene.add.circle(x, y, 24, BASE).setInteractive({ useHandCursor: true });
   const t = scene.add.text(x, y - 1, '✕', { fontFamily: FONT, fontSize: '26px', color: INK }).setOrigin(0.5);
+  c.on('pointerover', () => { c.setFillStyle(HOVER); t.setScale(1.1); });
+  c.on('pointerout', () => { c.setFillStyle(BASE); t.setScale(1); });
   c.on('pointerdown', onTap);
   cont.add([c, t]);
 }

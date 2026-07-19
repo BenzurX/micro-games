@@ -143,6 +143,31 @@ export function addCrtSafeHit(scene, cx, cy, w, h, pad = 0) {
     .setInteractive({ useHandCursor: true });
 }
 
+// Nudges a hex color toward white by `amt` (0-1). Shared hover-brighten used across every
+// button/panel in the game so "hovering" reads as the same visual language everywhere.
+export function lighten(color, amt = 0.18) {
+  const r = (color >> 16) & 0xff, g = (color >> 8) & 0xff, b = color & 0xff;
+  const l = (v) => Math.min(255, Math.round(v + (255 - v) * amt));
+  return (l(r) << 16) | (l(g) << 8) | l(b);
+}
+
+// Hover feedback for a square icon-button (gear, back-arrow): the panel behind it brightens
+// and the icon nudges up in scale. Shared by Title/Level Select/Game HUD so the gear and back
+// controls read as one control language across every screen, matching how End Turn/New Game
+// already brighten on hover.
+export function addIconButtonHover(hit, panel, x, y, w, h, radius, baseColor, icon) {
+  const hoverColor = lighten(baseColor);
+  const baseScaleX = icon.scaleX, baseScaleY = icon.scaleY;
+  hit.on('pointerover', () => {
+    panel.clear().fillStyle(hoverColor, 1).fillRoundedRect(x, y, w, h, radius);
+    icon.setScale(baseScaleX * 1.08, baseScaleY * 1.08);
+  });
+  hit.on('pointerout', () => {
+    panel.clear().fillStyle(baseColor, 1).fillRoundedRect(x, y, w, h, radius);
+    icon.setScale(baseScaleX, baseScaleY);
+  });
+}
+
 export class CrtPipeline extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
   constructor(game) {
     super({ game, name: 'CrtPipeline', fragShader: FRAG });

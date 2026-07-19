@@ -3,7 +3,7 @@
 // template. Kept in one file while the design is still moving.
 
 import { sfx } from '../lib/sfx.js';
-import { setSceneCrt, addCrtSafeHit } from '../lib/CrtPipeline.js';
+import { setSceneCrt, addCrtSafeHit, lighten, addIconButtonHover } from '../lib/CrtPipeline.js';
 import { settings } from '../lib/settings.js';
 import { createTutorialOverlay, createSettingsOverlay, applyDlss } from '../lib/ui.js';
 import { attachTileEditor } from '../lib/tileEditor.js';
@@ -1135,16 +1135,32 @@ export class GameScene extends Phaser.Scene {
         const y = this.originY + r * TILE + TILE / 2;
 
         const rect = this.add.rectangle(x, y, TILE - 4, TILE - 4, FILL[0]);
+
+        // Subtle whole-board mouseover: every tile lights up a touch on hover, distinct from the
+        // action tooltip below. Drawn as its own additive overlay (rather than tinting the tile
+        // fill directly) so it never fights with refresh()/tide/capture-flash, which all set the
+        // rect's own fill color independently. Depth 1.5 sits above the river ribbon (depth 1) but
+        // below the bridge deck (depth 2) and icons/badges/text (4-6), so it reads under bridges.
+        const hoverGlow = this.add.rectangle(x, y, TILE - 4, TILE - 4, 0xffffff, 0.07)
+          .setBlendMode(Phaser.BlendModes.ADD).setDepth(1.5).setVisible(false);
+        // Touch has no real hover: Phaser fires pointerover on touchstart and pointerout on
+        // release, so a naive hover wire-up shows the tooltip on press and kills it the instant
+        // the finger lifts - before a second tap can land. Gate hover to mouse (wasTouch=false);
+        // touch gets its preview from onTilePointerDown instead, which keeps it up across taps.
         if (!this.tiles[r][c].river && !this.tiles[r][c].ocean) {
           rect.setInteractive({ useHandCursor: true });
           rect.on('pointerdown', () => this.onTilePointerDown(r, c));
-          // Touch has no real hover: Phaser fires pointerover on touchstart and pointerout on
-          // release, so a naive hover wire-up shows the tooltip on press and kills it the instant
-          // the finger lifts - before a second tap can land. Gate hover to mouse (wasTouch=false);
-          // touch gets its preview from onTilePointerDown instead, which keeps it up across taps.
-          rect.on('pointerover', (pointer) => { if (!pointer.wasTouch) this.showTooltip(r, c); });
-          rect.on('pointerout', (pointer) => { if (!pointer.wasTouch) this.hideTooltip(); });
+          rect.on('pointerover', (pointer) => { if (!pointer.wasTouch) { this.showTooltip(r, c); hoverGlow.setVisible(true); } });
+          rect.on('pointerout', (pointer) => { if (!pointer.wasTouch) { this.hideTooltip(); hoverGlow.setVisible(false); } });
+        } else if (this.tiles[r][c].river) {
+          // River tiles aren't actionable, but still get the same light-up preview so the whole
+          // board reads as one consistent surface - no hand cursor since there's no tap here.
+          // Ocean tiles (below) are deliberately left out of this.
+          rect.setInteractive();
+          rect.on('pointerover', (pointer) => { if (!pointer.wasTouch) hoverGlow.setVisible(true); });
+          rect.on('pointerout', (pointer) => { if (!pointer.wasTouch) hoverGlow.setVisible(false); });
         }
+        // Ocean tiles: no hover preview at all - not interactive, no glow.
 
         // Node/home icon: a tinted SVG image, texture + tint set per tile in refresh().
         // Starts hidden with a placeholder texture (empty tiles show nothing).
@@ -1178,7 +1194,7 @@ export class GameScene extends Phaser.Scene {
           glint.baseX = x;
         }
 
-        row.push({ rect, icon, badge, income, glint });
+        row.push({ rect, icon, badge, income, glint, hoverGlow });
       }
       this.views.push(row);
     }
@@ -1310,12 +1326,13 @@ export class GameScene extends Phaser.Scene {
     // still point at Graphics objects the scene shutdown already destroyed. Reusing that stale
     // truthy-but-dead reference silently no-ops every draw call, which is why corners/warning
     // rings went back to sharp on a second playthrough.
-    // Depth 1.5: below the ripple/swell/foam water animation layers (depth 2-3), so those
-    // keep drawing over the rounded-corner notch on water tiles instead of leaving a static
-    // dark patch cut through the animated shimmer. On land tiles (no ripple/foam) the notch
-    // still reads fine as a plain solid rounded edge.
+    // Depth 1.3: below the hover glow (1.5, see buildBoard) so a tile's rounded-corner notch
+    // never paints back over the mouseover light-up, and below the ripple/swell/foam water
+    // animation layers (depth 2-3), so those keep drawing over the notch on water tiles instead
+    // of leaving a static dark patch cut through the animated shimmer. On land tiles (no ripple/
+    // foam) the notch still reads fine as a plain solid rounded edge.
     if (this.shorelineGfx) this.shorelineGfx.destroy();
-    this.shorelineGfx = this.add.graphics().setDepth(1.5);
+    this.shorelineGfx = this.add.graphics().setDepth(1.3);
     // Depth 3.6: above the foam/ripple water animation (2-3) so the warning ring reads clearly
     // over it, below on-tile icons/badges (4-6).
     if (this.tideWarnGfx) this.tideWarnGfx.destroy();
@@ -1769,13 +1786,13 @@ export class GameScene extends Phaser.Scene {
 
     // Gear → opens the Settings panel (sound, CRT, how-to-play, about).
     const gx = railX + railW - gearW;
-    this.panel(gx, top, gearW, cardH, PANEL);
-    this.add.text(gx + gearW / 2, top + cardH / 2, '⚙️', { fontFamily: font, fontSize: '30px' })
-      .setOrigin(0.5);
-    // Transparent hit zone over the whole gear card (the emoji glyph is a poor tap target on its own).
+    const gearPanel = this.panel(gx, top, gearW, cardH, PANEL);
+    const gearIcon = this.add.image(gx + gearW / 2, top + cardH / 2, 'ic_gear').setDisplaySize(32, 32).setTint(0xe7e9f0);
+    // Transparent hit zone over the whole gear card (the icon alone is a poor tap target on its own).
     // Re-centered on where the CRT barrel-warp visually displays this corner (see CrtPipeline).
-    addCrtSafeHit(this, gx + gearW / 2, top + cardH / 2, gearW, cardH, 8)
+    const gearHit = addCrtSafeHit(this, gx + gearW / 2, top + cardH / 2, gearW, cardH, 8)
       .on('pointerdown', () => { this.sfx.unlock(); this.settingsPanel.show(); });
+    addIconButtonHover(gearHit, gearPanel, gx, top, gearW, cardH, 12, PANEL, gearIcon);
 
     // --- Tile-control bar + round timeline (staged ideas A and C) ---
     // Row 1: a tug-of-war bar sized to every claimable tile - blue (you) grows from the
@@ -2063,6 +2080,8 @@ export class GameScene extends Phaser.Scene {
     const againText = this.add.text(CX, textY + 160, 'Play Again', {
       fontFamily: HEAD, fontSize: '38px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5);
+    againBtn.on('pointerover', () => { againBtn.setFillStyle(lighten(0x3d6cff)); againText.setScale(1.04); });
+    againBtn.on('pointerout', () => { againBtn.setFillStyle(0x3d6cff); againText.setScale(1); });
     againBtn.on('pointerdown', () => { this.sfx.play('newgame'); this.scene.start('LevelSelectScene'); });
     this.overlay.add([bg, this.sunburstGlow, this.sunburstRays, this.resultText, againBtn, againText]);
   }
@@ -2110,12 +2129,16 @@ export class GameScene extends Phaser.Scene {
     const cancelText = this.add.text(cancelCx, by, 'Cancel', {
       fontFamily: HEAD, fontSize: '30px', fontStyle: 'bold', color: '#e7e9f0',
     }).setOrigin(0.5);
+    cancelBtn.on('pointerover', () => { cancelBtn.setFillStyle(lighten(0x39405c)); cancelText.setScale(1.04); });
+    cancelBtn.on('pointerout', () => { cancelBtn.setFillStyle(0x39405c); cancelText.setScale(1); });
     cancelBtn.on('pointerdown', () => this.confirmOverlay.setVisible(false));
 
     const confirmBtn = this.add.rectangle(confirmCx, by, bw, bh, 0x3d6cff).setInteractive({ useHandCursor: true });
     const confirmText = this.add.text(confirmCx, by, 'New Game', {
       fontFamily: HEAD, fontSize: '30px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5);
+    confirmBtn.on('pointerover', () => { confirmBtn.setFillStyle(lighten(0x3d6cff)); confirmText.setScale(1.04); });
+    confirmBtn.on('pointerout', () => { confirmBtn.setFillStyle(0x3d6cff); confirmText.setScale(1); });
     confirmBtn.on('pointerdown', () => { this.sfx.play('newgame'); this.scene.start('LevelSelectScene'); });
 
     this.confirmOverlay.add([dim, card, title, sub, cancelBtn, cancelText, confirmBtn, confirmText]);

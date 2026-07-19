@@ -5,7 +5,7 @@
 
 import { sfx } from '../lib/sfx.js';
 import { settings, VERSION } from '../lib/settings.js';
-import { setSceneCrt, addCrtSafeHit } from '../lib/CrtPipeline.js';
+import { setSceneCrt, addCrtSafeHit, addIconButtonHover } from '../lib/CrtPipeline.js';
 import { createTutorialOverlay, createSettingsOverlay, applyDlss } from '../lib/ui.js';
 
 const FONT = 'system-ui, -apple-system, sans-serif';
@@ -127,11 +127,12 @@ export class TitleScene extends Phaser.Scene {
     // --- Settings gear (top-right) ---
     // Matches the game HUD's gear button exactly (same rounded card, 0x2a2e40 fill, 30px glyph,
     // transparent hit zone) so the control reads as the same button across both screens.
-    const gW = 60, gH = 76, gxL = W - 20 - gW, gyT = 26;
+    const gW = 60, gH = 76, gxL = W - 20 - gW, gyT = 26, gColor = 0x2a2e40;
     const gcx = gxL + gW / 2, gcy = gyT + gH / 2;
-    this.add.graphics().fillStyle(0x2a2e40, 1).fillRoundedRect(gxL, gyT, gW, gH, 12);
-    this.add.text(gcx, gcy, '⚙️', { fontFamily: FONT, fontSize: '30px' }).setOrigin(0.5);
-    addCrtSafeHit(this, gcx, gcy, gW, gH, 12).on('pointerdown', () => this.settingsPanel.show());
+    const gearPanel = this.add.graphics().fillStyle(gColor, 1).fillRoundedRect(gxL, gyT, gW, gH, 12);
+    const gearIcon = this.add.image(gcx, gcy, 'ic_gear').setDisplaySize(32, 32).setTint(0xe7e9f0);
+    const gearHit = addCrtSafeHit(this, gcx, gcy, gW, gH, 12).on('pointerdown', () => this.settingsPanel.show());
+    addIconButtonHover(gearHit, gearPanel, gxL, gyT, gW, gH, 12, gColor, gearIcon);
 
     // Version, bottom edge - small, unobtrusive, reads as a finished build.
     this.add.text(cx, H - 34, VERSION, { fontFamily: FONT, fontSize: '16px', color: '#5a6076' }).setOrigin(0.5);

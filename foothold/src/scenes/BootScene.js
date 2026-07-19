@@ -16,6 +16,8 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('ic_home', 'assets/icons/watchtower.svg', { width: 128, height: 128 });
     // Back-nav chevron (arrow_right, mirrored) - replaces the plain '←' text glyph.
     this.load.svg('ic_back', 'assets/icons/arrow_back.svg', { width: 128, height: 128 });
+    // Settings gear (Ben's own artwork) - replaces the '⚙️' emoji glyph.
+    this.load.svg('ic_gear', 'assets/icons/gear.svg', { width: 128, height: 128 });
     // Watchtower hero art for the title screen (Kenney Board Game Icons, CC0; white-filled → tintable).
     this.load.image('watchtower', 'assets/watchtower.png');
   }

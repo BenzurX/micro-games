@@ -7,7 +7,7 @@
 
 import { sfx } from '../lib/sfx.js';
 import { settings } from '../lib/settings.js';
-import { setSceneCrt, addCrtSafeHit } from '../lib/CrtPipeline.js';
+import { setSceneCrt, addCrtSafeHit, addIconButtonHover } from '../lib/CrtPipeline.js';
 import { createTutorialOverlay, createSettingsOverlay, applyDlss } from '../lib/ui.js';
 
 const FONT = 'system-ui, -apple-system, sans-serif';
@@ -262,20 +262,22 @@ export class LevelSelectScene extends Phaser.Scene {
 
     // Back arrow to Title, top-left - matches the settings gear's card treatment for a
     // consistent "small square control" language across screens.
-    const backW = 60, backH = 60, backX = 20, backY = 26;
-    this.add.graphics().fillStyle(0x2a2e40, 1).fillRoundedRect(backX, backY, backW, backH, 12);
-    this.add.image(backX + backW / 2, backY + backH / 2, 'ic_back').setDisplaySize(26, 26).setTint(0xe7e9f0);
+    const backW = 60, backH = 60, backX = 20, backY = 26, backColor = 0x2a2e40;
+    const backPanel = this.add.graphics().fillStyle(backColor, 1).fillRoundedRect(backX, backY, backW, backH, 12);
+    const backIcon = this.add.image(backX + backW / 2, backY + backH / 2, 'ic_back').setDisplaySize(26, 26).setTint(0xe7e9f0);
     // Re-centered on where the CRT barrel-warp (see CrtPipeline) actually displays this corner,
     // not where it's logically drawn - padding alone can't fix a directional shift.
-    addCrtSafeHit(this, backX + backW / 2, backY + backH / 2, backW, backH, 12)
+    const backHit = addCrtSafeHit(this, backX + backW / 2, backY + backH / 2, backW, backH, 12)
       .on('pointerdown', () => { this.sfx.play('newgame'); this.scene.start('TitleScene'); });
+    addIconButtonHover(backHit, backPanel, backX, backY, backW, backH, 12, backColor, backIcon);
 
     // Settings gear, top-right - same treatment as Title/GameScene so it reads as one control.
-    const gW = 60, gH = 60, gxL = W - 20 - gW, gyT = 26;
+    const gW = 60, gH = 60, gxL = W - 20 - gW, gyT = 26, gColor = 0x2a2e40;
     const gcx = gxL + gW / 2, gcy = gyT + gH / 2;
-    this.add.graphics().fillStyle(0x2a2e40, 1).fillRoundedRect(gxL, gyT, gW, gH, 12);
-    this.add.text(gcx, gcy, '⚙️', { fontFamily: FONT, fontSize: '26px' }).setOrigin(0.5);
-    addCrtSafeHit(this, gcx, gcy, gW, gH, 12).on('pointerdown', () => this.settingsPanel.show());
+    const gearPanel = this.add.graphics().fillStyle(gColor, 1).fillRoundedRect(gxL, gyT, gW, gH, 12);
+    const gearIcon = this.add.image(gcx, gcy, 'ic_gear').setDisplaySize(28, 28).setTint(0xe7e9f0);
+    const gearHit = addCrtSafeHit(this, gcx, gcy, gW, gH, 12).on('pointerdown', () => this.settingsPanel.show());
+    addIconButtonHover(gearHit, gearPanel, gxL, gyT, gW, gH, 12, gColor, gearIcon);
 
     // --- Level card list ---
     const listW = Math.min(620, W * 0.94);

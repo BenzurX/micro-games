@@ -8,7 +8,7 @@ Verify commercial use is permitted before importing (see project CLAUDE.md → A
 - **Board Game Icons** — Kenney (Kenney Vleugels) — https://kenney.nl/assets/board-game-icons — License: CC0 1.0 (public domain, commercial use OK, no attribution required).
   - Used (recolored/tinted per resource): `d2` → gold, `resource_lumber` → wood, `award` → special node, `structure_watchtower` → home-base tile AND title-screen hero art (tinted gold; game-ready copy at `assets/watchtower.png`), `card_lift` → upgrade marker, `arrow_right` (mirrored) → back-nav chevron on Level Select.
   - Raw pack lives in `images/Vector/` (SVG) and `images/PNG/` (raster, 64px & 128px); game-ready copies (with injected viewBox/size) in `assets/icons/`.
-  - `images/Vector/Icons/stone2.svg` (used for `assets/icons/stone.svg`) is Ben's own original artwork, dropped into the same folder for convenience - not part of the Kenney pack, no third-party license applies.
+  - `images/Vector/Icons/stone2.svg` (used for `assets/icons/stone.svg`) and `images/Vector/Icons/gear.svg` (used for `assets/icons/gear.svg`, the settings gear button) are Ben's own original artwork, dropped into the same folder for convenience - not part of the Kenney pack, no third-party license applies.
 
 ## Fonts
 
