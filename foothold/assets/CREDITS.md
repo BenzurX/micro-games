@@ -15,6 +15,10 @@ Verify commercial use is permitted before importing (see project CLAUDE.md → A
 - **Grenze** — Omnibus-Type (Ana Sanfelippo, Pablo Cosgaya) — https://fonts.google.com/specimen/Grenze — License: SIL Open Font License 1.1 (commercial use OK, embedding/bundling permitted; reserved-name rule only restricts selling the font itself).
   - Used as the display serif for titles, modal headings, and buttons only (body text stays system-ui). Weights 400 + 700, vendored as woff2 under `assets/fonts/` (`grenze-400.woff2`, `grenze-700.woff2`) so the game runs offline and in the mobile build.
 
+## First-party (no credit required, listed for completeness)
+
+- `assets/icons/pwa-192.png` / `assets/icons/pwa-512.png` — Ben's own `app-icon.png` artwork, resized. Not third-party, no CREDITS entry required by the Asset Licensing Rule.
+
 ## Design references (not shipped in the build)
 
 - `images/reference/crt1–3.png` — CRT-look reference screenshots gathered while designing the
