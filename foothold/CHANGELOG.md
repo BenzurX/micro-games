@@ -3,6 +3,27 @@
 Flat decimal versions (v0.01, v0.02, …). Each entry matches a frozen playable snapshot
 under `snapshots/`. Newest first.
 
+## v0.25 - 2026-07-24 - Tutorial Step 7 (Siege), scripted enemy land-grabs, title-screen polish
+- **Tutorial Step 7 - Siege**: new final guided step teaches sieging the enemy gold node
+  (10 gold + 5 wood). Step 5's trigger now requires build-then-upgrade the special tile,
+  matching its own message text (was previously just tapping it).
+- **Scripted enemy land-grabs**: instead of the AI owning tiles (0,1) and (1,0) from turn
+  one, it claims (0,1) once Step 2 is done and (1,0) once Step 4 is done - paced to match
+  when the guided steps make each tile relevant. Tracked with a one-time
+  `tutorialAIClaimed` flag (not live tile ownership), so a later player siege at Step 7
+  can't cause the AI to think the claim never happened and re-grab the tile.
+- **"Waiting For Castle" section removed**: merged into the Free Roam message so the
+  tutorial stays on one consistent line during that wait instead of switching text.
+- **Tutorial-only starting resources**: wood 10 / stone 0 / gold 0, so each resource is
+  introduced only as the guided steps need it (was the same start as a normal match).
+- **Title screen**: "How to Play" / "Play Tutorial" buttons taller with bigger text and a
+  clearer gap between them; tagline verbs (Expand/Build/Upgrade/Siege) sized up.
+- **Win tooltip**: castle icon enlarged on the final home-siege tooltip across all levels,
+  not just tutorial.
+- Mobile tutorial instruction text box height trimmed 5%.
+- Fixed a bold-text tokenizer bug in the tutorial message renderer that glued bold text to
+  the preceding word.
+
 ## v0.24 - 2026-07-16 - "Update available" toast
 - **Update-available toast**: a small dismissable pill at the top of the screen tells the
   player when a newer build has finished installing in the background, with a Reload button

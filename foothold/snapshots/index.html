@@ -101,18 +101,43 @@
   <div class="page-header">
     <div><a class="back-link" href="../index.html">&#8592; Back to Game</a></div>
     <div class="page-title">&#9733; Foothold</div>
-    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>24 snapshots</strong> captured</div>
+    <div class="page-sub">Version History &nbsp;&middot;&nbsp; <strong>25 snapshots</strong> captured</div>
   </div>
 
   <div class="timeline">
 
-    <!-- v0.24 - current -->
+    <!-- v0.25 - current -->
     <div class="version-entry current">
       <div class="v-dot">&#9670;</div>
       <div class="v-card">
         <div class="v-card-head">
-          <span class="v-badge">v0.24</span>
+          <span class="v-badge">v0.25</span>
           <span class="v-current-chip">CURRENT</span>
+          <span class="v-date">July 24, 2026</span>
+        </div>
+        <div class="v-card-body">
+          <div class="v-headline">Tutorial Step 7 (Siege), scripted enemy land-grabs, title-screen polish</div>
+          <ul class="v-bullets">
+            <li><strong>Tutorial Step 7 - Siege</strong>: new final guided step teaches sieging the enemy gold node (10 gold + 5 wood); Step 5's trigger now requires build-then-upgrade the special tile, matching its own message text.</li>
+            <li><strong>Scripted enemy land-grabs</strong>: instead of the AI owning tiles (0,1) and (1,0) from turn one, it claims them progressively (after Step 2, then after Step 4) - tracked with a one-time flag so a later player siege can't cause a re-claim.</li>
+            <li><strong>"Waiting For Castle" removed</strong>: merged into the Free Roam message so the tutorial stays on one consistent line during that wait instead of switching text.</li>
+            <li><strong>Tutorial-only starting resources</strong> (wood 10 / stone 0 / gold 0) so each resource is introduced only as the guided steps need it.</li>
+            <li><strong>Title screen</strong>: "How to Play" / "Play Tutorial" buttons made taller with bigger text and a clearer gap between them; tagline verbs (Expand/Build/Upgrade/Siege) sized up.</li>
+            <li>Win tooltip's castle icon enlarged across all levels, not just tutorial; mobile tutorial text box height trimmed 5%.</li>
+          </ul>
+        </div>
+        <div class="v-card-foot">
+          <a class="v-open-btn" href="v0.25/index.html" target="_blank">&#8599; Open</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- v0.24 -->
+    <div class="version-entry">
+      <div class="v-dot">&#9670;</div>
+      <div class="v-card">
+        <div class="v-card-head">
+          <span class="v-badge">v0.24</span>
           <span class="v-date">July 16, 2026</span>
         </div>
         <div class="v-card-body">

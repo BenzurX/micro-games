@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Foothold (prototype)</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icons/pwa-192.png" />
+  <link rel="apple-touch-icon" href="assets/icons/pwa-192.png" />
+  <meta name="theme-color" content="#1b1e2b" />
+  <!-- Phaser 3 vendored locally (self-contained: works offline, in snapshots, and in mobile builds). -->
+  <script src="vendor/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+  <script type="module" src="src/main.js"></script>
+  <script>
+    // PWA install + offline play. Registered here (not main.js) so it's independent of the
+    // Phaser boot sequence and works even if the game itself fails to load.
+    //
+    // Update detection: the browser's own re-check of sw.js is subject to normal HTTP caching
+    // (capped at ~24h even with no cache headers at all), so we also force a check on load and
+    // whenever the tab regains focus. A new worker activates in the background regardless (see
+    // sw.js's unconditional skipWaiting/clients.claim) - what's missing without this is telling
+    // the player, so we surface a dismissable "Update available" toast instead of silently
+    // leaving them on stale cached JS until they happen to fully reload.
+    //
+    // We don't key this off the 'updatefound' event's timing directly - on a fast connection
+    // (or a local dev server) the whole install/activate cycle can finish before this script's
+    // 'load' handler even runs, so an approach that only listens for updatefound-after-register
+    // can miss the update entirely. Instead we track a per-tab baseline version: the FIRST version
+    // reply this tab ever sees (whatever's active right now, old or new) is recorded silently -
+    // there's nothing to reload for yet, this tab is already running it. Only a LATER reply that
+    // differs from that baseline means a new build showed up while this tab was open, which is
+    // the actual "you should reload" moment.
+    if ('serviceWorker' in navigator) {
+      let baselineVersion = null;
+
+      function showUpdateToast(rawVersion) {
+        if (document.querySelector('.fh-update-toast')) return; // already showing
+
+        const version = rawVersion.replace(/^foothold-/, '');
+        const toast = document.createElement('div');
+        toast.className = 'fh-update-toast';
+
+        const message = document.createElement('span');
+        message.textContent = `Update available (${version})`;
+
+        const reload = document.createElement('button');
+        reload.className = 'fh-update-reload';
+        reload.textContent = 'Reload';
+        reload.addEventListener('click', () => window.location.reload());
+
+        const dismiss = document.createElement('button');
+        dismiss.className = 'fh-update-dismiss';
+        dismiss.textContent = '✕';
+        dismiss.setAttribute('aria-label', 'Dismiss');
+        dismiss.addEventListener('click', () => toast.remove());
+
+        toast.append(message, reload, dismiss);
+        document.body.appendChild(toast);
+      }
+
+      function handleVersion(version) {
+        if (baselineVersion === null) { baselineVersion = version; return; }
+        if (version !== baselineVersion) { baselineVersion = version; showUpdateToast(version); }
+      }
+
+      function askVersion(registration) {
+        const worker = registration.active || registration.waiting || registration.installing;
+        if (worker) worker.postMessage({ type: 'GET_VERSION' });
+      }
+
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'VERSION') handleVersion(event.data.version);
+      });
+
+      window.addEventListener('load', async () => {
+        const registration = await navigator.serviceWorker.register('sw.js');
+        askVersion(registration); // establishes this tab's baseline right away
+
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'activated') askVersion(registration);
+          });
+        });
+
+        registration.update();
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            registration.update();
+            askVersion(registration); // catch an update that landed while the tab was hidden
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

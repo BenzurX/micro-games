@@ -38,14 +38,19 @@ board/list/label IDs for this and every other project's Trello board live in
 `C:\Users\Ben\Claude\Trello.md` - check it before any Trello MCP call instead of running
 `get_lists`/`get_board_labels` fresh.)*
 
-1. **Run the ux-reviewer agent** on the current build; log and triage whatever it flags.
-2. **AI vs AI balance testing - River level** - run `scripts/balance-harness.mjs` against the River level, check for win-rate skew.
-3. **AI vs AI balance testing - Shoreline level (Twin Shoals)** - same harness against the Ocean level; balance/tide-clock timing was never confirmed by playtest.
-4. **Ship Foothold to itch.io.** This is the ship-lock target - do not let anything else jump ahead of it.
+1. **Ship Foothold to itch.io.** This is the ship-lock target - do not let anything else jump ahead of it.
 
-Non-blocking (also on the Trello Todo list, not part of the ship-lock chain): Dev Mode tide-button relabel; Connect itch.io to Beta Feedback form (blocked until item 4 ships, needs the live origin); Polish ideas; Beach Cutoff bug fix.
+Non-blocking (also on the Trello Todo list, not part of the ship-lock chain): Dev Mode tide-button relabel; Connect itch.io to Beta Feedback form (blocked until item 1 ships, needs the live origin); Polish ideas.
 
 Template extraction is deliberately deferred until after the itch.io ship (Trello Todo card, not listed above).
+
+Done (cleared from this queue 2026-07-16): ux-reviewer agent run on the v0.23 build - flagged a "siege enemy Special node does nothing" blocker that turned out to be a browser-automation click-targeting false positive (Ben confirmed sieging specials works fine manually; code review of `GameScene.js` siege logic found no special-casing bug). Also surfaced the gap that a stale cached build could sit silently with no signal to the player - fixed as v0.24's "Update available" toast (per-tab baseline version detection, top-pill design staged in `stage/update-toast.html` then implemented, delegated to Codex and reviewed).
+
+Done (cleared from this queue 2026-07-16): AI vs AI balance testing - River level - re-ran `scripts/balance-harness.mjs` at 20,000 games: 51.3%/48.7% (P1/P2), 0.1% draws, consistent with prior tuning. No skew found.
+
+Done (cleared from this queue 2026-07-16): AI vs AI balance testing - Shoreline level (Twin Shoals) - ported the tide/shoal generator logic into the Phaser-free `src/lib/rules.js` (delegated the mechanical port to Codex, reviewed and applied), ran 20,000 games: 47.6%/51.4% (P1/P2), 1.0% draws. Win-condition shape differs from River (14.6% base-capture vs 46.4%) but split itself is healthy - logged as a design note, not a bug.
+
+Done (cleared from this queue 2026-07-16): Beach Cutoff bug fix - fixed the ocean-level generator boxing a shoreline/resource tile in on all sides with stacked ocean bumps; added `sealUnreachablePockets()` flood-fill in both `GameScene.js` and `rules.js`. Verified across 5000 generated boards (0 trapped tiles) and a 20,000-game balance re-run with no regression.
 
 Done (cleared from this queue 2026-07-16): 60fps device test - shoreline level was dropping to ~20fps on a real mid-range phone (river held 55-60fps). Root cause: ~40-50 per-tile GeometryMasks on ocean/shoal water FX (swell shimmer, ripple, foam), each forcing its own WebGL stencil pass. Fixed in v0.23 by consolidating to 2 shared masks driven by Containers. Re-tested on device: shoreline now stays above 50fps. Trello card moved to Done.
 
@@ -116,6 +121,7 @@ Done (cleared from this queue 2026-07-06): responsive update (wide/desktop layou
 - Done: Custom app icon (quality-bar requirement) - Ben provided `app-icon.png`; resized into `assets/icons/pwa-192.png`/`pwa-512.png`, replacing the placeholder and also covering the favicon/apple-touch-icon. `sw.js` `CACHE_VERSION` bumped to v0.22. Trello card moved to Done, PROGRESS.md Next Session queue cleared of item 1.
 - Fixed: Dev-mode FPS counter (added to the Dev Mode panel, `src/lib/tileEditor.js`) crashed on "New Game" - `attachTileEditor` re-runs every `create()` since GameScene is a reused instance, so its `update`/`shutdown` listeners were stacking across restarts and a stale listener called `setText()` on an already-destroyed Text object. Fixed by unhooking each session's own listeners on `shutdown`. Also fixed `balance-harness.mjs`: Player 1's simulated turn was capped at `AI_MAX_ACTIONS` (5), a limit that's actually specific to the in-game AI opponent - a real human keeps acting until out of legal/affordable moves. Uncapped Player 1's loop; re-ran and results held close to balanced (River 49.8/50.2, Ocean 49.4/49.8).
 - Done: Shoreline level FPS fix (Foothold v0.23) - Ben's device test found the shoreline level dropping to ~20fps (river stayed 55-60fps). Root cause: every ocean/shoal tile carried its own masked swell/ripple/foam sprites, ~40-50 individually masked draw calls a frame, each forcing its own WebGL stencil pass on top of the already-heavier shoreline scene - mobile GPUs pay for that far more than desktop. Fixed by consolidating to 2 shared masks driven by Containers (`oceanSwellContainer`/`shoalContainer` in `GameScene.js`); `updateOceanSwellMasks()` now redraws the shared masks' backing Graphics in place instead of destroying/recreating a GeometryMask per tile. Re-tested on device: shoreline stays above 50fps. 60fps device test Trello card moved to Done.
+- Done: Ran the ux-reviewer agent (+ Codex sub-agent) on v0.23; triaged its findings - the "siege enemy Special node does nothing" report was a false positive (browser-automation click-targeting issue, confirmed by manual playtest and a code review of `GameScene.js`'s siege logic). The reviewer's separate observation of a stale-cached-build risk led to shipping Foothold v0.24: a dismissable "Update available" toast (top-pill design, staged 4 options in `stage/update-toast.html` first) using per-tab baseline version detection to dodge a service-worker update-timing race condition. Full pre-push gate completed and pushed. Ship-lock queue now collapsed to a single remaining item: ship to itch.io.
 
 ### 2026-07-14
 - Done: Trello made the task tracker of record - moved all Todo.md unchecked items + ship-lock items into cards on the Foothold Trello board (Todo/Backlog lists, Feature/Bug/Polish labels); `foothold/Todo.md` frozen as a historical decision/rationale log. Added two new Polish cards (AI vs AI balance testing for the River and Shoreline/Twin Shoals levels) as ship-lock prerequisites.

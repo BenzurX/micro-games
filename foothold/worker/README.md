@@ -17,7 +17,7 @@ system of record.
 }
 ```
 
-- `type` - must be exactly `"Bug"` or `"Feature"`. Anything else is rejected (400).
+- `type` - must be exactly `"Bug"` or `"Suggestion"`. Anything else is rejected (400).
 - `message` - required, non-empty after trimming. Longer than 2000 characters gets
   truncated (not rejected). Empty after trimming is rejected (400).
 - `hp` - honeypot field. Real users never fill this in. If it's non-empty, the
@@ -120,7 +120,7 @@ Foothold Trello board, labeled "Beta Feedback" + "Bug".
 - Board: **Foothold** (`6a5561e77bb31280a2ad8750`)
 - List: **Cloudflare Worker** - intake lane for all feedback-form submissions
   (`6a5564f4557bda36272cade9`)
-- Labels applied: **Beta Feedback** (always) + **Bug** or **Feature** depending on
+- Labels applied: **Beta Feedback** (always) + **Bug** or **Suggestion** depending on
   the submitted `type`.
 
 These IDs live in `wrangler.toml` under `[vars.trello]` - they are not secret, so

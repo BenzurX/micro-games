@@ -4,9 +4,13 @@
 
 Solo developer (Benzur) building a series of small, polished micro games for mobile (iOS/Android via Capacitor), web (itch.io), and eventually Steam. Goal: modest recurring revenue to fund future projects. Ship date discipline matters more than feature richness.
 
-- Developer profile: Senior UI/UX designer, 12+ years visual design, ~1 week of Claude Code experience, comfortable with HTML/CSS, learning game dev.
+- Developer profile: Senior UI/UX designer, 12+ years visual design, comfortable with HTML/CSS, learning game dev.
 - Design tools in use: Figma (mood boards, color themes), Aseprite (pixel art, asset rework).
 - Monetization model: free game + single one-time "premium unlock" IAP ($0.99–$1.99). Never coin packs, never interstitial ads.
+
+## Chrome Automation: purchase/IAP protection
+
+`mcp__claude-in-chrome__computer` is allowed without a per-click prompt in this project (see `.claude/settings.local.json`), scoped for FPS/gameplay testing. Purchase/IAP click protection is governed by the global hard rule in `~/.claude/CLAUDE.md` ("Automated testing: NEVER complete a purchase") - it applies here too and is not weakened by this project's scoped allowlist.
 
 ## Pre-Push Gate (do this before every `git push`, per game)
 
@@ -19,13 +23,11 @@ Before pushing any game's repo, complete these first (skip nothing):
    `sw.js`), also bump its `CACHE_VERSION` string - a stale one leaves players stuck on an
    old cached build even after you ship a fix.
 4. If the game shows its own version number in-UI (Foothold's `src/lib/settings.js` has a
-   `VERSION` constant read by the title screen and Settings ▸ About), bump that string too.
-   It's a separate constant from the CHANGELOG/snapshot version and won't update on its own -
-   it drifted six releases behind (stuck at v0.08 through v0.14) before this line was added.
+   `VERSION` constant read by the title screen and Settings ▸ About), bump that string too -
+   it's separate from the CHANGELOG/snapshot version and won't update on its own.
 5. Confirm `assets/CREDITS.md` covers every third-party asset in the build.
-6. Remove any "em dashes" (—) and use regular dashes (-) instead.
 
-Only after all six: commit, then push.
+Only after all five: commit, then push.
 
 ## Tech Stack
 
@@ -73,9 +75,7 @@ Before calling any game done, verify:
 - Comment the _why_, not the _what_. Benzur will read this code to learn.
 - Explain new concepts briefly when introducing them (he is learning game dev, not an expert yet).
 
-## Model Handoff Notes (for Opus/Sonnet/Haiku after July 7)
-
-This project was planned with a more capable model. When working here:
+## Model Handoff Notes
 
 - Do not redesign architecture or re-decide settled questions. Decisions live in `PROGRESS.md` under Decision Log and in each game's `DESIGN.md`.
 - If a design doc is ambiguous, ask Benzur rather than improvising.

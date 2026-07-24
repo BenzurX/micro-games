@@ -1,6 +1,6 @@
 // Foothold beta-feedback Worker
 //
-// Receives POST { type: "Bug" | "Feature", message: string, hp: string } from the
+// Receives POST { type: "Bug" | "Suggestion", message: string, hp: string } from the
 // in-game feedback form and creates a Trello card on the "Cloudflare Worker" intake
 // list. Trello is the only system of record - this Worker holds no database.
 //
@@ -48,8 +48,8 @@ export default {
       return jsonResponse({ error: 'Missing "type" field' }, 400, corsHeaders);
     }
 
-    if (body.type !== 'Bug' && body.type !== 'Feature') {
-      return jsonResponse({ error: '"type" must be "Bug" or "Feature"' }, 400, corsHeaders);
+    if (body.type !== 'Bug' && body.type !== 'Suggestion') {
+      return jsonResponse({ error: '"type" must be "Bug" or "Suggestion"' }, 400, corsHeaders);
     }
 
     const rawMessage = typeof body.message === 'string' ? body.message : '';
